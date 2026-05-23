@@ -1,0 +1,10 @@
+﻿namespace LegacyLens.Core.Discovery;
+
+public sealed class DiscoveredProject
+{
+    public required string Name { get; init; }
+    public required string ProjectFilePath { get; init; }
+    public string? TargetFramework { get; init; }
+    public List<string> ProjectReferences { get; init; } = new();
+    public List<string> PackageReferences { get; init; } = new();
+}
