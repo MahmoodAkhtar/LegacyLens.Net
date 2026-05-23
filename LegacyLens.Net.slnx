@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="src/LegacyLens.Cli/LegacyLens.Cli.csproj" />
+  <Project Path="src/LegacyLens.Core/LegacyLens.Core.csproj" />
+  <Project Path="src/LegacyLens.Reporting/LegacyLens.Reporting.csproj" />
+  <Project Path="tests/LegacyLens.Core.Tests/LegacyLens.Core.Tests.csproj" />
+  <Project Path="tests/LegacyLens.Reporting.Tests/LegacyLens.Reporting.Tests.csproj" />
+</Solution>
