@@ -1,5 +1,6 @@
 using System.Text;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Reporting.Mermaid;
 
 namespace LegacyLens.Reporting.Markdown;
 
@@ -41,6 +42,7 @@ public sealed class MarkdownReportWriter
         builder.AppendLine();
 
         AppendProjects(builder, projects);
+        AppendProjectDependencyDiagram(builder, projects);
         AppendProjectReferences(builder, projects);
         AppendPackageReferences(builder, projects);
 
@@ -63,6 +65,17 @@ public sealed class MarkdownReportWriter
         builder.AppendLine();
     }
 
+    private static void AppendProjectDependencyDiagram(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
+    {
+        builder.AppendLine("## Project Dependency Diagram");
+        builder.AppendLine();
+
+        var mermaidDiagramWriter = new MermaidDiagramWriter();
+
+        builder.AppendLine(mermaidDiagramWriter.BuildProjectDependencyDiagram(projects));
+        builder.AppendLine();
+    }
+    
     private static void AppendProjectReferences(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
     {
         builder.AppendLine("## Project References");

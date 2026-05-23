@@ -39,6 +39,7 @@ The generated report currently includes:
 
 - a summary of discovered projects
 - a project table
+- a Mermaid project dependency diagram
 - project reference information
 - package reference information
 
@@ -225,14 +226,29 @@ The Markdown report currently includes:
 - summary counts
 - discovered projects
 - target frameworks
+- project dependency diagram
 - project references
 - package references
 
 ### Mermaid
 
-Planned.
+Currently implemented.
 
-This will generate a Mermaid dependency diagram from discovered project references and include it in the Markdown report.
+Generates a Mermaid project dependency diagram from discovered project references and includes it in the Markdown discovery report.
+
+The diagram is generated from `<ProjectReference />` entries found in `.csproj` files.
+
+Example:
+
+```mermaid
+graph TD
+    SampleLegacyApp_Web --> SampleLegacyApp_Services
+    SampleLegacyApp_Services --> SampleLegacyApp_Data
+    SampleLegacyApp_Services --> SampleLegacyApp_Contracts
+    SampleLegacyApp_Web --> SampleLegacyApp_Contracts
+```
+
+Project names are sanitized for Mermaid output by replacing characters such as `.`, `-`, and spaces with `_`.
 
 ### HTML
 
@@ -306,9 +322,17 @@ LegacyLens.NET currently generates a Markdown report at:
 output/discovery-report.md
 ```
 
+The current report sections are:
+
+- Summary
+- Projects
+- Project Dependency Diagram
+- Project References
+- Package References
+
 The report currently includes sections such as:
 
-```markdown
+````markdown
 # LegacyLens.NET Discovery Report
 
 ## Summary
@@ -322,6 +346,16 @@ The report currently includes sections such as:
 | Project | Target Framework | Project File |
 |---|---|---|
 
+## Project Dependency Diagram
+
+```mermaid
+graph TD
+    SampleLegacyApp_Web --> SampleLegacyApp_Services
+    SampleLegacyApp_Services --> SampleLegacyApp_Data
+    SampleLegacyApp_Services --> SampleLegacyApp_Contracts
+    SampleLegacyApp_Web --> SampleLegacyApp_Contracts
+```
+
 ## Project References
 
 | From | To |
@@ -331,27 +365,29 @@ The report currently includes sections such as:
 
 | Project | Package |
 |---|---|
-```
+`````
 
 The generated report is intended to be readable in source control, Markdown preview tools, and documentation systems.
 
 ---
 
-## Planned Mermaid Dependency Diagram
+## Mermaid Dependency Diagram
 
-Mermaid dependency diagrams are planned as the next reporting improvement.
+LegacyLens.NET includes a Mermaid project dependency diagram in the generated Markdown report.
 
-A future report may include a diagram such as:
+The diagram is created from discovered project-to-project references and is intended to make the structure of the solution easier to understand visually.
+
+Example:
 
 ```mermaid
 graph TD
-    SampleLegacyApp.Web --> SampleLegacyApp.Services
-    SampleLegacyApp.Services --> SampleLegacyApp.Data
-    SampleLegacyApp.Services --> SampleLegacyApp.Contracts
-    SampleLegacyApp.Web --> SampleLegacyApp.Contracts
+    SampleLegacyApp_Web --> SampleLegacyApp_Services
+    SampleLegacyApp_Services --> SampleLegacyApp_Data
+    SampleLegacyApp_Services --> SampleLegacyApp_Contracts
+    SampleLegacyApp_Web --> SampleLegacyApp_Contracts
 ```
 
-This will make it easier to visually understand project-to-project relationships.
+This makes it easier to visually understand project-to-project relationships.
 
 ---
 
@@ -359,23 +395,22 @@ This will make it easier to visually understand project-to-project relationships
 
 Current MVP functionality includes:
 
-- static `.csproj` discovery
-- project name discovery
-- target framework discovery
-- project-to-project reference discovery
-- NuGet package reference discovery
-- Markdown discovery report generation
-- output file generation under the `output/` directory
+* static `.csproj` discovery
+* project name discovery
+* target framework discovery
+* project-to-project reference discovery
+* NuGet package reference discovery
+* Markdown discovery report generation
+* Mermaid project dependency diagram generation
+* output file generation under the `output/` directory
 
 Planned MVP features include:
 
-- Mermaid dependency diagrams
-- solution-level summary
-- project dependency graph
-- package reference summary improvements
-- target framework summary improvements
-- WCF endpoint and service contract detection
-- basic risk indicators
+* solution-level summary
+* package reference summary improvements
+* target framework summary improvements
+* WCF endpoint and service contract detection
+* basic risk indicators
 
 ---
 
@@ -385,46 +420,46 @@ Planned MVP features include:
 
 Status: Implemented
 
-- Discover `.csproj` files
-- Read project name
-- Read target framework
-- Read project references
-- Read package references
+* Discover `.csproj` files
+* Read project name
+* Read target framework
+* Read project references
+* Read package references
 
 ### Step 2: Markdown report generation
 
 Status: Implemented
 
-- Generate `output/discovery-report.md`
-- Include summary counts
-- Include project table
-- Include project references
-- Include package references
+* Generate `output/discovery-report.md`
+* Include summary counts
+* Include project table
+* Include project references
+* Include package references
 
 ### Step 3: Dependency diagram generation
 
-Status: Next planned step
+Status: Implemented
 
-- Generate Mermaid dependency graph
-- Include graph in Markdown report
+* Generate Mermaid dependency graph
+* Include graph in Markdown report
 
 ### Step 4: WCF discovery
 
-Status: Planned
+Status: Next planned step
 
-- Detect WCF configuration
-- Detect service contracts
-- Detect endpoints
+* Detect WCF configuration
+* Detect service contracts
+* Detect endpoints
 
 ### Step 5: Risk and modernisation hints
 
 Status: Planned
 
-- Identify old target frameworks
-- Identify legacy packages
-- Highlight tightly coupled project dependencies
-- Highlight WCF usage
-- Highlight config-heavy applications
+* Identify old target frameworks
+* Identify legacy packages
+* Highlight tightly coupled project dependencies
+* Highlight WCF usage
+* Highlight config-heavy applications
 
 ---
 
@@ -432,13 +467,13 @@ Status: Planned
 
 LegacyLens.NET can be used when:
 
-- you have inherited a legacy .NET application
-- you need to understand a codebase before making changes
-- the solution does not build locally
-- you need to document project dependencies
-- you want to create diagrams for stakeholders
-- you are assessing modernisation effort
-- you are preparing for refactoring or migration
+* you have inherited a legacy .NET application
+* you need to understand a codebase before making changes
+* the solution does not build locally
+* you need to document project dependencies
+* you want to create diagrams for stakeholders
+* you are assessing modernisation effort
+* you are preparing for refactoring or migration
 
 ---
 
@@ -446,12 +481,12 @@ LegacyLens.NET can be used when:
 
 LegacyLens.NET is intended to be:
 
-- static-first
-- useful without requiring a successful build
-- simple to run from the command line
-- focused on practical codebase understanding
-- useful for both legacy and modern .NET solutions
-- able to generate human-readable reports and diagrams
+* static-first
+* useful without requiring a successful build
+* simple to run from the command line
+* focused on practical codebase understanding
+* useful for both legacy and modern .NET solutions
+* able to generate human-readable reports and diagrams
 
 ---
 
