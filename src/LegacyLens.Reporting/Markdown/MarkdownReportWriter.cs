@@ -1,4 +1,5 @@
 using System.Text;
+using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Discovery;
 using LegacyLens.Core.Wcf;
 using LegacyLens.Reporting.Mermaid;
@@ -11,7 +12,8 @@ public sealed class MarkdownReportWriter
         string outputPath,
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
-        IReadOnlyList<WcfServiceContract> wcfServiceContracts)
+        IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<ModernisationHint> modernisationHints)
     {
         if (string.IsNullOrWhiteSpace(outputPath))
         {
@@ -27,7 +29,7 @@ public sealed class MarkdownReportWriter
             Directory.CreateDirectory(outputDirectory);
         }
 
-        var markdown = BuildMarkdown(projects, wcfEndpoints, wcfServiceContracts);
+        var markdown = BuildMarkdown(projects, wcfEndpoints, wcfServiceContracts, modernisationHints);
 
         File.WriteAllText(outputPath, markdown);
     }
@@ -35,7 +37,8 @@ public sealed class MarkdownReportWriter
     private static string BuildMarkdown(
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
-        IReadOnlyList<WcfServiceContract> wcfServiceContracts)
+        IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<ModernisationHint> modernisationHints)
     {
         var builder = new StringBuilder();
 
@@ -57,8 +60,34 @@ public sealed class MarkdownReportWriter
         AppendPackageReferences(builder, projects);
         AppendWcfEndpoints(builder, wcfEndpoints);
         AppendWcfServiceContracts(builder, wcfServiceContracts);
+        AppendModernisationHints(builder, modernisationHints);
         
         return builder.ToString();
+    }
+    
+    private static void AppendModernisationHints(
+        StringBuilder builder,
+        IReadOnlyList<ModernisationHint> hints)
+    {
+        builder.AppendLine("## Modernisation Hints");
+        builder.AppendLine();
+        builder.AppendLine("| Severity | Area | Finding | Reason |");
+        builder.AppendLine("|---|---|---|---|");
+
+        if (hints.Count == 0)
+        {
+            builder.AppendLine("| None | None | None | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var hint in hints.OrderByDescending(x => x.Severity).ThenBy(x => x.Area))
+        {
+            builder.AppendLine(
+                $"| {hint.Severity} | {Escape(hint.Area)} | {Escape(hint.Finding)} | {Escape(hint.Reason)} |");
+        }
+
+        builder.AppendLine();
     }
 
     private static void AppendWcfServiceContracts(

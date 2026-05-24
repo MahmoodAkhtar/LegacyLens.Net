@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning project files, C# source files, and configuration files, then reporting useful information such as projects, target frameworks, project references, package references, WCF endpoint configuration, WCF service contracts, and service-related configuration.
+It helps developers quickly understand the structure of a .NET solution by scanning project files, C# source files, and configuration files, then reporting useful information such as projects, target frameworks, project references, package references, WCF endpoint configuration, WCF service contracts, service-related configuration, and basic modernisation hints.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -13,6 +13,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - Are there signs of legacy technologies such as WCF?
 - Which WCF endpoints are configured?
 - Which WCF service contracts and operations are defined in the source code?
+- What modernisation risks or review areas should be looked at first?
 - What diagrams or reports can help explain the system to others?
 
 LegacyLens.NET is designed to work through static analysis, meaning it can provide useful information even when the target solution cannot currently be built.
@@ -33,6 +34,7 @@ The current implementation can scan a folder containing .NET projects and discov
 - WCF endpoints from `app.config` and `web.config` files
 - WCF service contracts from C# source files
 - WCF operations marked with `[OperationContract]`
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, and higher project coupling
 
 It can also generate a Markdown discovery report at:
 
@@ -49,6 +51,7 @@ The generated report currently includes:
 - package reference information
 - WCF endpoint information
 - WCF service contract and operation information
+- modernisation hints with severity, area, finding, and reason
 
 Example console output:
 
@@ -85,16 +88,29 @@ WCF service contracts discovered:
   Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
   Operation: GetCustomer
 
+Modernisation hints discovered:
+- [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
+- [Risk] Target Framework: SampleLegacyApp.Data targets net48
+- [Risk] Target Framework: SampleLegacyApp.Services targets net48
+- [Risk] Target Framework: SampleLegacyApp.Web targets net48
+- [Risk] Packages: SampleLegacyApp.Web references System.ServiceModel.Http
+- [Info] Packages: SampleLegacyApp.Web references Newtonsoft.Json
+- [Risk] WCF: 1 WCF endpoint(s) discovered
+- [Risk] WCF: 1 WCF service contract(s) discovered
+
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
 
-If no WCF endpoints or WCF service contracts are found, the console output shows:
+If no WCF endpoints, WCF service contracts, or modernisation hints are found, the console output shows:
 
 ```text
 WCF endpoints discovered:
 - None
 
 WCF service contracts discovered:
+- None
+
+Modernisation hints discovered:
 - None
 ```
 
@@ -137,6 +153,8 @@ Even if the solution does not build, it can still discover useful information fr
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
+> Note: current package reference discovery is based on `<PackageReference />` entries in `.csproj` files. Dedicated `packages.config` discovery is planned.
+
 ---
 
 ## Repository Structure
@@ -177,6 +195,7 @@ The core project is organised around discovery and analysis concepts.
 ```text
 LegacyLens.Core/
 ├── Abstractions/
+├── Analysis/
 ├── Dependencies/
 ├── Discovery/
 ├── Models/
@@ -191,6 +210,23 @@ Examples:
 
 - `IScanner`
 - `IReportWriter`
+
+### Analysis
+
+Responsible for turning discovered facts into basic review and modernisation hints.
+
+Current analysis work includes:
+
+- modelling modernisation hints
+- classifying hints by severity: `Info`, `Warning`, and `Risk`
+- identifying old .NET Framework target frameworks such as `net48`
+- identifying missing target framework declarations
+- identifying WCF-related package usage such as `System.ServiceModel.*`
+- identifying classic Entity Framework package usage
+- identifying `Newtonsoft.Json` usage as an informational review item
+- highlighting projects with several direct project references
+- highlighting discovered WCF endpoints
+- highlighting discovered WCF service contracts
 
 ### Discovery
 
@@ -235,7 +271,7 @@ Current WCF work includes:
 Planned WCF work includes:
 
 - richer WCF binding and endpoint analysis
-- WCF-related risk and modernisation indicators
+- more detailed WCF-related risk and modernisation indicators
 
 ---
 
@@ -273,6 +309,7 @@ The Markdown report currently includes:
 - WCF endpoint details
 - WCF service contract details
 - WCF operation names
+- modernisation hints
 
 ### Mermaid
 
@@ -316,7 +353,7 @@ Example:
 PS C:\Users\YourName\RiderProjects\LegacyLens.Net> dotnet run --project src/LegacyLens.Cli -- .\samples\SampleLegacyApp\
 ```
 
-This scans the sample application, prints discovered project and WCF information to the console, and generates a Markdown report at:
+This scans the sample application, prints discovered project, WCF, and modernisation hint information to the console, and generates a Markdown report at:
 
 ```text
 output/discovery-report.md
@@ -365,6 +402,16 @@ WCF service contracts discovered:
   Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
   Operation: GetCustomer
 
+Modernisation hints discovered:
+- [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
+- [Risk] Target Framework: SampleLegacyApp.Data targets net48
+- [Risk] Target Framework: SampleLegacyApp.Services targets net48
+- [Risk] Target Framework: SampleLegacyApp.Web targets net48
+- [Risk] Packages: SampleLegacyApp.Web references System.ServiceModel.Http
+- [Info] Packages: SampleLegacyApp.Web references Newtonsoft.Json
+- [Risk] WCF: 1 WCF endpoint(s) discovered
+- [Risk] WCF: 1 WCF service contract(s) discovered
+
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
 
@@ -387,6 +434,7 @@ The current report sections are:
 - Package References
 - WCF Endpoints
 - WCF Service Contracts
+- Modernisation Hints
 
 The report currently includes sections such as:
 
@@ -437,6 +485,16 @@ graph TD
 | Contract | Operations | Source File |
 |---|---|---|
 | ICustomerService | GetCustomer | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs` |
+
+## Modernisation Hints
+
+| Severity | Area | Finding | Reason |
+|---|---|---|---|
+| Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |
+| Risk | Packages | SampleLegacyApp.Web references System.ServiceModel.Http | System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning. |
+| Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
+| Risk | WCF | 1 WCF service contract(s) discovered | WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning. |
+| Info | Packages | SampleLegacyApp.Web references Newtonsoft.Json | This is common in legacy and modern projects, but may be reviewed during modernisation. |
 ````
 
 The generated report is intended to be readable in source control, Markdown preview tools, and documentation systems.
@@ -539,6 +597,44 @@ Current service contract discovery is intentionally lightweight and static. It i
 
 ---
 
+## Modernisation Hint Analysis
+
+LegacyLens.NET can produce basic modernisation hints from the information it discovers.
+
+The current modernisation hint analysis is intentionally lightweight. It does not attempt to fully assess migration effort, but it highlights useful review areas for developers investigating a legacy or unfamiliar .NET codebase.
+
+Current hint areas include:
+
+- target framework review
+- project dependency review
+- package review
+- WCF endpoint review
+- WCF service contract review
+
+Current severity levels are:
+
+| Severity | Meaning |
+|---|---|
+| `Info` | Useful information to review during discovery |
+| `Warning` | Something that may need extra attention |
+| `Risk` | Something likely to affect modernisation or migration planning |
+
+Example report output:
+
+```markdown
+## Modernisation Hints
+
+| Severity | Area | Finding | Reason |
+|---|---|---|---|
+| Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |
+| Risk | Packages | SampleLegacyApp.Web references System.ServiceModel.Http | System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning. |
+| Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
+```
+
+These hints are intended to guide the first review of a codebase. They should be treated as discovery signals, not final migration advice.
+
+---
+
 ## MVP Functionality
 
 Current MVP functionality includes:
@@ -555,6 +651,12 @@ Current MVP functionality includes:
 - WCF service contract discovery from C# source files
 - WCF operation discovery from `[OperationContract]` methods
 - WCF service contract reporting
+- basic modernisation hint analysis
+- modernisation hints for old .NET Framework target frameworks
+- modernisation hints for missing target framework declarations
+- modernisation hints for selected legacy or review-worthy packages
+- modernisation hints for WCF endpoints and service contracts
+- modernisation hint reporting in the generated Markdown report
 - output file generation under the `output/` directory
 
 Planned MVP features include:
@@ -563,7 +665,7 @@ Planned MVP features include:
 - package reference summary improvements
 - target framework summary improvements
 - richer WCF binding and endpoint analysis
-- basic risk indicators
+- richer risk and modernisation indicators
 
 ---
 
@@ -616,13 +718,27 @@ Remaining work:
 
 ### Step 5: Risk and modernisation hints
 
-Status: Planned
+Status: Partially implemented
 
-- Identify old target frameworks
-- Identify legacy packages
-- Highlight tightly coupled project dependencies
-- Highlight WCF usage
-- Highlight config-heavy applications
+Implemented:
+
+- Identify old .NET Framework target frameworks such as `net48`
+- Identify missing target framework declarations
+- Identify WCF-related packages such as `System.ServiceModel.*`
+- Identify classic Entity Framework package usage
+- Identify `Newtonsoft.Json` usage as an informational review item
+- Highlight projects with several direct project references
+- Highlight discovered WCF endpoints
+- Highlight discovered WCF service contracts
+- Include modernisation hints in the generated Markdown report
+
+Remaining work:
+
+- Add more legacy ASP.NET and `System.Web` indicators
+- Add `packages.config` detection
+- Add config-heavy application indicators
+- Add richer WCF binding and endpoint risk analysis
+- Improve severity classification as more discovery signals are added
 
 ---
 
@@ -639,6 +755,8 @@ LegacyLens.NET can be used when:
 - you are preparing for refactoring or migration
 - you need to identify legacy WCF configuration and integration points
 - you need to identify WCF service contracts and operations defined in source code
+- you want an initial list of modernisation review areas
+- you need to identify likely migration risks before deeper analysis
 
 ---
 

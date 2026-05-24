@@ -1,4 +1,5 @@
-﻿using LegacyLens.Core.Discovery;
+﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Discovery;
 using LegacyLens.Reporting.Markdown;
 using LegacyLens.Core.Wcf;
 
@@ -75,6 +76,28 @@ else
     }
 }
 
+var modernisationHintAnalyzer = new ModernisationHintAnalyzer();
+
+var modernisationHints = modernisationHintAnalyzer.Analyze(
+    projects,
+    wcfEndpoints,
+    wcfServiceContracts);
+
+Console.WriteLine();
+Console.WriteLine("Modernisation hints discovered:");
+
+if (modernisationHints.Count == 0)
+{
+    Console.WriteLine("- None");
+}
+else
+{
+    foreach (var hint in modernisationHints)
+    {
+        Console.WriteLine($"- [{hint.Severity}] {hint.Area}: {hint.Finding}");
+    }
+}
+
 var outputPath = Path.Combine(
     Directory.GetCurrentDirectory(),
     "output",
@@ -82,7 +105,12 @@ var outputPath = Path.Combine(
 
 var reportWriter = new MarkdownReportWriter();
 
-reportWriter.Write(outputPath, projects, wcfEndpoints, wcfServiceContracts);
+reportWriter.Write(
+    outputPath, 
+    projects, 
+    wcfEndpoints, 
+    wcfServiceContracts, 
+    modernisationHints);
 
 Console.WriteLine();
 Console.WriteLine($"Markdown report generated: {outputPath}");
