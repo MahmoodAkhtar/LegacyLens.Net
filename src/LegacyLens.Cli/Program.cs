@@ -1,11 +1,14 @@
 ﻿using LegacyLens.Core.Discovery;
 using LegacyLens.Reporting.Markdown;
+using LegacyLens.Core.Wcf;
 
 var path = args.Length > 0 ? args[0] : Directory.GetCurrentDirectory();
 
 var discoveryService = new ProjectDiscoveryService();
 
 var projects = discoveryService.DiscoverProjects(path);
+var wcfConfigScanner = new WcfConfigScanner();
+var wcfEndpoints = wcfConfigScanner.Scan(path);
 
 Console.WriteLine("Projects discovered:");
 
@@ -29,6 +32,25 @@ foreach (var project in projects)
     }
 }
 
+Console.WriteLine();
+Console.WriteLine("WCF endpoints discovered:");
+
+if (wcfEndpoints.Count == 0)
+{
+    Console.WriteLine("- None");
+}
+else
+{
+    foreach (var endpoint in wcfEndpoints)
+    {
+        Console.WriteLine($"- {endpoint.ServiceName ?? "Unknown service"}");
+        Console.WriteLine($"  Address: {endpoint.Address ?? ""}");
+        Console.WriteLine($"  Binding: {endpoint.Binding ?? ""}");
+        Console.WriteLine($"  Contract: {endpoint.Contract ?? ""}");
+        Console.WriteLine($"  Config file: {endpoint.ConfigFilePath}");
+    }
+}
+
 var outputPath = Path.Combine(
     Directory.GetCurrentDirectory(),
     "output",
@@ -36,7 +58,8 @@ var outputPath = Path.Combine(
 
 var reportWriter = new MarkdownReportWriter();
 
-reportWriter.Write(outputPath, projects);
+reportWriter.Write(outputPath, projects, wcfEndpoints);
 
 Console.WriteLine();
 Console.WriteLine($"Markdown report generated: {outputPath}");
+

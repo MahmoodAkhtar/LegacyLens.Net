@@ -1,12 +1,16 @@
 using System.Text;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Wcf;
 using LegacyLens.Reporting.Mermaid;
 
 namespace LegacyLens.Reporting.Markdown;
 
 public sealed class MarkdownReportWriter
 {
-    public void Write(string outputPath, IReadOnlyList<DiscoveredProject> projects)
+    public void Write(
+        string outputPath,
+        IReadOnlyList<DiscoveredProject> projects,
+        IReadOnlyList<WcfEndpoint> wcfEndpoints)
     {
         if (string.IsNullOrWhiteSpace(outputPath))
         {
@@ -22,12 +26,14 @@ public sealed class MarkdownReportWriter
             Directory.CreateDirectory(outputDirectory);
         }
 
-        var markdown = BuildMarkdown(projects);
+        var markdown = BuildMarkdown(projects, wcfEndpoints);
 
         File.WriteAllText(outputPath, markdown);
     }
 
-    private static string BuildMarkdown(IReadOnlyList<DiscoveredProject> projects)
+    private static string BuildMarkdown(
+        IReadOnlyList<DiscoveredProject> projects,
+        IReadOnlyList<WcfEndpoint> wcfEndpoints)
     {
         var builder = new StringBuilder();
 
@@ -39,16 +45,41 @@ public sealed class MarkdownReportWriter
         builder.AppendLine($"- Projects discovered: {projects.Count}");
         builder.AppendLine($"- Project references discovered: {projects.Sum(x => x.ProjectReferences.Count)}");
         builder.AppendLine($"- Package references discovered: {projects.Sum(x => x.PackageReferences.Count)}");
+        builder.AppendLine($"- WCF endpoints discovered: {wcfEndpoints.Count}");
         builder.AppendLine();
 
         AppendProjects(builder, projects);
         AppendProjectDependencyDiagram(builder, projects);
         AppendProjectReferences(builder, projects);
         AppendPackageReferences(builder, projects);
+        AppendWcfEndpoints(builder, wcfEndpoints);
 
         return builder.ToString();
     }
 
+    private static void AppendWcfEndpoints(StringBuilder builder, IReadOnlyList<WcfEndpoint> endpoints)
+    {
+        builder.AppendLine("## WCF Endpoints");
+        builder.AppendLine();
+        builder.AppendLine("| Service | Address | Binding | Contract | Config File |");
+        builder.AppendLine("|---|---|---|---|---|");
+
+        if (endpoints.Count == 0)
+        {
+            builder.AppendLine("| None | None | None | None | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var endpoint in endpoints.OrderBy(x => x.ServiceName).ThenBy(x => x.Contract))
+        {
+            builder.AppendLine(
+                $"| {Escape(endpoint.ServiceName ?? "Unknown")} | {Escape(endpoint.Address ?? "")} | {Escape(endpoint.Binding ?? "")} | {Escape(endpoint.Contract ?? "")} | `{endpoint.ConfigFilePath}` |");
+        }
+
+        builder.AppendLine();
+    }
+    
     private static void AppendProjects(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
     {
         builder.AppendLine("## Projects");
