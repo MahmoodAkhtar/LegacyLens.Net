@@ -10,7 +10,8 @@ public sealed class MarkdownReportWriter
     public void Write(
         string outputPath,
         IReadOnlyList<DiscoveredProject> projects,
-        IReadOnlyList<WcfEndpoint> wcfEndpoints)
+        IReadOnlyList<WcfEndpoint> wcfEndpoints,
+        IReadOnlyList<WcfServiceContract> wcfServiceContracts)
     {
         if (string.IsNullOrWhiteSpace(outputPath))
         {
@@ -26,14 +27,15 @@ public sealed class MarkdownReportWriter
             Directory.CreateDirectory(outputDirectory);
         }
 
-        var markdown = BuildMarkdown(projects, wcfEndpoints);
+        var markdown = BuildMarkdown(projects, wcfEndpoints, wcfServiceContracts);
 
         File.WriteAllText(outputPath, markdown);
     }
 
     private static string BuildMarkdown(
         IReadOnlyList<DiscoveredProject> projects,
-        IReadOnlyList<WcfEndpoint> wcfEndpoints)
+        IReadOnlyList<WcfEndpoint> wcfEndpoints,
+        IReadOnlyList<WcfServiceContract> wcfServiceContracts)
     {
         var builder = new StringBuilder();
 
@@ -46,6 +48,7 @@ public sealed class MarkdownReportWriter
         builder.AppendLine($"- Project references discovered: {projects.Sum(x => x.ProjectReferences.Count)}");
         builder.AppendLine($"- Package references discovered: {projects.Sum(x => x.PackageReferences.Count)}");
         builder.AppendLine($"- WCF endpoints discovered: {wcfEndpoints.Count}");
+        builder.AppendLine($"- WCF service contracts discovered: {wcfServiceContracts.Count}");
         builder.AppendLine();
 
         AppendProjects(builder, projects);
@@ -53,10 +56,40 @@ public sealed class MarkdownReportWriter
         AppendProjectReferences(builder, projects);
         AppendPackageReferences(builder, projects);
         AppendWcfEndpoints(builder, wcfEndpoints);
-
+        AppendWcfServiceContracts(builder, wcfServiceContracts);
+        
         return builder.ToString();
     }
 
+    private static void AppendWcfServiceContracts(
+        StringBuilder builder,
+        IReadOnlyList<WcfServiceContract> contracts)
+    {
+        builder.AppendLine("## WCF Service Contracts");
+        builder.AppendLine();
+        builder.AppendLine("| Contract | Operations | Source File |");
+        builder.AppendLine("|---|---|---|");
+
+        if (contracts.Count == 0)
+        {
+            builder.AppendLine("| None | None | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var contract in contracts.OrderBy(x => x.Name))
+        {
+            var operations = contract.Operations.Count == 0
+                ? ""
+                : string.Join(", ", contract.Operations.Select(Escape));
+
+            builder.AppendLine(
+                $"| {Escape(contract.Name)} | {operations} | `{contract.SourceFilePath}` |");
+        }
+
+        builder.AppendLine();
+    }
+    
     private static void AppendWcfEndpoints(StringBuilder builder, IReadOnlyList<WcfEndpoint> endpoints)
     {
         builder.AppendLine("## WCF Endpoints");

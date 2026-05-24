@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning project files and reporting useful information such as projects, target frameworks, project references, package references, WCF endpoint configuration, and service-related configuration.
+It helps developers quickly understand the structure of a .NET solution by scanning project files, C# source files, and configuration files, then reporting useful information such as projects, target frameworks, project references, package references, WCF endpoint configuration, WCF service contracts, and service-related configuration.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -12,6 +12,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - Which NuGet packages are referenced?
 - Are there signs of legacy technologies such as WCF?
 - Which WCF endpoints are configured?
+- Which WCF service contracts and operations are defined in the source code?
 - What diagrams or reports can help explain the system to others?
 
 LegacyLens.NET is designed to work through static analysis, meaning it can provide useful information even when the target solution cannot currently be built.
@@ -30,6 +31,8 @@ The current implementation can scan a folder containing .NET projects and discov
 - project-to-project references
 - NuGet package references
 - WCF endpoints from `app.config` and `web.config` files
+- WCF service contracts from C# source files
+- WCF operations marked with `[OperationContract]`
 
 It can also generate a Markdown discovery report at:
 
@@ -39,12 +42,13 @@ output/discovery-report.md
 
 The generated report currently includes:
 
-- a summary of discovered projects, references, packages, and WCF endpoints
+- a summary of discovered projects, references, packages, WCF endpoints, and WCF service contracts
 - a project table
 - a Mermaid project dependency diagram
 - project reference information
 - package reference information
 - WCF endpoint information
+- WCF service contract and operation information
 
 Example console output:
 
@@ -76,13 +80,21 @@ WCF endpoints discovered:
   Contract: SampleLegacyApp.Contracts.ICustomerService
   Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
 
+WCF service contracts discovered:
+- ICustomerService
+  Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
+  Operation: GetCustomer
+
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
 
-If no WCF endpoints are found, the console output shows:
+If no WCF endpoints or WCF service contracts are found, the console output shows:
 
 ```text
 WCF endpoints discovered:
+- None
+
+WCF service contracts discovered:
 - None
 ```
 
@@ -118,6 +130,8 @@ Even if the solution does not build, it can still discover useful information fr
 - `web.config`
 - C# source files
 - WCF configuration files
+- WCF `[ServiceContract]` interfaces
+- WCF `[OperationContract]` methods
 - project references
 - package references
 
@@ -213,10 +227,13 @@ Current WCF work includes:
 - detecting `<system.serviceModel>` configuration
 - extracting configured WCF endpoints
 - modelling WCF endpoint details such as service name, address, binding, contract, and config file path
+- scanning C# source files for WCF service contracts
+- detecting interfaces marked with `[ServiceContract]`
+- detecting operations marked with `[OperationContract]`
+- modelling WCF service contract details such as contract name, source file path, and operation names
 
 Planned WCF work includes:
 
-- WCF service contract scanning from C# source files
 - richer WCF binding and endpoint analysis
 - WCF-related risk and modernisation indicators
 
@@ -254,6 +271,8 @@ The Markdown report currently includes:
 - project references
 - package references
 - WCF endpoint details
+- WCF service contract details
+- WCF operation names
 
 ### Mermaid
 
@@ -341,6 +360,11 @@ WCF endpoints discovered:
   Contract: SampleLegacyApp.Contracts.ICustomerService
   Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
 
+WCF service contracts discovered:
+- ICustomerService
+  Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
+  Operation: GetCustomer
+
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
 
@@ -362,6 +386,7 @@ The current report sections are:
 - Project References
 - Package References
 - WCF Endpoints
+- WCF Service Contracts
 
 The report currently includes sections such as:
 
@@ -374,6 +399,7 @@ The report currently includes sections such as:
 - Project references discovered: 4
 - Package references discovered: 3
 - WCF endpoints discovered: 1
+- WCF service contracts discovered: 1
 
 ## Projects
 
@@ -405,6 +431,12 @@ graph TD
 | Service | Address | Binding | Contract | Config File |
 |---|---|---|---|---|
 | SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | SampleLegacyApp.Contracts.ICustomerService | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config` |
+
+## WCF Service Contracts
+
+| Contract | Operations | Source File |
+|---|---|---|
+| ICustomerService | GetCustomer | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs` |
 ````
 
 The generated report is intended to be readable in source control, Markdown preview tools, and documentation systems.
@@ -466,7 +498,44 @@ Example report output:
 
 This helps identify legacy service boundaries and integration points without needing to build or run the target application.
 
-Current WCF discovery is configuration-based. WCF service contract scanning from C# source files is planned but not yet implemented.
+Current WCF endpoint discovery is configuration-based.
+
+---
+
+## WCF Service Contract Discovery
+
+LegacyLens.NET can also detect WCF service contracts from C# source files.
+
+The current WCF service contract scanner looks for interfaces marked with `[ServiceContract]` and operations marked with `[OperationContract]`.
+
+Example WCF service contract:
+
+```csharp
+using System.ServiceModel;
+
+namespace SampleLegacyApp.Contracts;
+
+[ServiceContract]
+public interface ICustomerService
+{
+    [OperationContract]
+    CustomerDto GetCustomer(int id);
+}
+```
+
+Example report output:
+
+```markdown
+## WCF Service Contracts
+
+| Contract | Operations | Source File |
+|---|---|---|
+| ICustomerService | GetCustomer | `...\SampleLegacyApp.Contracts\CustomerContracts.cs` |
+```
+
+This helps identify service boundaries defined in code, even when the target solution cannot be built or run.
+
+Current service contract discovery is intentionally lightweight and static. It is based on source scanning rather than compilation.
 
 ---
 
@@ -483,6 +552,9 @@ Current MVP functionality includes:
 - Mermaid project dependency diagram generation
 - WCF endpoint discovery from configuration files
 - WCF endpoint reporting
+- WCF service contract discovery from C# source files
+- WCF operation discovery from `[OperationContract]` methods
+- WCF service contract reporting
 - output file generation under the `output/` directory
 
 Planned MVP features include:
@@ -490,7 +562,7 @@ Planned MVP features include:
 - solution-level summary
 - package reference summary improvements
 - target framework summary improvements
-- WCF service contract detection from C# source files
+- richer WCF binding and endpoint analysis
 - basic risk indicators
 
 ---
@@ -524,18 +596,23 @@ Status: Implemented
 - Generate Mermaid dependency graph
 - Include graph in Markdown report
 
-### Step 4: WCF configuration discovery
+### Step 4: WCF configuration and service contract discovery
 
 Status: Partially implemented
+
+Implemented:
 
 - Detect WCF configuration in `app.config` and `web.config`
 - Detect configured WCF endpoints
 - Report service name, address, binding, contract, and config file path
+- Detect WCF service contracts from C# source files
+- Detect WCF operations marked with `[OperationContract]`
+- Report contract name, operation names, and source file path
 
 Remaining work:
 
-- Detect WCF service contracts from C# source files
 - Improve binding and endpoint analysis
+- Improve service contract parsing for more complex C# syntax
 
 ### Step 5: Risk and modernisation hints
 
@@ -561,6 +638,7 @@ LegacyLens.NET can be used when:
 - you are assessing modernisation effort
 - you are preparing for refactoring or migration
 - you need to identify legacy WCF configuration and integration points
+- you need to identify WCF service contracts and operations defined in source code
 
 ---
 

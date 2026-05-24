@@ -51,6 +51,30 @@ else
     }
 }
 
+var wcfServiceContractScanner = new WcfServiceContractScanner();
+var wcfServiceContracts = wcfServiceContractScanner.Scan(path);
+
+Console.WriteLine();
+Console.WriteLine("WCF service contracts discovered:");
+
+if (wcfServiceContracts.Count == 0)
+{
+    Console.WriteLine("- None");
+}
+else
+{
+    foreach (var contract in wcfServiceContracts)
+    {
+        Console.WriteLine($"- {contract.Name}");
+        Console.WriteLine($"  Source file: {contract.SourceFilePath}");
+
+        foreach (var operation in contract.Operations)
+        {
+            Console.WriteLine($"  Operation: {operation}");
+        }
+    }
+}
+
 var outputPath = Path.Combine(
     Directory.GetCurrentDirectory(),
     "output",
@@ -58,7 +82,7 @@ var outputPath = Path.Combine(
 
 var reportWriter = new MarkdownReportWriter();
 
-reportWriter.Write(outputPath, projects, wcfEndpoints);
+reportWriter.Write(outputPath, projects, wcfEndpoints, wcfServiceContracts);
 
 Console.WriteLine();
 Console.WriteLine($"Markdown report generated: {outputPath}");
