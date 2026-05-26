@@ -39,13 +39,7 @@ public sealed class ProjectDiscoveryService
                 .Select(x => x!)
                 .ToList();
 
-            var packageReferences = document
-                .Descendants()
-                .Where(x => x.Name.LocalName == "PackageReference")
-                .Select(x => x.Attribute("Include")?.Value)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x => x!)
-                .ToList();
+            var packageReferences = ReadPackageReferences(document, projectFile);
 
             projects.Add(new DiscoveredProject
             {
@@ -58,5 +52,61 @@ public sealed class ProjectDiscoveryService
         }
 
         return projects;
+    }
+
+    private static List<string> ReadPackageReferences(XDocument projectDocument, string projectFile)
+    {
+        var projectPackageReferences = projectDocument
+            .Descendants()
+            .Where(x => x.Name.LocalName == "PackageReference")
+            .Select(x => x.Attribute("Include")?.Value)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!);
+
+        var packagesConfigReferences = ReadPackagesConfigReferences(projectFile);
+
+        return projectPackageReferences
+            .Concat(packagesConfigReferences)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x)
+            .ToList();
+    }
+
+    private static List<string> ReadPackagesConfigReferences(string projectFile)
+    {
+        var projectDirectory = Path.GetDirectoryName(projectFile);
+
+        if (string.IsNullOrWhiteSpace(projectDirectory))
+        {
+            return new List<string>();
+        }
+
+        var packagesConfigPath = Path.Combine(projectDirectory, "packages.config");
+
+        if (!File.Exists(packagesConfigPath))
+        {
+            return new List<string>();
+        }
+
+        XDocument document;
+
+        try
+        {
+            document = XDocument.Load(packagesConfigPath);
+        }
+        catch
+        {
+            return new List<string>();
+        }
+
+        return document
+            .Descendants()
+            .Where(x => x.Name.LocalName == "package")
+            .Select(x => x.Attribute("id")?.Value)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x)
+            .ToList();
     }
 }

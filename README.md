@@ -30,11 +30,14 @@ The current implementation can scan a folder containing .NET projects and discov
 - project names
 - target frameworks
 - project-to-project references
-- NuGet package references
+- NuGet package references from SDK-style `<PackageReference />` entries in `.csproj` files
+- NuGet package references from legacy `packages.config` files located alongside project files
 - WCF endpoints from `app.config` and `web.config` files
 - WCF service contracts from C# source files
 - WCF operations marked with `[OperationContract]`
 - basic modernisation hints for legacy target frameworks, WCF usage, selected packages, and higher project coupling
+
+Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
 It can also generate a Markdown discovery report at:
 
@@ -63,6 +66,7 @@ Projects discovered:
 - SampleLegacyApp.Data
   Target framework: net48
   Package reference: Dapper
+  Package reference: EntityFramework
 
 - SampleLegacyApp.Services
   Target framework: net48
@@ -93,6 +97,7 @@ Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Data targets net48
 - [Risk] Target Framework: SampleLegacyApp.Services targets net48
 - [Risk] Target Framework: SampleLegacyApp.Web targets net48
+- [Warning] Packages: SampleLegacyApp.Data references EntityFramework
 - [Risk] Packages: SampleLegacyApp.Web references System.ServiceModel.Http
 - [Info] Packages: SampleLegacyApp.Web references Newtonsoft.Json
 - [Risk] WCF: 1 WCF endpoint(s) discovered
@@ -153,7 +158,40 @@ Even if the solution does not build, it can still discover useful information fr
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
-> Note: current package reference discovery is based on `<PackageReference />` entries in `.csproj` files. Dedicated `packages.config` discovery is planned.
+> Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
+
+---
+
+## Package Reference Discovery
+
+LegacyLens.NET can discover NuGet package references from both modern and legacy project styles.
+
+Current package discovery supports:
+
+- SDK-style `<PackageReference />` entries inside `.csproj` files
+- legacy `packages.config` files located in the same folder as the project file
+
+Example SDK-style package reference:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Dapper" Version="2.1.66" />
+</ItemGroup>
+```
+
+Example legacy `packages.config` file:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<packages>
+  <package id="EntityFramework" version="6.4.4" targetFramework="net48" />
+  <package id="Newtonsoft.Json" version="13.0.3" targetFramework="net48" />
+</packages>
+```
+
+Package names discovered from both sources are merged into the project package reference list. Duplicate package names are removed case-insensitively.
+
+This helps LegacyLens.NET identify important legacy dependencies even when older .NET Framework projects do not use SDK-style package references.
 
 ---
 
@@ -238,6 +276,8 @@ Current discovery work includes:
 - solution discovery
 - source file discovery
 - discovered project modelling
+- package reference discovery from `<PackageReference />` entries
+- package reference discovery from legacy `packages.config` files
 
 ### Dependencies
 
@@ -377,6 +417,7 @@ Projects discovered:
 - SampleLegacyApp.Data
   Target framework: net48
   Package reference: Dapper
+  Package reference: EntityFramework
 
 - SampleLegacyApp.Services
   Target framework: net48
@@ -407,6 +448,7 @@ Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Data targets net48
 - [Risk] Target Framework: SampleLegacyApp.Services targets net48
 - [Risk] Target Framework: SampleLegacyApp.Web targets net48
+- [Warning] Packages: SampleLegacyApp.Data references EntityFramework
 - [Risk] Packages: SampleLegacyApp.Web references System.ServiceModel.Http
 - [Info] Packages: SampleLegacyApp.Web references Newtonsoft.Json
 - [Risk] WCF: 1 WCF endpoint(s) discovered
@@ -445,7 +487,7 @@ The report currently includes sections such as:
 
 - Projects discovered: 4
 - Project references discovered: 4
-- Package references discovered: 3
+- Package references discovered: 4
 - WCF endpoints discovered: 1
 - WCF service contracts discovered: 1
 
@@ -491,6 +533,8 @@ graph TD
 | Severity | Area | Finding | Reason |
 |---|---|---|---|
 | Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |
+| Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
+| Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
 | Risk | Packages | SampleLegacyApp.Web references System.ServiceModel.Http | System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning. |
 | Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
 | Risk | WCF | 1 WCF service contract(s) discovered | WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning. |
@@ -643,7 +687,7 @@ Current MVP functionality includes:
 - project name discovery
 - target framework discovery
 - project-to-project reference discovery
-- NuGet package reference discovery
+- NuGet package reference discovery from `<PackageReference />` entries and legacy `packages.config` files
 - Markdown discovery report generation
 - Mermaid project dependency diagram generation
 - WCF endpoint discovery from configuration files
@@ -679,7 +723,7 @@ Status: Implemented
 - Read project name
 - Read target framework
 - Read project references
-- Read package references
+- Read package references from `<PackageReference />` entries and legacy `packages.config` files
 
 ### Step 2: Markdown report generation
 
@@ -735,7 +779,6 @@ Implemented:
 Remaining work:
 
 - Add more legacy ASP.NET and `System.Web` indicators
-- Add `packages.config` detection
 - Add config-heavy application indicators
 - Add richer WCF binding and endpoint risk analysis
 - Improve severity classification as more discovery signals are added
