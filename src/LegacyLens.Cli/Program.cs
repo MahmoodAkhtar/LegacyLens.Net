@@ -27,6 +27,11 @@ foreach (var project in projects)
         Console.WriteLine($"  Project reference: {reference}");
     }
 
+    foreach (var assemblyReference in project.AssemblyReferences)
+    {
+        Console.WriteLine($"  Assembly reference: {assemblyReference}");
+    }
+    
     foreach (var package in project.PackageReferences)
     {
         Console.WriteLine($"  Package reference: {package}");

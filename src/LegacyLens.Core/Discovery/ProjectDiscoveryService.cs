@@ -41,13 +41,16 @@ public sealed class ProjectDiscoveryService
 
             var packageReferences = ReadPackageReferences(document, projectFile);
 
+            var assemblyReferences = ReadAssemblyReferences(document);
+            
             projects.Add(new DiscoveredProject
             {
                 Name = projectName,
                 ProjectFilePath = projectFile,
                 TargetFramework = targetFramework,
                 ProjectReferences = projectReferences,
-                PackageReferences = packageReferences
+                PackageReferences = packageReferences,
+                AssemblyReferences = assemblyReferences
             });
         }
 
@@ -105,6 +108,21 @@ public sealed class ProjectDiscoveryService
             .Select(x => x.Attribute("id")?.Value)
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x)
+            .ToList();
+    }
+    
+    private static List<string> ReadAssemblyReferences(XDocument projectDocument)
+    {
+        return projectDocument
+            .Descendants()
+            .Where(x => x.Name.LocalName == "Reference")
+            .Select(x => x.Attribute("Include")?.Value)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x!)
+            .Select(x => x.Split(',')[0].Trim())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x)
             .ToList();

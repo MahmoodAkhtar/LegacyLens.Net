@@ -2,13 +2,14 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning project files, C# source files, and configuration files, then reporting useful information such as projects, target frameworks, project references, package references, WCF endpoint configuration, WCF service contracts, service-related configuration, and basic modernisation hints.
+It helps developers quickly understand the structure of a .NET solution by scanning project files, C# source files, and configuration files, then reporting useful information such as projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF service contracts, service-related configuration, and basic modernisation hints.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
 - What projects exist in this solution?
 - Which target frameworks are being used?
 - Which projects depend on each other?
+- Which framework assembly references are used by each project?
 - Which NuGet packages are referenced?
 - Are there signs of legacy technologies such as WCF?
 - Which WCF endpoints are configured?
@@ -30,12 +31,13 @@ The current implementation can scan a folder containing .NET projects and discov
 - project names
 - target frameworks
 - project-to-project references
+- assembly references from `<Reference />` entries in `.csproj` files
 - NuGet package references from SDK-style `<PackageReference />` entries in `.csproj` files
 - NuGet package references from legacy `packages.config` files located alongside project files
 - WCF endpoints from `app.config` and `web.config` files
 - WCF service contracts from C# source files
 - WCF operations marked with `[OperationContract]`
-- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, higher project coupling, and selected WCF binding types
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, higher project coupling, and selected WCF binding types
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
@@ -54,7 +56,7 @@ The generated report currently includes:
 - package reference information
 - WCF endpoint information
 - WCF service contract and operation information
-- modernisation hints with severity, area, finding, and reason
+- modernisation hints with severity, area, finding, and reason, including Legacy ASP.NET hints when `System.Web` assembly references are found
 
 Example console output:
 
@@ -77,6 +79,8 @@ Projects discovered:
   Target framework: net48
   Project reference: ..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj
   Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
+  Assembly reference: System.Web
+  Assembly reference: System.Web.Mvc
   Package reference: System.ServiceModel.Http
   Package reference: Newtonsoft.Json
 
@@ -103,6 +107,8 @@ Modernisation hints discovered:
 - [Risk] WCF: 1 WCF endpoint(s) discovered
 - [Warning] WCF Binding: basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService
 - [Risk] WCF: 1 WCF service contract(s) discovered
+- [Risk] Legacy ASP.NET: SampleLegacyApp.Web references System.Web
+- [Warning] Legacy ASP.NET: SampleLegacyApp.Web references System.Web.Mvc
 
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
@@ -155,11 +161,14 @@ Even if the solution does not build, it can still discover useful information fr
 - WCF `[ServiceContract]` interfaces
 - WCF `[OperationContract]` methods
 - project references
+- assembly references
 - package references
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
 > Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
+
+> Note: assembly reference discovery currently supports `<Reference Include="..." />` entries in `.csproj` files. Version metadata is removed so references such as `System.Web.Mvc, Version=5.2.9.0` are reported as `System.Web.Mvc`.
 
 ---
 
@@ -193,6 +202,39 @@ Example legacy `packages.config` file:
 Package names discovered from both sources are merged into the project package reference list. Duplicate package names are removed case-insensitively.
 
 This helps LegacyLens.NET identify important legacy dependencies even when older .NET Framework projects do not use SDK-style package references.
+
+---
+
+
+## Assembly Reference Discovery
+
+LegacyLens.NET can discover framework assembly references from `.csproj` files.
+
+This is useful for older .NET Framework projects where important dependencies may appear as assembly references rather than NuGet package references.
+
+Current assembly reference discovery supports:
+
+- `<Reference Include="..." />` entries inside `.csproj` files
+- assembly reference names with version metadata, normalised to the assembly name
+- duplicate assembly references removed case-insensitively
+
+Example assembly references:
+
+```xml
+<ItemGroup>
+  <Reference Include="System.Web" />
+  <Reference Include="System.Web.Mvc, Version=5.2.9.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" />
+</ItemGroup>
+```
+
+These are discovered as:
+
+```text
+System.Web
+System.Web.Mvc
+```
+
+This helps LegacyLens.NET identify legacy ASP.NET indicators that may not appear as NuGet package references.
 
 ---
 
@@ -263,6 +305,8 @@ Current analysis work includes:
 - identifying WCF-related package usage such as `System.ServiceModel.*`
 - identifying classic Entity Framework package usage
 - identifying `Newtonsoft.Json` usage as an informational review item
+- identifying legacy ASP.NET indicators from `System.Web` assembly references
+- identifying `System.Web.*` assembly references as legacy ASP.NET review items
 - highlighting projects with several direct project references
 - highlighting discovered WCF endpoints
 - highlighting selected WCF binding types such as `basicHttpBinding`, `netTcpBinding`, `wsHttpBinding`, and `netMsmqBinding`
@@ -281,6 +325,7 @@ Current discovery work includes:
 - discovered project modelling
 - package reference discovery from `<PackageReference />` entries
 - package reference discovery from legacy `packages.config` files
+- assembly reference discovery from `<Reference />` entries
 
 ### Dependencies
 
@@ -397,7 +442,7 @@ Example:
 PS C:\Users\YourName\RiderProjects\LegacyLens.Net> dotnet run --project src/LegacyLens.Cli -- .\samples\SampleLegacyApp\
 ```
 
-This scans the sample application, prints discovered project, WCF, and modernisation hint information to the console, and generates a Markdown report at:
+This scans the sample application, prints discovered project, assembly reference, WCF, and modernisation hint information to the console, and generates a Markdown report at:
 
 ```text
 output/discovery-report.md
@@ -432,6 +477,8 @@ Projects discovered:
   Target framework: net48
   Project reference: ..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj
   Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
+  Assembly reference: System.Web
+  Assembly reference: System.Web.Mvc
   Package reference: System.ServiceModel.Http
   Package reference: Newtonsoft.Json
 
@@ -458,6 +505,8 @@ Modernisation hints discovered:
 - [Risk] WCF: 1 WCF endpoint(s) discovered
 - [Warning] WCF Binding: basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService
 - [Risk] WCF: 1 WCF service contract(s) discovered
+- [Risk] Legacy ASP.NET: SampleLegacyApp.Web references System.Web
+- [Warning] Legacy ASP.NET: SampleLegacyApp.Web references System.Web.Mvc
 
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
@@ -541,6 +590,8 @@ graph TD
 | Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |
 | Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
 | Risk | WCF | 1 WCF service contract(s) discovered | WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning. |
+| Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core. |
+| Warning | Legacy ASP.NET | SampleLegacyApp.Web references System.Web.Mvc | System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment. |
 | Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
 | Warning | WCF Binding | basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService | basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning. |
 | Info | Packages | SampleLegacyApp.Web references Newtonsoft.Json | This is common in legacy and modern projects, but may be reviewed during modernisation. |
@@ -657,6 +708,7 @@ Current hint areas include:
 - target framework review
 - project dependency review
 - package review
+- legacy ASP.NET / `System.Web` review
 - WCF endpoint review
 - WCF binding review
 - WCF service contract review
@@ -679,6 +731,14 @@ Current WCF binding hints include:
 | `netTcpBinding` | `Risk` | WCF-specific communication that usually needs careful migration or replacement planning |
 | `netMsmqBinding` | `Risk` | Queue-based WCF integration that needs separate migration planning |
 
+
+Current legacy ASP.NET hints include:
+
+| Indicator | Severity | Meaning |
+|---|---|---|
+| `System.Web` assembly reference | `Risk` | Usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core |
+| `System.Web.*` assembly reference | `Warning` | Indicates legacy ASP.NET-related functionality that may need separate migration assessment |
+
 Example report output:
 
 ```markdown
@@ -689,6 +749,8 @@ Example report output:
 | Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |
 | Risk | Packages | SampleLegacyApp.Web references System.ServiceModel.Http | System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning. |
 | Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
+| Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core. |
+| Warning | Legacy ASP.NET | SampleLegacyApp.Web references System.Web.Mvc | System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment. |
 ```
 
 These hints are intended to guide the first review of a codebase. They should be treated as discovery signals, not final migration advice.
@@ -703,6 +765,7 @@ Current MVP functionality includes:
 - project name discovery
 - target framework discovery
 - project-to-project reference discovery
+- assembly reference discovery from `<Reference />` entries
 - NuGet package reference discovery from `<PackageReference />` entries and legacy `packages.config` files
 - Markdown discovery report generation
 - Mermaid project dependency diagram generation
@@ -715,6 +778,7 @@ Current MVP functionality includes:
 - modernisation hints for old .NET Framework target frameworks
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
+- modernisation hints for legacy ASP.NET and `System.Web` assembly references
 - modernisation hints for WCF endpoints, selected WCF binding types, and service contracts
 - modernisation hint reporting in the generated Markdown report
 - output file generation under the `output/` directory
@@ -739,6 +803,7 @@ Status: Implemented
 - Read project name
 - Read target framework
 - Read project references
+- Read assembly references from `<Reference />` entries
 - Read package references from `<PackageReference />` entries and legacy `packages.config` files
 
 ### Step 2: Markdown report generation
@@ -792,11 +857,12 @@ Implemented:
 - Highlight selected WCF binding types, including `basicHttpBinding`, `netTcpBinding`, `wsHttpBinding`, and `netMsmqBinding`
 - Highlight WCF endpoints with missing binding information
 - Highlight discovered WCF service contracts
+- Identify legacy ASP.NET indicators from `System.Web` and `System.Web.*` assembly references
 - Include modernisation hints in the generated Markdown report
 
 Remaining work:
 
-- Add more legacy ASP.NET and `System.Web` indicators
+- Add more legacy ASP.NET indicators beyond the current `System.Web` and `System.Web.*` assembly reference hints
 - Add config-heavy application indicators
 - Add richer WCF endpoint risk analysis beyond the current binding-level hints
 - Improve severity classification as more discovery signals are added

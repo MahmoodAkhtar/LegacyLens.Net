@@ -20,6 +20,7 @@ public sealed class ModernisationHintAnalyzer
         AddProjectCouplingHints(projects, hints);
         AddPackageHints(projects, hints);
         AddWcfHints(wcfEndpoints, wcfServiceContracts, hints);
+        AddAssemblyReferenceHints(projects, hints);
 
         return hints;
     }
@@ -225,6 +226,39 @@ public sealed class ModernisationHintAnalyzer
                     Reason =
                         "netMsmqBinding indicates queue-based WCF integration that needs separate migration planning."
                 });
+            }
+        }
+    }
+    
+    private static void AddAssemblyReferenceHints(
+        IReadOnlyList<DiscoveredProject> projects,
+        List<ModernisationHint> hints)
+    {
+        foreach (var project in projects)
+        {
+            foreach (var reference in project.AssemblyReferences)
+            {
+                if (reference.Equals("System.Web", StringComparison.OrdinalIgnoreCase))
+                {
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Risk,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{project.Name} references System.Web",
+                        Reason = "System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core."
+                    });
+                }
+
+                if (reference.StartsWith("System.Web.", StringComparison.OrdinalIgnoreCase))
+                {
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{project.Name} references {reference}",
+                        Reason = "System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment."
+                    });
+                }
             }
         }
     }
