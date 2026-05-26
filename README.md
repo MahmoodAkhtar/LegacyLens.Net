@@ -49,10 +49,11 @@ output/discovery-report.md
 
 The generated report currently includes:
 
-- a summary of discovered projects, references, packages, WCF endpoints, and WCF service contracts
+- a summary of discovered projects, project references, assembly references, package references, WCF endpoints, and WCF service contracts
 - a project table
 - a Mermaid project dependency diagram
 - project reference information
+- assembly reference information
 - package reference information
 - WCF endpoint information
 - WCF service contract and operation information
@@ -394,6 +395,7 @@ The Markdown report currently includes:
 - target frameworks
 - project dependency diagram
 - project references
+- assembly references
 - package references
 - WCF endpoint details
 - WCF service contract details
@@ -527,6 +529,7 @@ The current report sections are:
 - Projects
 - Project Dependency Diagram
 - Project References
+- Assembly References
 - Package References
 - WCF Endpoints
 - WCF Service Contracts
@@ -544,6 +547,7 @@ The report currently includes sections such as:
 - Package references discovered: 4
 - WCF endpoints discovered: 1
 - WCF service contracts discovered: 1
+- Assembly references discovered: 2
 
 ## Projects
 
@@ -564,6 +568,13 @@ graph TD
 
 | From | To |
 |---|---|
+
+## Assembly References
+
+| Project | Assembly |
+|---|---|
+| SampleLegacyApp.Web | `System.Web` |
+| SampleLegacyApp.Web | `System.Web.Mvc` |
 
 ## Package References
 
@@ -814,6 +825,7 @@ Status: Implemented
 - Include summary counts
 - Include project table
 - Include project references
+- Include assembly references
 - Include package references
 
 ### Step 3: Dependency diagram generation

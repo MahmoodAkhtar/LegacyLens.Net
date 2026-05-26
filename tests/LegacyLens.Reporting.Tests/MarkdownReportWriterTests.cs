@@ -54,4 +54,77 @@ public class MarkdownReportWriterTests
         Assert.Contains("| Severity | Area | Finding | Reason |", markdown);
         Assert.Contains("| Risk | Target Framework | Legacy.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |", markdown);
     }
+    
+    [Fact]
+    public void Write_IncludesAssemblyReferences()
+    {
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"),
+            "discovery-report.md");
+
+        var projects = new List<DiscoveredProject>
+        {
+            new()
+            {
+                Name = "SampleLegacyApp.Web",
+                ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
+                TargetFramework = "net48",
+                AssemblyReferences =
+                {
+                    "System.Web",
+                    "System.Web.Mvc"
+                }
+            }
+        };
+
+        var writer = new MarkdownReportWriter();
+
+        writer.Write(
+            outputPath,
+            projects,
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<ModernisationHint>());
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains("- Assembly references discovered: 2", markdown);
+        Assert.Contains("## Assembly References", markdown);
+        Assert.Contains("| SampleLegacyApp.Web | `System.Web` |", markdown);
+        Assert.Contains("| SampleLegacyApp.Web | `System.Web.Mvc` |", markdown);
+    }
+    
+    [Fact]
+    public void Write_WhenNoAssemblyReferences_IncludesNoneRow()
+    {
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"),
+            "discovery-report.md");
+
+        var projects = new List<DiscoveredProject>
+        {
+            new()
+            {
+                Name = "SampleLegacyApp.Contracts",
+                ProjectFilePath = @"C:\Code\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj",
+                TargetFramework = "net48"
+            }
+        };
+
+        var writer = new MarkdownReportWriter();
+
+        writer.Write(
+            outputPath,
+            projects,
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<ModernisationHint>());
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains("## Assembly References", markdown);
+        Assert.Contains("| None | None |", markdown);
+    }
 }

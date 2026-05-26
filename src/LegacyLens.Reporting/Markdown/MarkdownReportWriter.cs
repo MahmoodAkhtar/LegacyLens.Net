@@ -52,17 +52,45 @@ public sealed class MarkdownReportWriter
         builder.AppendLine($"- Package references discovered: {projects.Sum(x => x.PackageReferences.Count)}");
         builder.AppendLine($"- WCF endpoints discovered: {wcfEndpoints.Count}");
         builder.AppendLine($"- WCF service contracts discovered: {wcfServiceContracts.Count}");
+        builder.AppendLine($"- Assembly references discovered: {projects.Sum(x => x.AssemblyReferences.Count)}");
         builder.AppendLine();
 
         AppendProjects(builder, projects);
         AppendProjectDependencyDiagram(builder, projects);
         AppendProjectReferences(builder, projects);
+        AppendAssemblyReferences(builder, projects);
         AppendPackageReferences(builder, projects);
         AppendWcfEndpoints(builder, wcfEndpoints);
         AppendWcfServiceContracts(builder, wcfServiceContracts);
         AppendModernisationHints(builder, modernisationHints);
         
         return builder.ToString();
+    }
+    
+    private static void AppendAssemblyReferences(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
+    {
+        builder.AppendLine("## Assembly References");
+        builder.AppendLine();
+        builder.AppendLine("| Project | Assembly |");
+        builder.AppendLine("|---|---|");
+
+        var hasAssemblyReferences = false;
+
+        foreach (var project in projects.OrderBy(x => x.Name))
+        {
+            foreach (var assemblyReference in project.AssemblyReferences.OrderBy(x => x))
+            {
+                hasAssemblyReferences = true;
+                builder.AppendLine($"| {Escape(project.Name)} | `{Escape(assemblyReference)}` |");
+            }
+        }
+
+        if (!hasAssemblyReferences)
+        {
+            builder.AppendLine("| None | None |");
+        }
+
+        builder.AppendLine();
     }
     
     private static void AppendModernisationHints(
