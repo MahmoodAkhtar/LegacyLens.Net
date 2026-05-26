@@ -87,7 +87,8 @@ public sealed class ModernisationHintAnalyzer
                         Severity = ModernisationHintSeverity.Risk,
                         Area = "Packages",
                         Finding = $"{project.Name} references {package}",
-                        Reason = "System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning."
+                        Reason =
+                            "System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning."
                     });
                 }
 
@@ -98,7 +99,8 @@ public sealed class ModernisationHintAnalyzer
                         Severity = ModernisationHintSeverity.Warning,
                         Area = "Packages",
                         Finding = $"{project.Name} references EntityFramework",
-                        Reason = "Classic Entity Framework may require assessment before migration to EF Core or modern .NET."
+                        Reason =
+                            "Classic Entity Framework may require assessment before migration to EF Core or modern .NET."
                     });
                 }
 
@@ -109,7 +111,8 @@ public sealed class ModernisationHintAnalyzer
                         Severity = ModernisationHintSeverity.Info,
                         Area = "Packages",
                         Finding = $"{project.Name} references Newtonsoft.Json",
-                        Reason = "This is common in legacy and modern projects, but may be reviewed during modernisation."
+                        Reason =
+                            "This is common in legacy and modern projects, but may be reviewed during modernisation."
                     });
                 }
             }
@@ -128,8 +131,11 @@ public sealed class ModernisationHintAnalyzer
                 Severity = ModernisationHintSeverity.Risk,
                 Area = "WCF",
                 Finding = $"{wcfEndpoints.Count} WCF endpoint(s) discovered",
-                Reason = "Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment."
+                Reason =
+                    "Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment."
             });
+
+            AddWcfBindingHints(wcfEndpoints, hints);
         }
 
         if (wcfServiceContracts.Count > 0)
@@ -139,8 +145,87 @@ public sealed class ModernisationHintAnalyzer
                 Severity = ModernisationHintSeverity.Risk,
                 Area = "WCF",
                 Finding = $"{wcfServiceContracts.Count} WCF service contract(s) discovered",
-                Reason = "WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning."
+                Reason =
+                    "WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning."
             });
+        }
+    }
+
+    private static void AddWcfBindingHints(
+        IReadOnlyList<WcfEndpoint> wcfEndpoints,
+        List<ModernisationHint> hints)
+    {
+        foreach (var endpoint in wcfEndpoints)
+        {
+            var serviceName = string.IsNullOrWhiteSpace(endpoint.ServiceName)
+                ? "Unknown service"
+                : endpoint.ServiceName;
+
+            if (string.IsNullOrWhiteSpace(endpoint.Binding))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "WCF Binding",
+                    Finding = $"{serviceName} has a WCF endpoint without a binding",
+                    Reason = "Missing WCF binding information makes endpoint migration assessment harder."
+                });
+
+                continue;
+            }
+
+            if (endpoint.Binding.Equals("basicHttpBinding", StringComparison.OrdinalIgnoreCase))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "WCF Binding",
+                    Finding = $"basicHttpBinding endpoint discovered for {serviceName}",
+                    Reason =
+                        "basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning."
+                });
+
+                continue;
+            }
+
+            if (endpoint.Binding.Equals("netTcpBinding", StringComparison.OrdinalIgnoreCase))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Risk,
+                    Area = "WCF Binding",
+                    Finding = $"netTcpBinding endpoint discovered for {serviceName}",
+                    Reason =
+                        "netTcpBinding is WCF-specific and usually needs careful migration or replacement planning."
+                });
+
+                continue;
+            }
+
+            if (endpoint.Binding.Equals("wsHttpBinding", StringComparison.OrdinalIgnoreCase))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "WCF Binding",
+                    Finding = $"wsHttpBinding endpoint discovered for {serviceName}",
+                    Reason = "wsHttpBinding may indicate SOAP and WS-* features that need modernisation assessment."
+                });
+
+                continue;
+            }
+
+            if (endpoint.Binding.Equals("netMsmqBinding", StringComparison.OrdinalIgnoreCase))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Risk,
+                    Area = "WCF Binding",
+                    Finding = $"netMsmqBinding endpoint discovered for {serviceName}",
+                    Reason =
+                        "netMsmqBinding indicates queue-based WCF integration that needs separate migration planning."
+                });
+            }
         }
     }
 }

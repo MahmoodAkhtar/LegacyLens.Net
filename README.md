@@ -35,7 +35,7 @@ The current implementation can scan a folder containing .NET projects and discov
 - WCF endpoints from `app.config` and `web.config` files
 - WCF service contracts from C# source files
 - WCF operations marked with `[OperationContract]`
-- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, and higher project coupling
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, higher project coupling, and selected WCF binding types
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
@@ -101,6 +101,7 @@ Modernisation hints discovered:
 - [Risk] Packages: SampleLegacyApp.Web references System.ServiceModel.Http
 - [Info] Packages: SampleLegacyApp.Web references Newtonsoft.Json
 - [Risk] WCF: 1 WCF endpoint(s) discovered
+- [Warning] WCF Binding: basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService
 - [Risk] WCF: 1 WCF service contract(s) discovered
 
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
@@ -264,6 +265,8 @@ Current analysis work includes:
 - identifying `Newtonsoft.Json` usage as an informational review item
 - highlighting projects with several direct project references
 - highlighting discovered WCF endpoints
+- highlighting selected WCF binding types such as `basicHttpBinding`, `netTcpBinding`, `wsHttpBinding`, and `netMsmqBinding`
+- highlighting WCF endpoints with missing binding information
 - highlighting discovered WCF service contracts
 
 ### Discovery
@@ -310,8 +313,9 @@ Current WCF work includes:
 
 Planned WCF work includes:
 
-- richer WCF binding and endpoint analysis
+- richer WCF endpoint analysis beyond the currently detected binding-level hints
 - more detailed WCF-related risk and modernisation indicators
+- improved service contract parsing for more complex C# syntax
 
 ---
 
@@ -452,6 +456,7 @@ Modernisation hints discovered:
 - [Risk] Packages: SampleLegacyApp.Web references System.ServiceModel.Http
 - [Info] Packages: SampleLegacyApp.Web references Newtonsoft.Json
 - [Risk] WCF: 1 WCF endpoint(s) discovered
+- [Warning] WCF Binding: basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService
 - [Risk] WCF: 1 WCF service contract(s) discovered
 
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
@@ -532,12 +537,12 @@ graph TD
 
 | Severity | Area | Finding | Reason |
 |---|---|---|---|
-| Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |
-| Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
-| Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
 | Risk | Packages | SampleLegacyApp.Web references System.ServiceModel.Http | System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning. |
+| Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |
 | Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
 | Risk | WCF | 1 WCF service contract(s) discovered | WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning. |
+| Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
+| Warning | WCF Binding | basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService | basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning. |
 | Info | Packages | SampleLegacyApp.Web references Newtonsoft.Json | This is common in legacy and modern projects, but may be reviewed during modernisation. |
 ````
 
@@ -653,6 +658,7 @@ Current hint areas include:
 - project dependency review
 - package review
 - WCF endpoint review
+- WCF binding review
 - WCF service contract review
 
 Current severity levels are:
@@ -662,6 +668,16 @@ Current severity levels are:
 | `Info` | Useful information to review during discovery |
 | `Warning` | Something that may need extra attention |
 | `Risk` | Something likely to affect modernisation or migration planning |
+
+Current WCF binding hints include:
+
+| Binding | Severity | Meaning |
+|---|---|---|
+| Missing binding | `Warning` | The endpoint cannot be fully assessed because binding information is missing |
+| `basicHttpBinding` | `Warning` | Commonly indicates SOAP interoperability that may need replacement or compatibility planning |
+| `wsHttpBinding` | `Warning` | May indicate SOAP and WS-* features that need modernisation assessment |
+| `netTcpBinding` | `Risk` | WCF-specific communication that usually needs careful migration or replacement planning |
+| `netMsmqBinding` | `Risk` | Queue-based WCF integration that needs separate migration planning |
 
 Example report output:
 
@@ -699,7 +715,7 @@ Current MVP functionality includes:
 - modernisation hints for old .NET Framework target frameworks
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
-- modernisation hints for WCF endpoints and service contracts
+- modernisation hints for WCF endpoints, selected WCF binding types, and service contracts
 - modernisation hint reporting in the generated Markdown report
 - output file generation under the `output/` directory
 
@@ -708,7 +724,7 @@ Planned MVP features include:
 - solution-level summary
 - package reference summary improvements
 - target framework summary improvements
-- richer WCF binding and endpoint analysis
+- richer WCF endpoint analysis beyond the current binding-level hints
 - richer risk and modernisation indicators
 
 ---
@@ -757,7 +773,7 @@ Implemented:
 
 Remaining work:
 
-- Improve binding and endpoint analysis
+- Improve endpoint analysis beyond the currently detected binding-level hints
 - Improve service contract parsing for more complex C# syntax
 
 ### Step 5: Risk and modernisation hints
@@ -773,6 +789,8 @@ Implemented:
 - Identify `Newtonsoft.Json` usage as an informational review item
 - Highlight projects with several direct project references
 - Highlight discovered WCF endpoints
+- Highlight selected WCF binding types, including `basicHttpBinding`, `netTcpBinding`, `wsHttpBinding`, and `netMsmqBinding`
+- Highlight WCF endpoints with missing binding information
 - Highlight discovered WCF service contracts
 - Include modernisation hints in the generated Markdown report
 
@@ -780,7 +798,7 @@ Remaining work:
 
 - Add more legacy ASP.NET and `System.Web` indicators
 - Add config-heavy application indicators
-- Add richer WCF binding and endpoint risk analysis
+- Add richer WCF endpoint risk analysis beyond the current binding-level hints
 - Improve severity classification as more discovery signals are added
 
 ---

@@ -265,4 +265,88 @@ public sealed class ModernisationHintAnalyzerTests
 
         Assert.Empty(hints);
     }
+
+    [Fact]
+    public void Analyze_AddsWarningHint_ForBasicHttpBinding()
+    {
+        var analyzer = new ModernisationHintAnalyzer();
+
+        var endpoints = new List<WcfEndpoint>
+        {
+            new()
+            {
+                ConfigFilePath = "web.config",
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Address = "",
+                Binding = "basicHttpBinding",
+                Contract = "SampleLegacyApp.Contracts.ICustomerService"
+            }
+        };
+
+        var hints = analyzer.Analyze(
+            Array.Empty<DiscoveredProject>(),
+            endpoints,
+            Array.Empty<WcfServiceContract>());
+
+        Assert.Contains(hints, hint =>
+            hint.Severity == ModernisationHintSeverity.Warning &&
+            hint.Area == "WCF Binding" &&
+            hint.Finding == "basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService");
+    }
+
+    [Fact]
+    public void Analyze_AddsRiskHint_ForNetTcpBinding()
+    {
+        var analyzer = new ModernisationHintAnalyzer();
+
+        var endpoints = new List<WcfEndpoint>
+        {
+            new()
+            {
+                ConfigFilePath = "app.config",
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Address = "net.tcp://localhost/CustomerService",
+                Binding = "netTcpBinding",
+                Contract = "SampleLegacyApp.Contracts.ICustomerService"
+            }
+        };
+
+        var hints = analyzer.Analyze(
+            Array.Empty<DiscoveredProject>(),
+            endpoints,
+            Array.Empty<WcfServiceContract>());
+
+        Assert.Contains(hints, hint =>
+            hint.Severity == ModernisationHintSeverity.Risk &&
+            hint.Area == "WCF Binding" &&
+            hint.Finding == "netTcpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService");
+    }
+
+    [Fact]
+    public void Analyze_AddsWarningHint_WhenWcfEndpointBindingIsMissing()
+    {
+        var analyzer = new ModernisationHintAnalyzer();
+
+        var endpoints = new List<WcfEndpoint>
+        {
+            new()
+            {
+                ConfigFilePath = "web.config",
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Address = "",
+                Binding = null,
+                Contract = "SampleLegacyApp.Contracts.ICustomerService"
+            }
+        };
+
+        var hints = analyzer.Analyze(
+            Array.Empty<DiscoveredProject>(),
+            endpoints,
+            Array.Empty<WcfServiceContract>());
+
+        Assert.Contains(hints, hint =>
+            hint.Severity == ModernisationHintSeverity.Warning &&
+            hint.Area == "WCF Binding" &&
+            hint.Finding == "SampleLegacyApp.Services.CustomerService has a WCF endpoint without a binding");
+    }
 }
