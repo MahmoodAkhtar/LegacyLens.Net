@@ -220,12 +220,12 @@ public sealed class MarkdownReportWriter
     {
         builder.AppendLine("## WCF Endpoints");
         builder.AppendLine();
-        builder.AppendLine("| Service | Address | Binding | Contract | Config File |");
-        builder.AppendLine("|---|---|---|---|---|");
+        builder.AppendLine("| Service | Address | Binding | Binding Configuration | Security Mode | Transport Credential | Message Credential | Metadata Exchange | Contract | Config File |");
+        builder.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
 
         if (endpoints.Count == 0)
         {
-            builder.AppendLine("| None | None | None | None | None |");
+            builder.AppendLine("| None | None | None | None | None | None | None | None | None | None |");
             builder.AppendLine();
             return;
         }
@@ -233,7 +233,7 @@ public sealed class MarkdownReportWriter
         foreach (var endpoint in endpoints.OrderBy(x => x.ServiceName).ThenBy(x => x.Contract))
         {
             builder.AppendLine(
-                $"| {Escape(endpoint.ServiceName ?? "Unknown")} | {Escape(endpoint.Address ?? "")} | {Escape(endpoint.Binding ?? "")} | {Escape(endpoint.Contract ?? "")} | `{endpoint.ConfigFilePath}` |");
+                $"| {Escape(endpoint.ServiceName ?? "Unknown")} | {Escape(endpoint.Address ?? "")} | {Escape(endpoint.Binding ?? "")} | {Escape(endpoint.BindingConfiguration ?? "")} | {Escape(endpoint.SecurityMode ?? "")} | {Escape(endpoint.TransportClientCredentialType ?? "")} | {Escape(endpoint.MessageClientCredentialType ?? "")} | {endpoint.IsMetadataExchangeEndpoint} | {Escape(endpoint.Contract ?? "")} | `{endpoint.ConfigFilePath}` |");
         }
 
         builder.AppendLine();

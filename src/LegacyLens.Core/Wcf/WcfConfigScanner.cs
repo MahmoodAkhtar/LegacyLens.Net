@@ -61,18 +61,79 @@ public sealed class WcfConfigScanner
 
                 foreach (var endpoint in serviceEndpoints)
                 {
+                    var address = endpoint.Attribute("address")?.Value;
+                    var binding = endpoint.Attribute("binding")?.Value;
+                    var contract = endpoint.Attribute("contract")?.Value;
+                    var bindingConfiguration = endpoint.Attribute("bindingConfiguration")?.Value;
+                    var behaviorConfiguration = endpoint.Attribute("behaviorConfiguration")?.Value;
+                    
+                    var bindingElement = FindBindingElement(
+                        serviceModelElement,
+                        binding,
+                        bindingConfiguration);
+
+                    var securityElement = bindingElement?
+                        .Elements()
+                        .FirstOrDefault(x => x.Name.LocalName == "security");
+
+                    var transportElement = securityElement?
+                        .Elements()
+                        .FirstOrDefault(x => x.Name.LocalName == "transport");
+
+                    var messageElement = securityElement?
+                        .Elements()
+                        .FirstOrDefault(x => x.Name.LocalName == "message");
+                    
                     endpoints.Add(new WcfEndpoint
                     {
                         ConfigFilePath = configFile,
                         ServiceName = serviceName,
-                        Address = endpoint.Attribute("address")?.Value,
-                        Binding = endpoint.Attribute("binding")?.Value,
-                        Contract = endpoint.Attribute("contract")?.Value
+                        Address = address,
+                        Binding = binding,
+                        Contract = contract,
+                        BindingConfiguration = bindingConfiguration,
+                        BehaviorConfiguration = behaviorConfiguration,
+                        SecurityMode = securityElement?.Attribute("mode")?.Value,
+                        TransportClientCredentialType = transportElement?.Attribute("clientCredentialType")?.Value,
+                        MessageClientCredentialType = messageElement?.Attribute("clientCredentialType")?.Value,
+                        IsMetadataExchangeEndpoint =
+                            string.Equals(contract, "IMetadataExchange", StringComparison.OrdinalIgnoreCase) ||
+                            binding?.StartsWith("mex", StringComparison.OrdinalIgnoreCase) == true
                     });
                 }
             }
         }
 
         return endpoints;
+    }
+    
+    private static XElement? FindBindingElement(
+        XElement serviceModelElement,
+        string? binding,
+        string? bindingConfiguration)
+    {
+        if (string.IsNullOrWhiteSpace(binding) ||
+            string.IsNullOrWhiteSpace(bindingConfiguration))
+        {
+            return null;
+        }
+
+        return serviceModelElement
+            .Descendants()
+            .FirstOrDefault(x =>
+                x.Name.LocalName == binding &&
+                x.Elements().Any(y =>
+                    y.Name.LocalName == "binding" &&
+                    string.Equals(
+                        y.Attribute("name")?.Value,
+                        bindingConfiguration,
+                        StringComparison.OrdinalIgnoreCase)))
+            ?.Elements()
+            .FirstOrDefault(x =>
+                x.Name.LocalName == "binding" &&
+                string.Equals(
+                    x.Attribute("name")?.Value,
+                    bindingConfiguration,
+                    StringComparison.OrdinalIgnoreCase));
     }
 }

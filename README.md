@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, and configuration files, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF service contracts, service-related configuration, general configuration file usage, and basic modernisation hints.
+It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, and configuration files, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding and security details, WCF service contracts, service-related configuration, general configuration file usage, and basic modernisation hints.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -39,13 +39,14 @@ The current implementation can scan a folder containing .NET solutions and proje
 - NuGet package references from SDK-style `<PackageReference />` entries in `.csproj` files
 - NuGet package references from legacy `packages.config` files located alongside project files
 - WCF endpoints from `app.config` and `web.config` files
+- WCF endpoint binding configuration names, behaviour configuration names, security modes, transport credential types, message credential types, and metadata exchange endpoint indicators
 - configuration files from `app.config` and `web.config`
 - `appSettings` entry counts
 - `connectionStrings` entry counts
 - custom configuration section counts from `configSections`
 - WCF service contracts from C# source files
 - WCF operations marked with `[OperationContract]`
-- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, higher project coupling, selected WCF binding types, and configuration-heavy applications
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, higher project coupling, selected WCF binding types, WCF security-related endpoint details, metadata exchange endpoints, and configuration-heavy applications
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
@@ -64,7 +65,7 @@ The generated report currently includes:
 - project reference information
 - assembly reference information
 - package reference information
-- WCF endpoint information
+- WCF endpoint information, including binding configuration, security mode, transport credential type, message credential type, and metadata exchange indicators
 - WCF service contract and operation information
 - configuration file information, including `appSettings`, `connectionStrings`, and custom configuration section counts
 - modernisation hints with severity, area, finding, and reason, including Legacy ASP.NET hints when `System.Web` assembly references are found
@@ -191,6 +192,9 @@ Even if the solution does not build, it can still discover useful information fr
 - custom configuration sections
 - C# source files
 - WCF configuration files
+- WCF endpoint binding configuration names
+- WCF endpoint security modes and credential types
+- WCF metadata exchange endpoint indicators
 - WCF `[ServiceContract]` interfaces
 - WCF `[OperationContract]` methods
 - project references
@@ -204,6 +208,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: assembly reference discovery currently supports `<Reference Include="..." />` entries in `.csproj` files. Version metadata is removed so references such as `System.Web.Mvc, Version=5.2.9.0` are reported as `System.Web.Mvc`.
 
 > Note: configuration file discovery currently supports `app.config` and `web.config` files. Invalid or unreadable configuration files are ignored so discovery can continue.
+
+> Note: WCF endpoint discovery currently reads configured service endpoints from `app.config` and `web.config` files. Where endpoints reference named binding configurations, LegacyLens.NET also attempts to resolve related security mode, transport credential type, and message credential type details from the matching binding configuration.
 
 > Note: solution discovery currently supports `.sln` files and extracts referenced C# project paths from project entries. Non-C# project entries and solution folders are ignored.
 
@@ -275,7 +281,6 @@ Package names discovered from both sources are merged into the project package r
 This helps LegacyLens.NET identify important legacy dependencies even when older .NET Framework projects do not use SDK-style package references.
 
 ---
-
 
 ## Assembly Reference Discovery
 
@@ -429,6 +434,10 @@ Current analysis work includes:
 - highlighting discovered WCF endpoints
 - highlighting selected WCF binding types such as `basicHttpBinding`, `netTcpBinding`, `wsHttpBinding`, and `netMsmqBinding`
 - highlighting WCF endpoints with missing binding information
+- highlighting WCF endpoints that use named binding configurations
+- highlighting WCF endpoint security modes
+- highlighting WCF transport credential types
+- highlighting WCF metadata exchange endpoints
 - highlighting discovered WCF service contracts
 - identifying configuration-heavy applications from `app.config` and `web.config`
 - identifying large `appSettings` usage
@@ -485,7 +494,7 @@ Current WCF work includes:
 - scanning `app.config` and `web.config` files
 - detecting `<system.serviceModel>` configuration
 - extracting configured WCF endpoints
-- modelling WCF endpoint details such as service name, address, binding, contract, and config file path
+- modelling WCF endpoint details such as service name, address, binding, binding configuration, behaviour configuration, security mode, transport credential type, message credential type, metadata exchange endpoint indicator, contract, and config file path
 - scanning C# source files for WCF service contracts
 - detecting interfaces marked with `[ServiceContract]`
 - detecting operations marked with `[OperationContract]`
@@ -493,7 +502,7 @@ Current WCF work includes:
 
 Planned WCF work includes:
 
-- richer WCF endpoint analysis beyond the currently detected binding-level hints
+- richer WCF endpoint analysis beyond the currently detected binding, security, credential, and metadata exchange hints
 - more detailed WCF-related risk and modernisation indicators
 - improved service contract parsing for more complex C# syntax
 
@@ -532,7 +541,7 @@ The Markdown report currently includes:
 - project references
 - assembly references
 - package references
-- WCF endpoint details
+- WCF endpoint details, including binding configuration, security mode, transport credential type, message credential type, metadata exchange indicator, contract, and config file path
 - WCF service contract details
 - WCF operation names
 - configuration file details
@@ -740,9 +749,9 @@ graph TD
 
 ## WCF Endpoints
 
-| Service | Address | Binding | Contract | Config File |
-|---|---|---|---|---|
-| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | SampleLegacyApp.Contracts.ICustomerService | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config` |
+| Service | Address | Binding | Binding Configuration | Security Mode | Transport Credential | Message Credential | Metadata Exchange | Contract | Config File |
+|---|---|---|---|---|---|---|---|---|---|
+| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | CustomerBinding | Transport | Windows | UserName | True | SampleLegacyApp.Contracts.ICustomerService | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config` |
 
 ## WCF Service Contracts
 
@@ -768,6 +777,10 @@ graph TD
 | Warning | Legacy ASP.NET | SampleLegacyApp.Web references System.Web.Mvc | System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment. |
 | Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
 | Warning | WCF Binding | basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService | basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning. |
+| Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses WCF security mode Transport | WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints. |
+| Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses transport credential type Windows | Transport credential settings may affect authentication and hosting choices during service migration. |
+| Info | WCF Configuration | SampleLegacyApp.Services.CustomerService uses binding configuration CustomerBinding | Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review. |
+| Info | WCF Metadata | SampleLegacyApp.Services.CustomerService exposes a metadata exchange endpoint | Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies. |
 | Info | Packages | SampleLegacyApp.Web references Newtonsoft.Json | This is common in legacy and modern projects, but may be reviewed during modernisation. |
 ````
 
@@ -797,21 +810,38 @@ This makes it easier to visually understand project-to-project relationships.
 
 ## WCF Endpoint Discovery
 
-LegacyLens.NET can detect basic WCF endpoint configuration from `app.config` and `web.config` files.
+LegacyLens.NET can detect WCF endpoint configuration from `app.config` and `web.config` files, including endpoint-level details and selected binding configuration details.
 
-The current WCF scanner looks for `<system.serviceModel>` configuration and extracts endpoint details from configured services.
+The current WCF scanner looks for `<system.serviceModel>` configuration, extracts endpoint details from configured services, and attempts to resolve selected details from named binding configurations.
 
 Example WCF configuration:
 
 ```xml
 <configuration>
   <system.serviceModel>
+    <bindings>
+      <basicHttpBinding>
+        <binding name="CustomerBinding">
+          <security mode="Transport">
+            <transport clientCredentialType="Windows" />
+            <message clientCredentialType="UserName" />
+          </security>
+        </binding>
+      </basicHttpBinding>
+    </bindings>
+
     <services>
       <service name="SampleLegacyApp.Services.CustomerService">
         <endpoint
           address=""
           binding="basicHttpBinding"
+          bindingConfiguration="CustomerBinding"
           contract="SampleLegacyApp.Contracts.ICustomerService" />
+
+        <endpoint
+          address="mex"
+          binding="mexHttpBinding"
+          contract="IMetadataExchange" />
       </service>
     </services>
   </system.serviceModel>
@@ -823,14 +853,15 @@ Example report output:
 ```markdown
 ## WCF Endpoints
 
-| Service | Address | Binding | Contract | Config File |
-|---|---|---|---|---|
-| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | SampleLegacyApp.Contracts.ICustomerService | `...\SampleLegacyApp.Web\Web.config` |
+| Service | Address | Binding | Binding Configuration | Security Mode | Transport Credential | Message Credential | Metadata Exchange | Contract | Config File |
+|---|---|---|---|---|---|---|---|---|---|
+| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | CustomerBinding | Transport | Windows | UserName | False | SampleLegacyApp.Contracts.ICustomerService | `...\SampleLegacyApp.Web\Web.config` |
+| SampleLegacyApp.Services.CustomerService | mex | mexHttpBinding |  |  |  |  | True | IMetadataExchange | `...\SampleLegacyApp.Web\Web.config` |
 ```
 
 This helps identify legacy service boundaries and integration points without needing to build or run the target application.
 
-Current WCF endpoint discovery is configuration-based.
+Current WCF endpoint discovery is configuration-based. It does not require the target application to build or run.
 
 ---
 
@@ -885,6 +916,9 @@ Current hint areas include:
 - legacy ASP.NET / `System.Web` review
 - WCF endpoint review
 - WCF binding review
+- WCF endpoint configuration review
+- WCF security review
+- WCF metadata exchange review
 - WCF service contract review
 - configuration-heavy application review
 
@@ -905,6 +939,16 @@ Current WCF binding hints include:
 | `wsHttpBinding` | `Warning` | May indicate SOAP and WS-* features that need modernisation assessment |
 | `netTcpBinding` | `Risk` | WCF-specific communication that usually needs careful migration or replacement planning |
 | `netMsmqBinding` | `Risk` | Queue-based WCF integration that needs separate migration planning |
+
+
+Current WCF endpoint detail hints include:
+
+| Indicator | Severity | Meaning |
+|---|---|---|
+| Named binding configuration | `Info` | Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review |
+| Security mode other than `None` | `Warning` | WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints |
+| Transport credential type other than `None` | `Warning` | Transport credential settings may affect authentication and hosting choices during service migration |
+| Metadata exchange endpoint | `Info` | Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies |
 
 
 Current legacy ASP.NET hints include:
@@ -932,6 +976,10 @@ Example report output:
 | Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |
 | Risk | Packages | SampleLegacyApp.Web references System.ServiceModel.Http | System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning. |
 | Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
+| Info | WCF Configuration | SampleLegacyApp.Services.CustomerService uses binding configuration CustomerBinding | Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review. |
+| Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses WCF security mode Transport | WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints. |
+| Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses transport credential type Windows | Transport credential settings may affect authentication and hosting choices during service migration. |
+| Info | WCF Metadata | SampleLegacyApp.Services.CustomerService exposes a metadata exchange endpoint | Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies. |
 | Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core. |
 | Warning | Legacy ASP.NET | SampleLegacyApp.Web references System.Web.Mvc | System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment. |
 | Info | Configuration | Web.config contains 1 connection string(s) | Connection strings identify external data dependencies that should be reviewed during migration planning. |
@@ -958,6 +1006,10 @@ Current MVP functionality includes:
 - Markdown discovery report generation
 - Mermaid project dependency diagram generation
 - WCF endpoint discovery from configuration files
+- WCF binding configuration discovery from named endpoint binding configurations
+- WCF endpoint security mode discovery
+- WCF endpoint transport and message credential type discovery
+- WCF metadata exchange endpoint detection
 - WCF endpoint reporting
 - WCF service contract discovery from C# source files
 - WCF operation discovery from `[OperationContract]` methods
@@ -970,7 +1022,7 @@ Current MVP functionality includes:
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
 - modernisation hints for legacy ASP.NET and `System.Web` assembly references
-- modernisation hints for WCF endpoints, selected WCF binding types, and service contracts
+- modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, metadata exchange endpoints, and service contracts
 - modernisation hints for configuration-heavy applications
 - modernisation hint reporting in the generated Markdown report
 - output file generation under the `output/` directory
@@ -979,7 +1031,7 @@ Planned MVP features include:
 
 - package reference summary improvements
 - target framework summary improvements
-- richer WCF endpoint analysis beyond the current binding-level hints
+- richer WCF endpoint analysis beyond the current binding, security, credential, and metadata exchange hints
 - richer risk and modernisation indicators
 
 ---
@@ -1029,14 +1081,16 @@ Implemented:
 
 - Detect WCF configuration in `app.config` and `web.config`
 - Detect configured WCF endpoints
-- Report service name, address, binding, contract, and config file path
+- Report service name, address, binding, binding configuration, security mode, transport credential type, message credential type, metadata exchange indicator, contract, and config file path
+- Resolve selected details from named WCF binding configurations
+- Detect WCF metadata exchange endpoints from `IMetadataExchange` contracts and `mex*` bindings
 - Detect WCF service contracts from C# source files
 - Detect WCF operations marked with `[OperationContract]`
 - Report contract name, operation names, and source file path
 
 Remaining work:
 
-- Improve endpoint analysis beyond the currently detected binding-level hints
+- Improve endpoint analysis beyond the currently detected binding, security, credential, and metadata exchange hints
 - Improve service contract parsing for more complex C# syntax
 
 ### Step 5: Risk and modernisation hints
@@ -1054,6 +1108,10 @@ Implemented:
 - Highlight discovered WCF endpoints
 - Highlight selected WCF binding types, including `basicHttpBinding`, `netTcpBinding`, `wsHttpBinding`, and `netMsmqBinding`
 - Highlight WCF endpoints with missing binding information
+- Highlight WCF endpoints that use named binding configurations
+- Highlight WCF endpoint security modes
+- Highlight WCF transport credential types
+- Highlight WCF metadata exchange endpoints
 - Highlight discovered WCF service contracts
 - Identify legacy ASP.NET indicators from `System.Web` and `System.Web.*` assembly references
 - Identify configuration-heavy application indicators from `app.config` and `web.config`
@@ -1065,7 +1123,7 @@ Implemented:
 Remaining work:
 
 - Add more legacy ASP.NET indicators beyond the current `System.Web` and `System.Web.*` assembly reference hints
-- Add richer WCF endpoint risk analysis beyond the current binding-level hints
+- Add richer WCF endpoint risk analysis beyond the current binding, security, credential, and metadata exchange hints
 - Improve severity classification as more discovery signals are added
 
 ---
@@ -1083,6 +1141,7 @@ LegacyLens.NET can be used when:
 - you are assessing modernisation effort
 - you are preparing for refactoring or migration
 - you need to identify legacy WCF configuration and integration points
+- you need to identify WCF binding configuration, security, credential, or metadata exchange usage before planning endpoint migration
 - you need to identify WCF service contracts and operations defined in source code
 - you need to identify configuration-heavy applications, connection strings, or custom configuration sections
 - you want an initial list of modernisation review areas

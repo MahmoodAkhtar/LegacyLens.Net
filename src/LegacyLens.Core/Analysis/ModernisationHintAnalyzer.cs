@@ -28,7 +28,7 @@ public sealed class ModernisationHintAnalyzer
 
         return hints;
     }
-    
+
     private static void AddConfigHints(
         IReadOnlyList<DiscoveredConfigFile> configFiles,
         List<ModernisationHint> hints)
@@ -41,8 +41,10 @@ public sealed class ModernisationHintAnalyzer
                 {
                     Severity = ModernisationHintSeverity.Warning,
                     Area = "Configuration",
-                    Finding = $"{Path.GetFileName(configFile.FilePath)} contains {configFile.AppSettingsCount} appSettings entries",
-                    Reason = "A large number of appSettings entries may indicate environment-specific behaviour or operational settings hidden in configuration."
+                    Finding =
+                        $"{Path.GetFileName(configFile.FilePath)} contains {configFile.AppSettingsCount} appSettings entries",
+                    Reason =
+                        "A large number of appSettings entries may indicate environment-specific behaviour or operational settings hidden in configuration."
                 });
             }
 
@@ -52,8 +54,10 @@ public sealed class ModernisationHintAnalyzer
                 {
                     Severity = ModernisationHintSeverity.Info,
                     Area = "Configuration",
-                    Finding = $"{Path.GetFileName(configFile.FilePath)} contains {configFile.ConnectionStringsCount} connection string(s)",
-                    Reason = "Connection strings identify external data dependencies that should be reviewed during migration planning."
+                    Finding =
+                        $"{Path.GetFileName(configFile.FilePath)} contains {configFile.ConnectionStringsCount} connection string(s)",
+                    Reason =
+                        "Connection strings identify external data dependencies that should be reviewed during migration planning."
                 });
             }
 
@@ -63,8 +67,10 @@ public sealed class ModernisationHintAnalyzer
                 {
                     Severity = ModernisationHintSeverity.Warning,
                     Area = "Configuration",
-                    Finding = $"{Path.GetFileName(configFile.FilePath)} contains {configFile.CustomSectionCount} custom configuration section(s)",
-                    Reason = "Custom configuration sections may indicate framework-specific or application-specific behaviour that needs migration assessment."
+                    Finding =
+                        $"{Path.GetFileName(configFile.FilePath)} contains {configFile.CustomSectionCount} custom configuration section(s)",
+                    Reason =
+                        "Custom configuration sections may indicate framework-specific or application-specific behaviour that needs migration assessment."
                 });
             }
         }
@@ -182,6 +188,7 @@ public sealed class ModernisationHintAnalyzer
             });
 
             AddWcfBindingHints(wcfEndpoints, hints);
+            AddWcfEndpointDetailHints(wcfEndpoints, hints);
         }
 
         if (wcfServiceContracts.Count > 0)
@@ -196,6 +203,69 @@ public sealed class ModernisationHintAnalyzer
             });
         }
     }
+
+    private static void AddWcfEndpointDetailHints(
+        IReadOnlyList<WcfEndpoint> wcfEndpoints,
+        List<ModernisationHint> hints)
+    {
+        foreach (var endpoint in wcfEndpoints)
+        {
+            var serviceName = string.IsNullOrWhiteSpace(endpoint.ServiceName)
+                ? "Unknown service"
+                : endpoint.ServiceName;
+
+            if (!string.IsNullOrWhiteSpace(endpoint.BindingConfiguration))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Info,
+                    Area = "WCF Configuration",
+                    Finding = $"{serviceName} uses binding configuration {endpoint.BindingConfiguration}",
+                    Reason =
+                        "Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review."
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(endpoint.SecurityMode) &&
+                !endpoint.SecurityMode.Equals("None", StringComparison.OrdinalIgnoreCase))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "WCF Security",
+                    Finding = $"{serviceName} uses WCF security mode {endpoint.SecurityMode}",
+                    Reason =
+                        "WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints."
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(endpoint.TransportClientCredentialType) &&
+                !endpoint.TransportClientCredentialType.Equals("None", StringComparison.OrdinalIgnoreCase))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "WCF Security",
+                    Finding = $"{serviceName} uses transport credential type {endpoint.TransportClientCredentialType}",
+                    Reason =
+                        "Transport credential settings may affect authentication and hosting choices during service migration."
+                });
+            }
+
+            if (endpoint.IsMetadataExchangeEndpoint)
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Info,
+                    Area = "WCF Metadata",
+                    Finding = $"{serviceName} exposes a metadata exchange endpoint",
+                    Reason =
+                        "Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies."
+                });
+            }
+        }
+    }
+
 
     private static void AddWcfBindingHints(
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
@@ -274,7 +344,7 @@ public sealed class ModernisationHintAnalyzer
             }
         }
     }
-    
+
     private static void AddAssemblyReferenceHints(
         IReadOnlyList<DiscoveredProject> projects,
         List<ModernisationHint> hints)
@@ -290,7 +360,8 @@ public sealed class ModernisationHintAnalyzer
                         Severity = ModernisationHintSeverity.Risk,
                         Area = "Legacy ASP.NET",
                         Finding = $"{project.Name} references System.Web",
-                        Reason = "System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core."
+                        Reason =
+                            "System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core."
                     });
                 }
 
@@ -301,7 +372,8 @@ public sealed class ModernisationHintAnalyzer
                         Severity = ModernisationHintSeverity.Warning,
                         Area = "Legacy ASP.NET",
                         Finding = $"{project.Name} references {reference}",
-                        Reason = "System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment."
+                        Reason =
+                            "System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment."
                     });
                 }
             }
