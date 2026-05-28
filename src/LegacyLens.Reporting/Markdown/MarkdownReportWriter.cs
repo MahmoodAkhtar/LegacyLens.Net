@@ -74,6 +74,8 @@ public sealed class MarkdownReportWriter
 
         AppendSolutions(builder, solutions);
         AppendProjects(builder, projects);
+        AppendTargetFrameworkSummary(builder, projects);
+        AppendPackageReferenceSummary(builder, projects);
         AppendProjectDependencyDiagram(builder, projects);
         AppendProjectReferences(builder, projects);
         AppendAssemblyReferences(builder, projects);
@@ -82,7 +84,7 @@ public sealed class MarkdownReportWriter
         AppendWcfServiceContracts(builder, wcfServiceContracts);
         AppendConfigurationFiles(builder, configFiles);
         AppendModernisationHints(builder, modernisationHints);
-        
+
         return builder.ToString();
     }
 
@@ -110,33 +112,150 @@ public sealed class MarkdownReportWriter
 
         builder.AppendLine();
     }
-    
-    private static void AppendConfigurationFiles(
-        StringBuilder builder,
-        IReadOnlyList<DiscoveredConfigFile> configFiles)
-    {
-        builder.AppendLine("## Configuration Files");
-        builder.AppendLine();
-        builder.AppendLine("| Config File | App Settings | Connection Strings | Custom Sections |");
-        builder.AppendLine("|---|---:|---:|---:|");
 
-        if (configFiles.Count == 0)
+    private static void AppendProjects(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        builder.AppendLine("## Projects");
+        builder.AppendLine();
+        builder.AppendLine("| Project | Target Framework | Project File |");
+        builder.AppendLine("|---|---|---|");
+
+        if (projects.Count == 0)
         {
-            builder.AppendLine("| None | 0 | 0 | 0 |");
+            builder.AppendLine("| None | None | None |");
             builder.AppendLine();
             return;
         }
 
-        foreach (var configFile in configFiles.OrderBy(x => x.FilePath))
+        foreach (var project in projects.OrderBy(x => x.Name))
         {
             builder.AppendLine(
-                $"| `{configFile.FilePath}` | {configFile.AppSettingsCount} | {configFile.ConnectionStringsCount} | {configFile.CustomSectionCount} |");
+                $"| {Escape(project.Name)} | {Escape(project.TargetFramework ?? "Unknown")} | `{project.ProjectFilePath}` |");
         }
 
         builder.AppendLine();
     }
-    
-    private static void AppendAssemblyReferences(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
+
+    private static void AppendTargetFrameworkSummary(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        builder.AppendLine("## Target Framework Summary");
+        builder.AppendLine();
+        builder.AppendLine("| Target Framework | Projects |");
+        builder.AppendLine("|---|---:|");
+
+        if (projects.Count == 0)
+        {
+            builder.AppendLine("| None | 0 |");
+            builder.AppendLine();
+            return;
+        }
+
+        var targetFrameworkGroups = projects
+            .GroupBy(
+                x => string.IsNullOrWhiteSpace(x.TargetFramework)
+                    ? "Unknown"
+                    : x.TargetFramework,
+                StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x.Key);
+
+        foreach (var group in targetFrameworkGroups)
+        {
+            builder.AppendLine($"| {Escape(group.Key)} | {group.Count()} |");
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendPackageReferenceSummary(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        builder.AppendLine("## Package Reference Summary");
+        builder.AppendLine();
+        builder.AppendLine("| Package | Projects |");
+        builder.AppendLine("|---|---:|");
+
+        var packageGroups = projects
+            .SelectMany(project => project.PackageReferences
+                .Where(package => !string.IsNullOrWhiteSpace(package))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(package => new
+                {
+                    Project = project,
+                    Package = package
+                }))
+            .GroupBy(x => x.Package, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x.Key)
+            .ToList();
+
+        if (packageGroups.Count == 0)
+        {
+            builder.AppendLine("| None | 0 |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var group in packageGroups)
+        {
+            var projectCount = group
+                .Select(x => x.Project.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+
+            builder.AppendLine($"| {Escape(group.Key)} | {projectCount} |");
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendProjectDependencyDiagram(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        builder.AppendLine("## Project Dependency Diagram");
+        builder.AppendLine();
+
+        var mermaidDiagramWriter = new MermaidDiagramWriter();
+
+        builder.AppendLine(mermaidDiagramWriter.BuildProjectDependencyDiagram(projects));
+        builder.AppendLine();
+    }
+
+    private static void AppendProjectReferences(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        builder.AppendLine("## Project References");
+        builder.AppendLine();
+        builder.AppendLine("| From | To |");
+        builder.AppendLine("|---|---|");
+
+        var hasReferences = false;
+
+        foreach (var project in projects.OrderBy(x => x.Name))
+        {
+            foreach (var reference in project.ProjectReferences.OrderBy(x => x))
+            {
+                hasReferences = true;
+                builder.AppendLine($"| {Escape(project.Name)} | `{reference}` |");
+            }
+        }
+
+        if (!hasReferences)
+        {
+            builder.AppendLine("| None | None |");
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendAssemblyReferences(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredProject> projects)
     {
         builder.AppendLine("## Assembly References");
         builder.AppendLine();
@@ -161,27 +280,55 @@ public sealed class MarkdownReportWriter
 
         builder.AppendLine();
     }
-    
-    private static void AppendModernisationHints(
-        StringBuilder builder,
-        IReadOnlyList<ModernisationHint> hints)
-    {
-        builder.AppendLine("## Modernisation Hints");
-        builder.AppendLine();
-        builder.AppendLine("| Severity | Area | Finding | Reason |");
-        builder.AppendLine("|---|---|---|---|");
 
-        if (hints.Count == 0)
+    private static void AppendPackageReferences(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        builder.AppendLine("## Package References");
+        builder.AppendLine();
+        builder.AppendLine("| Project | Package |");
+        builder.AppendLine("|---|---|");
+
+        var hasPackages = false;
+
+        foreach (var project in projects.OrderBy(x => x.Name))
         {
-            builder.AppendLine("| None | None | None | None |");
+            foreach (var package in project.PackageReferences.OrderBy(x => x))
+            {
+                hasPackages = true;
+                builder.AppendLine($"| {Escape(project.Name)} | `{Escape(package)}` |");
+            }
+        }
+
+        if (!hasPackages)
+        {
+            builder.AppendLine("| None | None |");
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendWcfEndpoints(
+        StringBuilder builder,
+        IReadOnlyList<WcfEndpoint> endpoints)
+    {
+        builder.AppendLine("## WCF Endpoints");
+        builder.AppendLine();
+        builder.AppendLine("| Service | Address | Binding | Binding Configuration | Security Mode | Transport Credential | Message Credential | Metadata Exchange | Contract | Config File |");
+        builder.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
+
+        if (endpoints.Count == 0)
+        {
+            builder.AppendLine("| None | None | None | None | None | None | None | None | None | None |");
             builder.AppendLine();
             return;
         }
 
-        foreach (var hint in hints.OrderByDescending(x => x.Severity).ThenBy(x => x.Area))
+        foreach (var endpoint in endpoints.OrderBy(x => x.ServiceName).ThenBy(x => x.Contract))
         {
             builder.AppendLine(
-                $"| {hint.Severity} | {Escape(hint.Area)} | {Escape(hint.Finding)} | {Escape(hint.Reason)} |");
+                $"| {Escape(endpoint.ServiceName ?? "Unknown")} | {Escape(endpoint.Address ?? "")} | {Escape(endpoint.Binding ?? "")} | {Escape(endpoint.BindingConfiguration ?? "")} | {Escape(endpoint.SecurityMode ?? "")} | {Escape(endpoint.TransportClientCredentialType ?? "")} | {Escape(endpoint.MessageClientCredentialType ?? "")} | {endpoint.IsMetadataExchangeEndpoint} | {Escape(endpoint.Contract ?? "")} | `{endpoint.ConfigFilePath}` |");
         }
 
         builder.AppendLine();
@@ -215,104 +362,52 @@ public sealed class MarkdownReportWriter
 
         builder.AppendLine();
     }
-    
-    private static void AppendWcfEndpoints(StringBuilder builder, IReadOnlyList<WcfEndpoint> endpoints)
-    {
-        builder.AppendLine("## WCF Endpoints");
-        builder.AppendLine();
-        builder.AppendLine("| Service | Address | Binding | Binding Configuration | Security Mode | Transport Credential | Message Credential | Metadata Exchange | Contract | Config File |");
-        builder.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
 
-        if (endpoints.Count == 0)
+    private static void AppendConfigurationFiles(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredConfigFile> configFiles)
+    {
+        builder.AppendLine("## Configuration Files");
+        builder.AppendLine();
+        builder.AppendLine("| Config File | App Settings | Connection Strings | Custom Sections |");
+        builder.AppendLine("|---|---:|---:|---:|");
+
+        if (configFiles.Count == 0)
         {
-            builder.AppendLine("| None | None | None | None | None | None | None | None | None | None |");
+            builder.AppendLine("| None | 0 | 0 | 0 |");
             builder.AppendLine();
             return;
         }
 
-        foreach (var endpoint in endpoints.OrderBy(x => x.ServiceName).ThenBy(x => x.Contract))
+        foreach (var configFile in configFiles.OrderBy(x => x.FilePath))
         {
             builder.AppendLine(
-                $"| {Escape(endpoint.ServiceName ?? "Unknown")} | {Escape(endpoint.Address ?? "")} | {Escape(endpoint.Binding ?? "")} | {Escape(endpoint.BindingConfiguration ?? "")} | {Escape(endpoint.SecurityMode ?? "")} | {Escape(endpoint.TransportClientCredentialType ?? "")} | {Escape(endpoint.MessageClientCredentialType ?? "")} | {endpoint.IsMetadataExchangeEndpoint} | {Escape(endpoint.Contract ?? "")} | `{endpoint.ConfigFilePath}` |");
+                $"| `{configFile.FilePath}` | {configFile.AppSettingsCount} | {configFile.ConnectionStringsCount} | {configFile.CustomSectionCount} |");
         }
 
         builder.AppendLine();
     }
-    
-    private static void AppendProjects(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
-    {
-        builder.AppendLine("## Projects");
-        builder.AppendLine();
-        builder.AppendLine("| Project | Target Framework | Project File |");
-        builder.AppendLine("|---|---|---|");
 
-        foreach (var project in projects.OrderBy(x => x.Name))
+    private static void AppendModernisationHints(
+        StringBuilder builder,
+        IReadOnlyList<ModernisationHint> hints)
+    {
+        builder.AppendLine("## Modernisation Hints");
+        builder.AppendLine();
+        builder.AppendLine("| Severity | Area | Finding | Reason |");
+        builder.AppendLine("|---|---|---|---|");
+
+        if (hints.Count == 0)
+        {
+            builder.AppendLine("| None | None | None | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var hint in hints.OrderByDescending(x => x.Severity).ThenBy(x => x.Area))
         {
             builder.AppendLine(
-                $"| {Escape(project.Name)} | {Escape(project.TargetFramework ?? "Unknown")} | `{project.ProjectFilePath}` |");
-        }
-
-        builder.AppendLine();
-    }
-
-    private static void AppendProjectDependencyDiagram(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
-    {
-        builder.AppendLine("## Project Dependency Diagram");
-        builder.AppendLine();
-
-        var mermaidDiagramWriter = new MermaidDiagramWriter();
-
-        builder.AppendLine(mermaidDiagramWriter.BuildProjectDependencyDiagram(projects));
-        builder.AppendLine();
-    }
-    
-    private static void AppendProjectReferences(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
-    {
-        builder.AppendLine("## Project References");
-        builder.AppendLine();
-        builder.AppendLine("| From | To |");
-        builder.AppendLine("|---|---|");
-
-        var hasReferences = false;
-
-        foreach (var project in projects.OrderBy(x => x.Name))
-        {
-            foreach (var reference in project.ProjectReferences.OrderBy(x => x))
-            {
-                hasReferences = true;
-                builder.AppendLine($"| {Escape(project.Name)} | `{reference}` |");
-            }
-        }
-
-        if (!hasReferences)
-        {
-            builder.AppendLine("| None | None |");
-        }
-
-        builder.AppendLine();
-    }
-
-    private static void AppendPackageReferences(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
-    {
-        builder.AppendLine("## Package References");
-        builder.AppendLine();
-        builder.AppendLine("| Project | Package |");
-        builder.AppendLine("|---|---|");
-
-        var hasPackages = false;
-
-        foreach (var project in projects.OrderBy(x => x.Name))
-        {
-            foreach (var package in project.PackageReferences.OrderBy(x => x))
-            {
-                hasPackages = true;
-                builder.AppendLine($"| {Escape(project.Name)} | `{package}` |");
-            }
-        }
-
-        if (!hasPackages)
-        {
-            builder.AppendLine("| None | None |");
+                $"| {hint.Severity} | {Escape(hint.Area)} | {Escape(hint.Finding)} | {Escape(hint.Reason)} |");
         }
 
         builder.AppendLine();

@@ -61,6 +61,8 @@ The generated report currently includes:
 - a summary of discovered solutions, projects, project references, assembly references, package references, WCF endpoints, and WCF service contracts
 - a solution table
 - a project table
+- a target framework summary showing how many projects use each discovered target framework
+- a package reference summary showing how many projects reference each discovered package
 - a Mermaid project dependency diagram
 - project reference information
 - assembly reference information
@@ -537,6 +539,8 @@ The Markdown report currently includes:
 - discovered solutions
 - discovered projects
 - target frameworks
+- target framework summary grouped by discovered target framework
+- package reference summary grouped by discovered package
 - project dependency diagram
 - project references
 - assembly references
@@ -685,6 +689,8 @@ The current report sections are:
 - Summary
 - Solutions
 - Projects
+- Target Framework Summary
+- Package Reference Summary
 - Project Dependency Diagram
 - Project References
 - Assembly References
@@ -719,6 +725,21 @@ The report currently includes sections such as:
 
 | Project | Target Framework | Project File |
 |---|---|---|
+
+## Target Framework Summary
+
+| Target Framework | Projects |
+|---|---:|
+| net48 | 4 |
+
+## Package Reference Summary
+
+| Package | Projects |
+|---|---:|
+| Dapper | 1 |
+| EntityFramework | 1 |
+| Newtonsoft.Json | 1 |
+| System.ServiceModel.Http | 1 |
 
 ## Project Dependency Diagram
 
@@ -1004,6 +1025,8 @@ Current MVP functionality includes:
 - assembly reference discovery from `<Reference />` entries
 - NuGet package reference discovery from `<PackageReference />` entries and legacy `packages.config` files
 - Markdown discovery report generation
+- target framework summary reporting in the generated Markdown report
+- package reference summary reporting in the generated Markdown report
 - Mermaid project dependency diagram generation
 - WCF endpoint discovery from configuration files
 - WCF binding configuration discovery from named endpoint binding configurations
@@ -1029,8 +1052,6 @@ Current MVP functionality includes:
 
 Planned MVP features include:
 
-- package reference summary improvements
-- target framework summary improvements
 - richer WCF endpoint analysis beyond the current binding, security, credential, and metadata exchange hints
 - richer risk and modernisation indicators
 
@@ -1061,6 +1082,8 @@ Status: Implemented
 - Include solution summary
 - Include solution table
 - Include project table
+- Include target framework summary
+- Include package reference summary
 - Include project references
 - Include assembly references
 - Include package references
