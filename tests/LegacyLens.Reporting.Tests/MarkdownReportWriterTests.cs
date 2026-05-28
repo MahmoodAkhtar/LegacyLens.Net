@@ -9,6 +9,73 @@ namespace LegacyLens.Reporting.Tests;
 public class MarkdownReportWriterTests
 {
     [Fact]
+    public void Write_WhenSolutionsExist_IncludesSolutionsSection()
+    {
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"),
+            "discovery-report.md");
+
+        var solutions = new List<DiscoveredSolution>
+        {
+            new()
+            {
+                Name = "SampleLegacyApp",
+                SolutionFilePath = @"C:\Code\SampleLegacyApp\SampleLegacyApp.sln",
+                ProjectFilePaths =
+                {
+                    @"C:\Code\SampleLegacyApp\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
+                    @"C:\Code\SampleLegacyApp\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj"
+                }
+            }
+        };
+
+        var writer = new MarkdownReportWriter();
+
+        writer.Write(
+            outputPath,
+            solutions,
+            Array.Empty<DiscoveredProject>(),
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<ModernisationHint>(),
+            Array.Empty<DiscoveredConfigFile>());
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains("- Solutions discovered: 1", markdown);
+        Assert.Contains("## Solutions", markdown);
+        Assert.Contains("| Solution | Projects | Solution File |", markdown);
+        Assert.Contains(@"| SampleLegacyApp | 2 | `C:\Code\SampleLegacyApp\SampleLegacyApp.sln` |", markdown);
+    }
+
+    [Fact]
+    public void Write_WhenNoSolutionsExist_IncludesSolutionsNoneRow()
+    {
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"),
+            "discovery-report.md");
+
+        var writer = new MarkdownReportWriter();
+
+        writer.Write(
+            outputPath,
+            Array.Empty<DiscoveredSolution>(),
+            Array.Empty<DiscoveredProject>(),
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<ModernisationHint>(),
+            Array.Empty<DiscoveredConfigFile>());
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains("- Solutions discovered: 0", markdown);
+        Assert.Contains("## Solutions", markdown);
+        Assert.Contains("| None | 0 | None |", markdown);
+    }
+
+    [Fact]
     public void Write_WhenModernisationHintsExist_IncludesModernisationHintsSection()
     {
         var outputPath = Path.Combine(
@@ -44,6 +111,7 @@ public class MarkdownReportWriterTests
 
         writer.Write(
             outputPath,
+            Array.Empty<DiscoveredSolution>(),
             projects,
             wcfEndpoints,
             wcfServiceContracts,
@@ -84,6 +152,7 @@ public class MarkdownReportWriterTests
 
         writer.Write(
             outputPath,
+            Array.Empty<DiscoveredSolution>(),
             projects,
             Array.Empty<WcfEndpoint>(),
             Array.Empty<WcfServiceContract>(),
@@ -120,6 +189,7 @@ public class MarkdownReportWriterTests
 
         writer.Write(
             outputPath,
+            Array.Empty<DiscoveredSolution>(),
             projects,
             Array.Empty<WcfEndpoint>(),
             Array.Empty<WcfServiceContract>(),
@@ -157,6 +227,7 @@ public class MarkdownReportWriterTests
 
         writer.Write(
             outputPath,
+            Array.Empty<DiscoveredSolution>(),
             projects,
             Array.Empty<WcfEndpoint>(),
             Array.Empty<WcfServiceContract>(),
@@ -182,6 +253,7 @@ public class MarkdownReportWriterTests
 
         writer.Write(
             outputPath,
+            Array.Empty<DiscoveredSolution>(),
             Array.Empty<DiscoveredProject>(),
             Array.Empty<WcfEndpoint>(),
             Array.Empty<WcfServiceContract>(),

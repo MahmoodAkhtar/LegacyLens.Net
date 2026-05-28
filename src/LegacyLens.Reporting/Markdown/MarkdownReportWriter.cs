@@ -11,6 +11,7 @@ public sealed class MarkdownReportWriter
 {
     public void Write(
         string outputPath,
+        IReadOnlyList<DiscoveredSolution> solutions,
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
         IReadOnlyList<WcfServiceContract> wcfServiceContracts,
@@ -22,7 +23,12 @@ public sealed class MarkdownReportWriter
             throw new ArgumentException("Output path cannot be empty.", nameof(outputPath));
         }
 
+        ArgumentNullException.ThrowIfNull(solutions);
         ArgumentNullException.ThrowIfNull(projects);
+        ArgumentNullException.ThrowIfNull(wcfEndpoints);
+        ArgumentNullException.ThrowIfNull(wcfServiceContracts);
+        ArgumentNullException.ThrowIfNull(modernisationHints);
+        ArgumentNullException.ThrowIfNull(configFiles);
 
         var outputDirectory = Path.GetDirectoryName(outputPath);
 
@@ -31,12 +37,19 @@ public sealed class MarkdownReportWriter
             Directory.CreateDirectory(outputDirectory);
         }
 
-        var markdown = BuildMarkdown(projects, wcfEndpoints, wcfServiceContracts, modernisationHints, configFiles);
+        var markdown = BuildMarkdown(
+            solutions,
+            projects,
+            wcfEndpoints,
+            wcfServiceContracts,
+            modernisationHints,
+            configFiles);
 
         File.WriteAllText(outputPath, markdown);
     }
 
     private static string BuildMarkdown(
+        IReadOnlyList<DiscoveredSolution> solutions,
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
         IReadOnlyList<WcfServiceContract> wcfServiceContracts,
@@ -50,6 +63,7 @@ public sealed class MarkdownReportWriter
 
         builder.AppendLine("## Summary");
         builder.AppendLine();
+        builder.AppendLine($"- Solutions discovered: {solutions.Count}");
         builder.AppendLine($"- Projects discovered: {projects.Count}");
         builder.AppendLine($"- Project references discovered: {projects.Sum(x => x.ProjectReferences.Count)}");
         builder.AppendLine($"- Package references discovered: {projects.Sum(x => x.PackageReferences.Count)}");
@@ -58,6 +72,7 @@ public sealed class MarkdownReportWriter
         builder.AppendLine($"- Assembly references discovered: {projects.Sum(x => x.AssemblyReferences.Count)}");
         builder.AppendLine();
 
+        AppendSolutions(builder, solutions);
         AppendProjects(builder, projects);
         AppendProjectDependencyDiagram(builder, projects);
         AppendProjectReferences(builder, projects);
@@ -69,6 +84,31 @@ public sealed class MarkdownReportWriter
         AppendModernisationHints(builder, modernisationHints);
         
         return builder.ToString();
+    }
+
+    private static void AppendSolutions(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredSolution> solutions)
+    {
+        builder.AppendLine("## Solutions");
+        builder.AppendLine();
+        builder.AppendLine("| Solution | Projects | Solution File |");
+        builder.AppendLine("|---|---:|---|");
+
+        if (solutions.Count == 0)
+        {
+            builder.AppendLine("| None | 0 | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var solution in solutions.OrderBy(x => x.Name))
+        {
+            builder.AppendLine(
+                $"| {Escape(solution.Name)} | {solution.ProjectFilePaths.Count} | `{solution.SolutionFilePath}` |");
+        }
+
+        builder.AppendLine();
     }
     
     private static void AppendConfigurationFiles(

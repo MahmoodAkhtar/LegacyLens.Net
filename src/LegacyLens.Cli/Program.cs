@@ -126,6 +126,27 @@ else
     }
 }
 
+var solutionDiscoveryService = new SolutionDiscoveryService();
+var solutions = solutionDiscoveryService.DiscoverSolutions(path);
+
+Console.WriteLine("Solutions discovered:");
+
+if (solutions.Count == 0)
+{
+    Console.WriteLine("- None");
+}
+else
+{
+    foreach (var solution in solutions)
+    {
+        Console.WriteLine($"- {solution.Name}");
+        Console.WriteLine($"  Solution file: {solution.SolutionFilePath}");
+        Console.WriteLine($"  Projects: {solution.ProjectFilePaths.Count}");
+    }
+}
+
+Console.WriteLine();
+
 var outputPath = Path.Combine(
     Directory.GetCurrentDirectory(),
     "output",
@@ -135,6 +156,7 @@ var reportWriter = new MarkdownReportWriter();
 
 reportWriter.Write(
     outputPath, 
+    solutions,
     projects, 
     wcfEndpoints, 
     wcfServiceContracts, 

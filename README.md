@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning project files, C# source files, and configuration files, then reporting useful information such as projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF service contracts, service-related configuration, general configuration file usage, and basic modernisation hints.
+It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, and configuration files, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF service contracts, service-related configuration, general configuration file usage, and basic modernisation hints.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -26,8 +26,11 @@ LegacyLens.NET is designed to work through static analysis, meaning it can provi
 
 LegacyLens.NET is currently in early MVP development.
 
-The current implementation can scan a folder containing .NET projects and discover:
+The current implementation can scan a folder containing .NET solutions and projects and discover:
 
+- `.sln` files
+- solution names
+- C# project file paths referenced by solution files
 - `.csproj` files
 - project names
 - target frameworks
@@ -54,7 +57,8 @@ output/discovery-report.md
 
 The generated report currently includes:
 
-- a summary of discovered projects, project references, assembly references, package references, WCF endpoints, and WCF service contracts
+- a summary of discovered solutions, projects, project references, assembly references, package references, WCF endpoints, and WCF service contracts
+- a solution table
 - a project table
 - a Mermaid project dependency diagram
 - project reference information
@@ -123,10 +127,15 @@ Modernisation hints discovered:
 - [Risk] Legacy ASP.NET: SampleLegacyApp.Web references System.Web
 - [Warning] Legacy ASP.NET: SampleLegacyApp.Web references System.Web.Mvc
 
+Solutions discovered:
+- SampleLegacyApp
+  Solution file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.sln
+  Projects: 4
+
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
 
-If no WCF endpoints, WCF service contracts, configuration files, or modernisation hints are found, the console output shows:
+If no solutions, WCF endpoints, WCF service contracts, configuration files, or modernisation hints are found, the console output shows:
 
 ```text
 WCF endpoints discovered:
@@ -139,6 +148,9 @@ Configuration files discovered:
 - None
 
 Modernisation hints discovered:
+- None
+
+Solutions discovered:
 - None
 ```
 
@@ -168,6 +180,7 @@ LegacyLens.NET is designed to inspect source files directly.
 Even if the solution does not build, it can still discover useful information from files such as:
 
 - `.sln`
+- solution-level project membership
 - `.csproj`
 - `packages.config`
 - `app.config`
@@ -191,6 +204,42 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: assembly reference discovery currently supports `<Reference Include="..." />` entries in `.csproj` files. Version metadata is removed so references such as `System.Web.Mvc, Version=5.2.9.0` are reported as `System.Web.Mvc`.
 
 > Note: configuration file discovery currently supports `app.config` and `web.config` files. Invalid or unreadable configuration files are ignored so discovery can continue.
+
+> Note: solution discovery currently supports `.sln` files and extracts referenced C# project paths from project entries. Non-C# project entries and solution folders are ignored.
+
+---
+
+## Solution Discovery
+
+LegacyLens.NET can discover Visual Studio solution files and the C# projects referenced by them.
+
+Current solution discovery supports:
+
+- finding `.sln` files under the scanned folder
+- reading the solution name from the `.sln` file name
+- extracting referenced `.csproj` paths from solution project entries
+- resolving project paths relative to the solution file location
+- ignoring solution folders and non-C# project entries
+- removing duplicate project paths case-insensitively
+
+Example solution project entry:
+
+```text
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleLegacyApp.Web", "SampleLegacyApp.Web\SampleLegacyApp.Web.csproj", "{11111111-1111-1111-1111-111111111111}"
+EndProject
+```
+
+Example report output:
+
+```markdown
+## Solutions
+
+| Solution | Projects | Solution File |
+|---|---:|---|
+| SampleLegacyApp | 4 | `...\SampleLegacyApp.sln` |
+```
+
+This helps identify the solution-level structure of a codebase before looking at individual project dependencies.
 
 ---
 
@@ -404,8 +453,9 @@ Responsible for finding projects, solutions, and source files.
 
 Current discovery work includes:
 
-- project discovery
-- solution discovery
+- solution discovery from `.sln` files
+- discovered solution modelling
+- project discovery from `.csproj` files
 - source file discovery
 - discovered project modelling
 - package reference discovery from `<PackageReference />` entries
@@ -475,6 +525,7 @@ output/discovery-report.md
 The Markdown report currently includes:
 
 - summary counts
+- discovered solutions
 - discovered projects
 - target frameworks
 - project dependency diagram
@@ -530,7 +581,7 @@ Example:
 PS C:\Users\YourName\RiderProjects\LegacyLens.Net> dotnet run --project src/LegacyLens.Cli -- .\samples\SampleLegacyApp\
 ```
 
-This scans the sample application, prints discovered project, assembly reference, WCF, configuration file, and modernisation hint information to the console, and generates a Markdown report at:
+This scans the sample application, prints discovered solution, project, assembly reference, WCF, configuration file, and modernisation hint information to the console, and generates a Markdown report at:
 
 ```text
 output/discovery-report.md
@@ -602,6 +653,11 @@ Modernisation hints discovered:
 - [Risk] Legacy ASP.NET: SampleLegacyApp.Web references System.Web
 - [Warning] Legacy ASP.NET: SampleLegacyApp.Web references System.Web.Mvc
 
+Solutions discovered:
+- SampleLegacyApp
+  Solution file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.sln
+  Projects: 4
+
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
 
@@ -618,6 +674,7 @@ output/discovery-report.md
 The current report sections are:
 
 - Summary
+- Solutions
 - Projects
 - Project Dependency Diagram
 - Project References
@@ -635,12 +692,19 @@ The report currently includes sections such as:
 
 ## Summary
 
+- Solutions discovered: 1
 - Projects discovered: 4
 - Project references discovered: 4
 - Package references discovered: 4
 - WCF endpoints discovered: 1
 - WCF service contracts discovered: 1
 - Assembly references discovered: 2
+
+## Solutions
+
+| Solution | Projects | Solution File |
+|---|---:|---|
+| SampleLegacyApp | 4 | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.sln` |
 
 ## Projects
 
@@ -881,6 +945,10 @@ These hints are intended to guide the first review of a codebase. They should be
 
 Current MVP functionality includes:
 
+- static `.sln` discovery
+- solution name discovery
+- solution project membership discovery
+- solution reporting in the generated Markdown report
 - static `.csproj` discovery
 - project name discovery
 - target framework discovery
@@ -909,7 +977,6 @@ Current MVP functionality includes:
 
 Planned MVP features include:
 
-- solution-level summary
 - package reference summary improvements
 - target framework summary improvements
 - richer WCF endpoint analysis beyond the current binding-level hints
@@ -919,10 +986,13 @@ Planned MVP features include:
 
 ## Development Roadmap
 
-### Step 1: Static project discovery
+### Step 1: Static solution and project discovery
 
 Status: Implemented
 
+- Discover `.sln` files
+- Read solution name
+- Read C# project paths referenced by solution files
 - Discover `.csproj` files
 - Read project name
 - Read target framework
@@ -936,6 +1006,8 @@ Status: Implemented
 
 - Generate `output/discovery-report.md`
 - Include summary counts
+- Include solution summary
+- Include solution table
 - Include project table
 - Include project references
 - Include assembly references
@@ -1006,6 +1078,7 @@ LegacyLens.NET can be used when:
 - you need to understand a codebase before making changes
 - the solution does not build locally
 - you need to document project dependencies
+- you need to identify which projects are included in one or more solution files
 - you want to create diagrams for stakeholders
 - you are assessing modernisation effort
 - you are preparing for refactoring or migration

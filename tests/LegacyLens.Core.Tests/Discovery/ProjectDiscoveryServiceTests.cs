@@ -1,6 +1,6 @@
 ﻿using LegacyLens.Core.Discovery;
 
-namespace LegacyLens.Core.Tests;
+namespace LegacyLens.Core.Tests.Discovery;
 
 public sealed class ProjectDiscoveryServiceTests
 {
