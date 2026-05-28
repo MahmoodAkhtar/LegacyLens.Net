@@ -1,4 +1,5 @@
 ﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
 using LegacyLens.Core.Wcf;
 using LegacyLens.Reporting.Markdown;
@@ -46,7 +47,8 @@ public class MarkdownReportWriterTests
             projects,
             wcfEndpoints,
             wcfServiceContracts,
-            modernisationHints);
+            modernisationHints,
+            Array.Empty<DiscoveredConfigFile>());
 
         var markdown = File.ReadAllText(outputPath);
 
@@ -54,7 +56,7 @@ public class MarkdownReportWriterTests
         Assert.Contains("| Severity | Area | Finding | Reason |", markdown);
         Assert.Contains("| Risk | Target Framework | Legacy.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |", markdown);
     }
-    
+
     [Fact]
     public void Write_IncludesAssemblyReferences()
     {
@@ -85,7 +87,8 @@ public class MarkdownReportWriterTests
             projects,
             Array.Empty<WcfEndpoint>(),
             Array.Empty<WcfServiceContract>(),
-            Array.Empty<ModernisationHint>());
+            Array.Empty<ModernisationHint>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         var markdown = File.ReadAllText(outputPath);
 
@@ -94,7 +97,7 @@ public class MarkdownReportWriterTests
         Assert.Contains("| SampleLegacyApp.Web | `System.Web` |", markdown);
         Assert.Contains("| SampleLegacyApp.Web | `System.Web.Mvc` |", markdown);
     }
-    
+
     [Fact]
     public void Write_WhenNoAssemblyReferences_IncludesNoneRow()
     {
@@ -120,11 +123,74 @@ public class MarkdownReportWriterTests
             projects,
             Array.Empty<WcfEndpoint>(),
             Array.Empty<WcfServiceContract>(),
-            Array.Empty<ModernisationHint>());
+            Array.Empty<ModernisationHint>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         var markdown = File.ReadAllText(outputPath);
 
         Assert.Contains("## Assembly References", markdown);
         Assert.Contains("| None | None |", markdown);
+    }
+
+    [Fact]
+    public void Write_WhenConfigFilesExist_IncludesConfigurationFilesSection()
+    {
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"),
+            "discovery-report.md");
+
+        var projects = Array.Empty<DiscoveredProject>();
+
+        var configFiles = new List<DiscoveredConfigFile>
+        {
+            new()
+            {
+                FilePath = @"C:\Code\Legacy.Web\Web.config",
+                AppSettingsCount = 10,
+                ConnectionStringsCount = 2,
+                CustomSectionCount = 1
+            }
+        };
+
+        var writer = new MarkdownReportWriter();
+
+        writer.Write(
+            outputPath,
+            projects,
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<ModernisationHint>(),
+            configFiles);
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains("## Configuration Files", markdown);
+        Assert.Contains("| Config File | App Settings | Connection Strings | Custom Sections |", markdown);
+        Assert.Contains(@"| `C:\Code\Legacy.Web\Web.config` | 10 | 2 | 1 |", markdown);
+    }
+
+    [Fact]
+    public void Write_WhenNoConfigFilesExist_IncludesConfigurationFilesNoneRow()
+    {
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"),
+            "discovery-report.md");
+
+        var writer = new MarkdownReportWriter();
+
+        writer.Write(
+            outputPath,
+            Array.Empty<DiscoveredProject>(),
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<ModernisationHint>(),
+            Array.Empty<DiscoveredConfigFile>());
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains("## Configuration Files", markdown);
+        Assert.Contains("| None | 0 | 0 | 0 |", markdown);
     }
 }

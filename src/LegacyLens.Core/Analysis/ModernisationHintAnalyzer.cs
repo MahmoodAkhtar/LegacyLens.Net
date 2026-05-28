@@ -1,3 +1,4 @@
+using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
 using LegacyLens.Core.Wcf;
 
@@ -8,11 +9,13 @@ public sealed class ModernisationHintAnalyzer
     public IReadOnlyList<ModernisationHint> Analyze(
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
-        IReadOnlyList<WcfServiceContract> wcfServiceContracts)
+        IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<DiscoveredConfigFile> configFiles)
     {
         ArgumentNullException.ThrowIfNull(projects);
         ArgumentNullException.ThrowIfNull(wcfEndpoints);
         ArgumentNullException.ThrowIfNull(wcfServiceContracts);
+        ArgumentNullException.ThrowIfNull(configFiles);
 
         var hints = new List<ModernisationHint>();
 
@@ -21,8 +24,50 @@ public sealed class ModernisationHintAnalyzer
         AddPackageHints(projects, hints);
         AddWcfHints(wcfEndpoints, wcfServiceContracts, hints);
         AddAssemblyReferenceHints(projects, hints);
+        AddConfigHints(configFiles, hints);
 
         return hints;
+    }
+    
+    private static void AddConfigHints(
+        IReadOnlyList<DiscoveredConfigFile> configFiles,
+        List<ModernisationHint> hints)
+    {
+        foreach (var configFile in configFiles)
+        {
+            if (configFile.AppSettingsCount >= 10)
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "Configuration",
+                    Finding = $"{Path.GetFileName(configFile.FilePath)} contains {configFile.AppSettingsCount} appSettings entries",
+                    Reason = "A large number of appSettings entries may indicate environment-specific behaviour or operational settings hidden in configuration."
+                });
+            }
+
+            if (configFile.ConnectionStringsCount > 0)
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Info,
+                    Area = "Configuration",
+                    Finding = $"{Path.GetFileName(configFile.FilePath)} contains {configFile.ConnectionStringsCount} connection string(s)",
+                    Reason = "Connection strings identify external data dependencies that should be reviewed during migration planning."
+                });
+            }
+
+            if (configFile.CustomSectionCount > 0)
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "Configuration",
+                    Finding = $"{Path.GetFileName(configFile.FilePath)} contains {configFile.CustomSectionCount} custom configuration section(s)",
+                    Reason = "Custom configuration sections may indicate framework-specific or application-specific behaviour that needs migration assessment."
+                });
+            }
+        }
     }
 
     private static void AddTargetFrameworkHints(

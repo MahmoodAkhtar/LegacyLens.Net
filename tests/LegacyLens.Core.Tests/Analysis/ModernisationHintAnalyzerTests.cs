@@ -1,4 +1,5 @@
 ﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
 using LegacyLens.Core.Wcf;
 
@@ -24,7 +25,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             projects,
             Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Risk &&
@@ -51,7 +53,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             projects,
             Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Warning &&
@@ -84,7 +87,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             projects,
             Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Warning &&
@@ -115,7 +119,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             projects,
             Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Risk &&
@@ -146,7 +151,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             projects,
             Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Warning &&
@@ -177,7 +183,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             projects,
             Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Info &&
@@ -206,7 +213,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             Array.Empty<DiscoveredProject>(),
             endpoints,
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Risk &&
@@ -235,7 +243,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             Array.Empty<DiscoveredProject>(),
             Array.Empty<WcfEndpoint>(),
-            contracts);
+            contracts,
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Risk &&
@@ -261,7 +270,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             projects,
             Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Empty(hints);
     }
@@ -286,7 +296,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             Array.Empty<DiscoveredProject>(),
             endpoints,
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Warning &&
@@ -314,7 +325,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             Array.Empty<DiscoveredProject>(),
             endpoints,
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Risk &&
@@ -342,7 +354,8 @@ public sealed class ModernisationHintAnalyzerTests
         var hints = analyzer.Analyze(
             Array.Empty<DiscoveredProject>(),
             endpoints,
-            Array.Empty<WcfServiceContract>());
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredConfigFile>());
 
         Assert.Contains(hints, hint =>
             hint.Severity == ModernisationHintSeverity.Warning &&

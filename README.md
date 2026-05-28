@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning project files, C# source files, and configuration files, then reporting useful information such as projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF service contracts, service-related configuration, and basic modernisation hints.
+It helps developers quickly understand the structure of a .NET solution by scanning project files, C# source files, and configuration files, then reporting useful information such as projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF service contracts, service-related configuration, general configuration file usage, and basic modernisation hints.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -14,6 +14,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - Are there signs of legacy technologies such as WCF?
 - Which WCF endpoints are configured?
 - Which WCF service contracts and operations are defined in the source code?
+- What configuration files, settings, connection strings, or custom sections exist?
 - What modernisation risks or review areas should be looked at first?
 - What diagrams or reports can help explain the system to others?
 
@@ -35,9 +36,13 @@ The current implementation can scan a folder containing .NET projects and discov
 - NuGet package references from SDK-style `<PackageReference />` entries in `.csproj` files
 - NuGet package references from legacy `packages.config` files located alongside project files
 - WCF endpoints from `app.config` and `web.config` files
+- configuration files from `app.config` and `web.config`
+- `appSettings` entry counts
+- `connectionStrings` entry counts
+- custom configuration section counts from `configSections`
 - WCF service contracts from C# source files
 - WCF operations marked with `[OperationContract]`
-- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, higher project coupling, and selected WCF binding types
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, higher project coupling, selected WCF binding types, and configuration-heavy applications
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
@@ -57,6 +62,7 @@ The generated report currently includes:
 - package reference information
 - WCF endpoint information
 - WCF service contract and operation information
+- configuration file information, including `appSettings`, `connectionStrings`, and custom configuration section counts
 - modernisation hints with severity, area, finding, and reason, including Legacy ASP.NET hints when `System.Web` assembly references are found
 
 Example console output:
@@ -97,6 +103,12 @@ WCF service contracts discovered:
   Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
   Operation: GetCustomer
 
+Configuration files discovered:
+- C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+  App settings: 0
+  Connection strings: 0
+  Custom sections: 0
+
 Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
 - [Risk] Target Framework: SampleLegacyApp.Data targets net48
@@ -114,13 +126,16 @@ Modernisation hints discovered:
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
 
-If no WCF endpoints, WCF service contracts, or modernisation hints are found, the console output shows:
+If no WCF endpoints, WCF service contracts, configuration files, or modernisation hints are found, the console output shows:
 
 ```text
 WCF endpoints discovered:
 - None
 
 WCF service contracts discovered:
+- None
+
+Configuration files discovered:
 - None
 
 Modernisation hints discovered:
@@ -157,6 +172,10 @@ Even if the solution does not build, it can still discover useful information fr
 - `packages.config`
 - `app.config`
 - `web.config`
+- configuration file structure
+- `appSettings` entries
+- `connectionStrings` entries
+- custom configuration sections
 - C# source files
 - WCF configuration files
 - WCF `[ServiceContract]` interfaces
@@ -170,6 +189,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
 
 > Note: assembly reference discovery currently supports `<Reference Include="..." />` entries in `.csproj` files. Version metadata is removed so references such as `System.Web.Mvc, Version=5.2.9.0` are reported as `System.Web.Mvc`.
+
+> Note: configuration file discovery currently supports `app.config` and `web.config` files. Invalid or unreadable configuration files are ignored so discovery can continue.
 
 ---
 
@@ -239,6 +260,52 @@ This helps LegacyLens.NET identify legacy ASP.NET indicators that may not appear
 
 ---
 
+## Configuration File Discovery
+
+LegacyLens.NET can discover useful configuration information from `app.config` and `web.config` files.
+
+This is useful for legacy .NET Framework applications where important behaviour, environment-specific settings, and external dependencies may be defined in configuration rather than code.
+
+Current configuration discovery supports:
+
+- counting `appSettings` entries
+- counting `connectionStrings` entries
+- counting custom configuration sections from `configSections`
+- ignoring invalid or unreadable configuration files so discovery can continue
+
+Example configuration:
+
+```xml
+<configuration>
+  <configSections>
+    <section name="customSettings" type="Legacy.CustomSettingsSection, Legacy" />
+  </configSections>
+
+  <appSettings>
+    <add key="FeatureToggle" value="true" />
+    <add key="LegacyMode" value="enabled" />
+  </appSettings>
+
+  <connectionStrings>
+    <add name="MainDatabase" connectionString="Server=.;Database=Legacy;" />
+  </connectionStrings>
+</configuration>
+```
+
+These values are reported in the generated Markdown report:
+
+```markdown
+## Configuration Files
+
+| Config File | App Settings | Connection Strings | Custom Sections |
+|---|---:|---:|---:|
+| `...\SampleLegacyApp.Web\Web.config` | 2 | 1 | 1 |
+```
+
+This helps identify applications where important runtime behaviour or migration concerns may be hidden in configuration files.
+
+---
+
 ## Repository Structure
 
 ```text
@@ -278,6 +345,7 @@ The core project is organised around discovery and analysis concepts.
 LegacyLens.Core/
 ├── Abstractions/
 ├── Analysis/
+├── Configuration/
 ├── Dependencies/
 ├── Discovery/
 ├── Models/
@@ -313,6 +381,22 @@ Current analysis work includes:
 - highlighting selected WCF binding types such as `basicHttpBinding`, `netTcpBinding`, `wsHttpBinding`, and `netMsmqBinding`
 - highlighting WCF endpoints with missing binding information
 - highlighting discovered WCF service contracts
+- identifying configuration-heavy applications from `app.config` and `web.config`
+- identifying large `appSettings` usage
+- identifying connection strings as external data dependency indicators
+- identifying custom configuration sections as migration review items
+
+### Configuration
+
+Responsible for detecting useful information from `.config` files.
+
+Current configuration work includes:
+
+- scanning `app.config` and `web.config` files
+- counting `appSettings` entries
+- counting `connectionStrings` entries
+- counting custom configuration sections from `configSections`
+- modelling discovered configuration file details such as file path, app setting count, connection string count, and custom section count
 
 ### Discovery
 
@@ -400,6 +484,8 @@ The Markdown report currently includes:
 - WCF endpoint details
 - WCF service contract details
 - WCF operation names
+- configuration file details
+- `appSettings`, `connectionStrings`, and custom configuration section counts
 - modernisation hints
 
 ### Mermaid
@@ -444,7 +530,7 @@ Example:
 PS C:\Users\YourName\RiderProjects\LegacyLens.Net> dotnet run --project src/LegacyLens.Cli -- .\samples\SampleLegacyApp\
 ```
 
-This scans the sample application, prints discovered project, assembly reference, WCF, and modernisation hint information to the console, and generates a Markdown report at:
+This scans the sample application, prints discovered project, assembly reference, WCF, configuration file, and modernisation hint information to the console, and generates a Markdown report at:
 
 ```text
 output/discovery-report.md
@@ -496,6 +582,12 @@ WCF service contracts discovered:
   Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
   Operation: GetCustomer
 
+Configuration files discovered:
+- C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+  App settings: 0
+  Connection strings: 0
+  Custom sections: 0
+
 Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
 - [Risk] Target Framework: SampleLegacyApp.Data targets net48
@@ -533,6 +625,7 @@ The current report sections are:
 - Package References
 - WCF Endpoints
 - WCF Service Contracts
+- Configuration Files
 - Modernisation Hints
 
 The report currently includes sections such as:
@@ -592,6 +685,12 @@ graph TD
 | Contract | Operations | Source File |
 |---|---|---|
 | ICustomerService | GetCustomer | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs` |
+
+## Configuration Files
+
+| Config File | App Settings | Connection Strings | Custom Sections |
+|---|---:|---:|---:|
+| `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config` | 0 | 0 | 0 |
 
 ## Modernisation Hints
 
@@ -723,6 +822,7 @@ Current hint areas include:
 - WCF endpoint review
 - WCF binding review
 - WCF service contract review
+- configuration-heavy application review
 
 Current severity levels are:
 
@@ -750,6 +850,14 @@ Current legacy ASP.NET hints include:
 | `System.Web` assembly reference | `Risk` | Usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core |
 | `System.Web.*` assembly reference | `Warning` | Indicates legacy ASP.NET-related functionality that may need separate migration assessment |
 
+Current configuration hints include:
+
+| Indicator | Severity | Meaning |
+|---|---|---|
+| Many `appSettings` entries | `Warning` | May indicate environment-specific behaviour or operational settings hidden in configuration |
+| One or more `connectionStrings` | `Info` | Identifies external data dependencies that should be reviewed during migration planning |
+| One or more custom configuration sections | `Warning` | May indicate framework-specific or application-specific behaviour that needs migration assessment |
+
 Example report output:
 
 ```markdown
@@ -762,6 +870,7 @@ Example report output:
 | Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
 | Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core. |
 | Warning | Legacy ASP.NET | SampleLegacyApp.Web references System.Web.Mvc | System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment. |
+| Info | Configuration | Web.config contains 1 connection string(s) | Connection strings identify external data dependencies that should be reviewed during migration planning. |
 ```
 
 These hints are intended to guide the first review of a codebase. They should be treated as discovery signals, not final migration advice.
@@ -785,12 +894,16 @@ Current MVP functionality includes:
 - WCF service contract discovery from C# source files
 - WCF operation discovery from `[OperationContract]` methods
 - WCF service contract reporting
+- configuration file discovery from `app.config` and `web.config`
+- `appSettings`, `connectionStrings`, and custom configuration section counting
+- configuration file reporting in the generated Markdown report
 - basic modernisation hint analysis
 - modernisation hints for old .NET Framework target frameworks
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
 - modernisation hints for legacy ASP.NET and `System.Web` assembly references
 - modernisation hints for WCF endpoints, selected WCF binding types, and service contracts
+- modernisation hints for configuration-heavy applications
 - modernisation hint reporting in the generated Markdown report
 - output file generation under the `output/` directory
 
@@ -827,6 +940,7 @@ Status: Implemented
 - Include project references
 - Include assembly references
 - Include package references
+- Include configuration file details
 
 ### Step 3: Dependency diagram generation
 
@@ -870,12 +984,15 @@ Implemented:
 - Highlight WCF endpoints with missing binding information
 - Highlight discovered WCF service contracts
 - Identify legacy ASP.NET indicators from `System.Web` and `System.Web.*` assembly references
+- Identify configuration-heavy application indicators from `app.config` and `web.config`
+- Identify large `appSettings` usage
+- Identify connection strings as external data dependency indicators
+- Identify custom configuration sections
 - Include modernisation hints in the generated Markdown report
 
 Remaining work:
 
 - Add more legacy ASP.NET indicators beyond the current `System.Web` and `System.Web.*` assembly reference hints
-- Add config-heavy application indicators
 - Add richer WCF endpoint risk analysis beyond the current binding-level hints
 - Improve severity classification as more discovery signals are added
 
@@ -894,6 +1011,7 @@ LegacyLens.NET can be used when:
 - you are preparing for refactoring or migration
 - you need to identify legacy WCF configuration and integration points
 - you need to identify WCF service contracts and operations defined in source code
+- you need to identify configuration-heavy applications, connection strings, or custom configuration sections
 - you want an initial list of modernisation review areas
 - you need to identify likely migration risks before deeper analysis
 

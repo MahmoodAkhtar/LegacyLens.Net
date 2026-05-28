@@ -1,4 +1,5 @@
 ﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
 using LegacyLens.Reporting.Markdown;
 using LegacyLens.Core.Wcf;
@@ -81,12 +82,34 @@ else
     }
 }
 
+var configFileScanner = new ConfigFileScanner();
+var configFiles = configFileScanner.Scan(path);
+
+Console.WriteLine();
+Console.WriteLine("Configuration files discovered:");
+
+if (configFiles.Count == 0)
+{
+    Console.WriteLine("- None");
+}
+else
+{
+    foreach (var configFile in configFiles)
+    {
+        Console.WriteLine($"- {configFile.FilePath}");
+        Console.WriteLine($"  App settings: {configFile.AppSettingsCount}");
+        Console.WriteLine($"  Connection strings: {configFile.ConnectionStringsCount}");
+        Console.WriteLine($"  Custom sections: {configFile.CustomSectionCount}");
+    }
+}
+
 var modernisationHintAnalyzer = new ModernisationHintAnalyzer();
 
 var modernisationHints = modernisationHintAnalyzer.Analyze(
     projects,
     wcfEndpoints,
-    wcfServiceContracts);
+    wcfServiceContracts,
+    configFiles);
 
 Console.WriteLine();
 Console.WriteLine("Modernisation hints discovered:");
@@ -115,7 +138,8 @@ reportWriter.Write(
     projects, 
     wcfEndpoints, 
     wcfServiceContracts, 
-    modernisationHints);
+    modernisationHints,
+    configFiles);
 
 Console.WriteLine();
 Console.WriteLine($"Markdown report generated: {outputPath}");

@@ -1,5 +1,6 @@
 using System.Text;
 using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
 using LegacyLens.Core.Wcf;
 using LegacyLens.Reporting.Mermaid;
@@ -13,7 +14,8 @@ public sealed class MarkdownReportWriter
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
         IReadOnlyList<WcfServiceContract> wcfServiceContracts,
-        IReadOnlyList<ModernisationHint> modernisationHints)
+        IReadOnlyList<ModernisationHint> modernisationHints,
+        IReadOnlyList<DiscoveredConfigFile> configFiles)
     {
         if (string.IsNullOrWhiteSpace(outputPath))
         {
@@ -29,7 +31,7 @@ public sealed class MarkdownReportWriter
             Directory.CreateDirectory(outputDirectory);
         }
 
-        var markdown = BuildMarkdown(projects, wcfEndpoints, wcfServiceContracts, modernisationHints);
+        var markdown = BuildMarkdown(projects, wcfEndpoints, wcfServiceContracts, modernisationHints, configFiles);
 
         File.WriteAllText(outputPath, markdown);
     }
@@ -38,7 +40,8 @@ public sealed class MarkdownReportWriter
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
         IReadOnlyList<WcfServiceContract> wcfServiceContracts,
-        IReadOnlyList<ModernisationHint> modernisationHints)
+        IReadOnlyList<ModernisationHint> modernisationHints,
+        IReadOnlyList<DiscoveredConfigFile> configFiles)
     {
         var builder = new StringBuilder();
 
@@ -62,9 +65,35 @@ public sealed class MarkdownReportWriter
         AppendPackageReferences(builder, projects);
         AppendWcfEndpoints(builder, wcfEndpoints);
         AppendWcfServiceContracts(builder, wcfServiceContracts);
+        AppendConfigurationFiles(builder, configFiles);
         AppendModernisationHints(builder, modernisationHints);
         
         return builder.ToString();
+    }
+    
+    private static void AppendConfigurationFiles(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredConfigFile> configFiles)
+    {
+        builder.AppendLine("## Configuration Files");
+        builder.AppendLine();
+        builder.AppendLine("| Config File | App Settings | Connection Strings | Custom Sections |");
+        builder.AppendLine("|---|---:|---:|---:|");
+
+        if (configFiles.Count == 0)
+        {
+            builder.AppendLine("| None | 0 | 0 | 0 |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var configFile in configFiles.OrderBy(x => x.FilePath))
+        {
+            builder.AppendLine(
+                $"| `{configFile.FilePath}` | {configFile.AppSettingsCount} | {configFile.ConnectionStringsCount} | {configFile.CustomSectionCount} |");
+        }
+
+        builder.AppendLine();
     }
     
     private static void AppendAssemblyReferences(StringBuilder builder, IReadOnlyList<DiscoveredProject> projects)
