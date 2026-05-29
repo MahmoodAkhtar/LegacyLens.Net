@@ -189,6 +189,7 @@ public sealed class ModernisationHintAnalyzer
 
             AddWcfBindingHints(wcfEndpoints, hints);
             AddWcfEndpointDetailHints(wcfEndpoints, hints);
+            AddWcfOperationalDetailHints(wcfEndpoints, hints);
         }
 
         if (wcfServiceContracts.Count > 0)
@@ -210,9 +211,7 @@ public sealed class ModernisationHintAnalyzer
     {
         foreach (var endpoint in wcfEndpoints)
         {
-            var serviceName = string.IsNullOrWhiteSpace(endpoint.ServiceName)
-                ? "Unknown service"
-                : endpoint.ServiceName;
+            var serviceName = GetServiceName(endpoint);
 
             if (!string.IsNullOrWhiteSpace(endpoint.BindingConfiguration))
             {
@@ -266,6 +265,68 @@ public sealed class ModernisationHintAnalyzer
         }
     }
 
+    private static void AddWcfOperationalDetailHints(
+        IReadOnlyList<WcfEndpoint> wcfEndpoints,
+        List<ModernisationHint> hints)
+    {
+        foreach (var endpoint in wcfEndpoints)
+        {
+            var serviceName = GetServiceName(endpoint);
+
+            if (HasTimeoutSettings(endpoint))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Info,
+                    Area = "WCF Timeout",
+                    Finding = $"{serviceName} has explicit WCF timeout settings",
+                    Reason =
+                        "Configured WCF timeout values should be reviewed when replacing endpoints because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ."
+                });
+            }
+
+            if (HasMessageSizeOrBufferLimits(endpoint))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Info,
+                    Area = "WCF Binding Limits",
+                    Finding = $"{serviceName} has explicit WCF message size or buffer limits",
+                    Reason =
+                        "Configured WCF message size and buffer limits should be reviewed when migrating endpoints because equivalent request, response, and hosting limits may need to be set explicitly."
+                });
+            }
+
+            if (!string.IsNullOrWhiteSpace(endpoint.TransferMode))
+            {
+                var isStreamingTransferMode = IsStreamingTransferMode(endpoint.TransferMode);
+
+                hints.Add(new ModernisationHint
+                {
+                    Severity = isStreamingTransferMode
+                        ? ModernisationHintSeverity.Warning
+                        : ModernisationHintSeverity.Info,
+                    Area = "WCF Transfer Mode",
+                    Finding = $"{serviceName} uses WCF transfer mode {endpoint.TransferMode}",
+                    Reason = isStreamingTransferMode
+                        ? "Streaming WCF transfer modes may affect endpoint redesign, request buffering, file upload/download behaviour, hosting limits, and client compatibility."
+                        : "Explicit WCF transfer mode settings should be reviewed when replacing endpoints because modern hosting and client behaviour may differ."
+                });
+            }
+
+            if (HasReaderQuotas(endpoint))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "WCF Reader Quotas",
+                    Finding = $"{serviceName} has explicit WCF reader quota settings",
+                    Reason =
+                        "Configured WCF reader quotas may affect XML payload compatibility, maximum object graph depth, string sizes, array sizes, and generated SOAP client behaviour during migration."
+                });
+            }
+        }
+    }
 
     private static void AddWcfBindingHints(
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
@@ -273,9 +334,7 @@ public sealed class ModernisationHintAnalyzer
     {
         foreach (var endpoint in wcfEndpoints)
         {
-            var serviceName = string.IsNullOrWhiteSpace(endpoint.ServiceName)
-                ? "Unknown service"
-                : endpoint.ServiceName;
+            var serviceName = GetServiceName(endpoint);
 
             if (string.IsNullOrWhiteSpace(endpoint.Binding))
             {
@@ -378,5 +437,43 @@ public sealed class ModernisationHintAnalyzer
                 }
             }
         }
+    }
+
+    private static string GetServiceName(WcfEndpoint endpoint)
+    {
+        return string.IsNullOrWhiteSpace(endpoint.ServiceName)
+            ? "Unknown service"
+            : endpoint.ServiceName;
+    }
+
+    private static bool HasTimeoutSettings(WcfEndpoint endpoint)
+    {
+        return !string.IsNullOrWhiteSpace(endpoint.OpenTimeout) ||
+               !string.IsNullOrWhiteSpace(endpoint.CloseTimeout) ||
+               !string.IsNullOrWhiteSpace(endpoint.SendTimeout) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReceiveTimeout);
+    }
+
+    private static bool HasMessageSizeOrBufferLimits(WcfEndpoint endpoint)
+    {
+        return !string.IsNullOrWhiteSpace(endpoint.MaxReceivedMessageSize) ||
+               !string.IsNullOrWhiteSpace(endpoint.MaxBufferSize) ||
+               !string.IsNullOrWhiteSpace(endpoint.MaxBufferPoolSize);
+    }
+
+    private static bool HasReaderQuotas(WcfEndpoint endpoint)
+    {
+        return !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxDepth) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxStringContentLength) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxArrayLength) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxBytesPerRead) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxNameTableCharCount);
+    }
+
+    private static bool IsStreamingTransferMode(string transferMode)
+    {
+        return transferMode.Equals("Streamed", StringComparison.OrdinalIgnoreCase) ||
+               transferMode.Equals("StreamedRequest", StringComparison.OrdinalIgnoreCase) ||
+               transferMode.Equals("StreamedResponse", StringComparison.OrdinalIgnoreCase);
     }
 }

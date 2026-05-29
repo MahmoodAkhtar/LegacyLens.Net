@@ -8,358 +8,679 @@ namespace LegacyLens.Core.Tests.Analysis;
 public sealed class ModernisationHintAnalyzerTests
 {
     [Fact]
-    public void Analyze_WhenProjectTargetsNetFramework_AddsRiskHint()
+    public void Analyze_ReturnsRiskHint_WhenProjectTargetsNetFramework()
     {
-        var projects = new List<DiscoveredProject>
-        {
-            new()
+        var hints = Analyze(
+            projects: new List<DiscoveredProject>
             {
-                Name = "Legacy.Web",
-                ProjectFilePath = @"C:\Code\Legacy.Web\Legacy.Web.csproj",
-                TargetFramework = "net48"
-            }
-        };
-
-        var analyzer = new ModernisationHintAnalyzer();
-
-        var hints = analyzer.Analyze(
-            projects,
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Risk &&
-            hint.Area == "Target Framework" &&
-            hint.Finding.Contains("Legacy.Web") &&
-            hint.Finding.Contains("net48"));
-    }
-
-    [Fact]
-    public void Analyze_WhenProjectDoesNotDeclareTargetFramework_AddsWarningHint()
-    {
-        var projects = new List<DiscoveredProject>
-        {
-            new()
-            {
-                Name = "Unknown.Project",
-                ProjectFilePath = @"C:\Code\Unknown.Project\Unknown.Project.csproj",
-                TargetFramework = null
-            }
-        };
-
-        var analyzer = new ModernisationHintAnalyzer();
-
-        var hints = analyzer.Analyze(
-            projects,
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Warning &&
-            hint.Area == "Target Framework" &&
-            hint.Finding.Contains("Unknown.Project") &&
-            hint.Finding.Contains("does not declare a target framework"));
-    }
-
-    [Fact]
-    public void Analyze_WhenProjectHasThreeProjectReferences_AddsProjectCouplingWarningHint()
-    {
-        var projects = new List<DiscoveredProject>
-        {
-            new()
-            {
-                Name = "Legacy.Web",
-                ProjectFilePath = @"C:\Code\Legacy.Web\Legacy.Web.csproj",
-                TargetFramework = "net48",
-                ProjectReferences = new List<string>
+                new()
                 {
-                    @"..\Legacy.Services\Legacy.Services.csproj",
-                    @"..\Legacy.Data\Legacy.Data.csproj",
-                    @"..\Legacy.Contracts\Legacy.Contracts.csproj"
+                    Name = "SampleLegacyApp.Web",
+                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
+                    TargetFramework = "net48"
                 }
-            }
-        };
+            });
 
-        var analyzer = new ModernisationHintAnalyzer();
-
-        var hints = analyzer.Analyze(
-            projects,
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Warning &&
-            hint.Area == "Project Dependencies" &&
-            hint.Finding.Contains("Legacy.Web") &&
-            hint.Finding.Contains("references 3 projects"));
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Risk &&
+            x.Area == "Target Framework" &&
+            x.Finding == "SampleLegacyApp.Web targets net48");
     }
 
     [Fact]
-    public void Analyze_WhenProjectReferencesSystemServiceModelPackage_AddsPackageRiskHint()
+    public void Analyze_ReturnsWarningHint_WhenProjectDoesNotDeclareTargetFramework()
     {
-        var projects = new List<DiscoveredProject>
-        {
-            new()
+        var hints = Analyze(
+            projects: new List<DiscoveredProject>
             {
-                Name = "Legacy.Web",
-                ProjectFilePath = @"C:\Code\Legacy.Web\Legacy.Web.csproj",
-                TargetFramework = "net48",
-                PackageReferences = new List<string>
+                new()
                 {
-                    "System.ServiceModel.Http"
+                    Name = "SampleLegacyApp.Legacy",
+                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Legacy\SampleLegacyApp.Legacy.csproj"
                 }
-            }
-        };
+            });
 
-        var analyzer = new ModernisationHintAnalyzer();
-
-        var hints = analyzer.Analyze(
-            projects,
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Risk &&
-            hint.Area == "Packages" &&
-            hint.Finding.Contains("Legacy.Web") &&
-            hint.Finding.Contains("System.ServiceModel.Http"));
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "Target Framework" &&
+            x.Finding == "SampleLegacyApp.Legacy does not declare a target framework");
     }
 
     [Fact]
-    public void Analyze_WhenProjectReferencesEntityFramework_AddsPackageWarningHint()
+    public void Analyze_ReturnsWarningHint_WhenProjectHasSeveralDirectProjectReferences()
     {
-        var projects = new List<DiscoveredProject>
-        {
-            new()
+        var hints = Analyze(
+            projects: new List<DiscoveredProject>
             {
-                Name = "Legacy.Data",
-                ProjectFilePath = @"C:\Code\Legacy.Data\Legacy.Data.csproj",
-                TargetFramework = "net48",
-                PackageReferences = new List<string>
+                new()
                 {
-                    "EntityFramework"
+                    Name = "SampleLegacyApp.Web",
+                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
+                    TargetFramework = "net48",
+                    ProjectReferences =
+                    {
+                        @"..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj",
+                        @"..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj",
+                        @"..\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj"
+                    }
                 }
-            }
-        };
+            });
 
-        var analyzer = new ModernisationHintAnalyzer();
-
-        var hints = analyzer.Analyze(
-            projects,
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Warning &&
-            hint.Area == "Packages" &&
-            hint.Finding.Contains("Legacy.Data") &&
-            hint.Finding.Contains("EntityFramework"));
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "Project Dependencies" &&
+            x.Finding == "SampleLegacyApp.Web references 3 projects");
     }
 
     [Fact]
-    public void Analyze_WhenProjectReferencesNewtonsoftJson_AddsPackageInfoHint()
+    public void Analyze_ReturnsRiskHint_WhenProjectReferencesSystemServiceModelPackage()
     {
-        var projects = new List<DiscoveredProject>
-        {
-            new()
+        var hints = Analyze(
+            projects: new List<DiscoveredProject>
             {
-                Name = "Legacy.Web",
-                ProjectFilePath = @"C:\Code\Legacy.Web\Legacy.Web.csproj",
-                TargetFramework = "net48",
-                PackageReferences = new List<string>
+                new()
                 {
-                    "Newtonsoft.Json"
+                    Name = "SampleLegacyApp.Web",
+                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
+                    TargetFramework = "net48",
+                    PackageReferences =
+                    {
+                        "System.ServiceModel.Http"
+                    }
                 }
-            }
-        };
+            });
 
-        var analyzer = new ModernisationHintAnalyzer();
-
-        var hints = analyzer.Analyze(
-            projects,
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Info &&
-            hint.Area == "Packages" &&
-            hint.Finding.Contains("Legacy.Web") &&
-            hint.Finding.Contains("Newtonsoft.Json"));
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Risk &&
+            x.Area == "Packages" &&
+            x.Finding == "SampleLegacyApp.Web references System.ServiceModel.Http");
     }
 
     [Fact]
-    public void Analyze_WhenWcfEndpointExists_AddsWcfEndpointRiskHint()
+    public void Analyze_ReturnsWarningHint_WhenProjectReferencesEntityFramework()
     {
-        var endpoints = new List<WcfEndpoint>
-        {
-            new()
+        var hints = Analyze(
+            projects: new List<DiscoveredProject>
             {
-                ConfigFilePath = @"C:\Code\Legacy.Web\Web.config",
-                ServiceName = "Legacy.Services.CustomerService",
-                Address = "",
-                Binding = "basicHttpBinding",
-                Contract = "Legacy.Contracts.ICustomerService"
-            }
-        };
-
-        var analyzer = new ModernisationHintAnalyzer();
-
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            endpoints,
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Risk &&
-            hint.Area == "WCF" &&
-            hint.Finding.Contains("1 WCF endpoint"));
-    }
-
-    [Fact]
-    public void Analyze_WhenWcfServiceContractExists_AddsWcfServiceContractRiskHint()
-    {
-        var contracts = new List<WcfServiceContract>
-        {
-            new()
-            {
-                Name = "ICustomerService",
-                SourceFilePath = @"C:\Code\Legacy.Contracts\CustomerContracts.cs",
-                Operations = new List<string>
+                new()
                 {
-                    "GetCustomer"
+                    Name = "SampleLegacyApp.Data",
+                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj",
+                    TargetFramework = "net48",
+                    PackageReferences =
+                    {
+                        "EntityFramework"
+                    }
                 }
-            }
-        };
+            });
 
-        var analyzer = new ModernisationHintAnalyzer();
-
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            Array.Empty<WcfEndpoint>(),
-            contracts,
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Risk &&
-            hint.Area == "WCF" &&
-            hint.Finding.Contains("1 WCF service contract"));
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "Packages" &&
+            x.Finding == "SampleLegacyApp.Data references EntityFramework");
     }
 
     [Fact]
-    public void Analyze_WhenNoRisksWarningsOrInfoAreFound_ReturnsEmptyHintList()
+    public void Analyze_ReturnsInfoHint_WhenProjectReferencesNewtonsoftJson()
     {
-        var projects = new List<DiscoveredProject>
-        {
-            new()
+        var hints = Analyze(
+            projects: new List<DiscoveredProject>
             {
-                Name = "Modern.Api",
-                ProjectFilePath = @"C:\Code\Modern.Api\Modern.Api.csproj",
-                TargetFramework = "net8.0"
-            }
-        };
+                new()
+                {
+                    Name = "SampleLegacyApp.Web",
+                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
+                    TargetFramework = "net48",
+                    PackageReferences =
+                    {
+                        "Newtonsoft.Json"
+                    }
+                }
+            });
 
-        var analyzer = new ModernisationHintAnalyzer();
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "Packages" &&
+            x.Finding == "SampleLegacyApp.Web references Newtonsoft.Json");
+    }
 
-        var hints = analyzer.Analyze(
-            projects,
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
+    [Fact]
+    public void Analyze_ReturnsRiskHint_WhenWcfEndpointsAreDiscovered()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint()
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Risk &&
+            x.Area == "WCF" &&
+            x.Finding == "1 WCF endpoint(s) discovered");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenWcfEndpointHasMissingBinding()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(binding: null)
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Binding" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService has a WCF endpoint without a binding");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenWcfEndpointUsesBasicHttpBinding()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(binding: "basicHttpBinding")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Binding" &&
+            x.Finding == "basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsRiskHint_WhenWcfEndpointUsesNetTcpBinding()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(binding: "netTcpBinding")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Risk &&
+            x.Area == "WCF Binding" &&
+            x.Finding == "netTcpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenWcfEndpointUsesWsHttpBinding()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(binding: "wsHttpBinding")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Binding" &&
+            x.Finding == "wsHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsRiskHint_WhenWcfEndpointUsesNetMsmqBinding()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(binding: "netMsmqBinding")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Risk &&
+            x.Area == "WCF Binding" &&
+            x.Finding == "netMsmqBinding endpoint discovered for SampleLegacyApp.Services.CustomerService");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsInfoHint_WhenWcfEndpointUsesNamedBindingConfiguration()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(bindingConfiguration: "CustomerBinding")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "WCF Configuration" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService uses binding configuration CustomerBinding");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenWcfEndpointUsesSecurityMode()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(securityMode: "Transport")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Security" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService uses WCF security mode Transport");
+    }
+
+    [Fact]
+    public void Analyze_DoesNotReturnSecurityModeHint_WhenWcfEndpointSecurityModeIsNone()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(securityMode: "None")
+            });
+
+        Assert.DoesNotContain(hints, x =>
+            x.Area == "WCF Security" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService uses WCF security mode None");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenWcfEndpointUsesTransportCredentialType()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(transportClientCredentialType: "Windows")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Security" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService uses transport credential type Windows");
+    }
+
+    [Fact]
+    public void Analyze_DoesNotReturnTransportCredentialHint_WhenTransportCredentialTypeIsNone()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(transportClientCredentialType: "None")
+            });
+
+        Assert.DoesNotContain(hints, x =>
+            x.Area == "WCF Security" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService uses transport credential type None");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsInfoHint_WhenWcfEndpointIsMetadataExchangeEndpoint()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(isMetadataExchangeEndpoint: true)
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "WCF Metadata" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService exposes a metadata exchange endpoint");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsInfoHint_WhenWcfEndpointHasTimeouts()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(
+                    openTimeout: "00:01:00",
+                    closeTimeout: "00:02:00",
+                    sendTimeout: "00:03:00",
+                    receiveTimeout: "00:10:00")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "WCF Timeout" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService has explicit WCF timeout settings");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsInfoHint_WhenWcfEndpointHasMessageSizeOrBufferLimits()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(
+                    maxReceivedMessageSize: "1048576",
+                    maxBufferSize: "65536",
+                    maxBufferPoolSize: "524288")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "WCF Binding Limits" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService has explicit WCF message size or buffer limits");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenWcfEndpointUsesStreamedTransferMode()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(transferMode: "Streamed")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Transfer Mode" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService uses WCF transfer mode Streamed");
+    }
+
+    [Theory]
+    [InlineData("Streamed")]
+    [InlineData("StreamedRequest")]
+    [InlineData("StreamedResponse")]
+    public void Analyze_ReturnsWarningHint_WhenWcfEndpointUsesStreamingTransferMode(string transferMode)
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(transferMode: transferMode)
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Transfer Mode" &&
+            x.Finding == $"SampleLegacyApp.Services.CustomerService uses WCF transfer mode {transferMode}");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsInfoHint_WhenWcfEndpointUsesBufferedTransferMode()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(transferMode: "Buffered")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "WCF Transfer Mode" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService uses WCF transfer mode Buffered");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenWcfEndpointHasReaderQuotas()
+    {
+        var hints = Analyze(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                CreateEndpoint(
+                    readerQuotaMaxDepth: "32",
+                    readerQuotaMaxStringContentLength: "8192",
+                    readerQuotaMaxArrayLength: "16384",
+                    readerQuotaMaxBytesPerRead: "4096",
+                    readerQuotaMaxNameTableCharCount: "16384")
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Reader Quotas" &&
+            x.Finding == "SampleLegacyApp.Services.CustomerService has explicit WCF reader quota settings");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsRiskHint_WhenWcfServiceContractsAreDiscovered()
+    {
+        var hints = Analyze(
+            wcfServiceContracts: new List<WcfServiceContract>
+            {
+                new()
+                {
+                    Name = "ICustomerService",
+                    SourceFilePath = @"C:\Code\SampleLegacyApp.Contracts\CustomerContracts.cs",
+                    Operations =
+                    {
+                        "GetCustomer"
+                    }
+                }
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Risk &&
+            x.Area == "WCF" &&
+            x.Finding == "1 WCF service contract(s) discovered");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsRiskHint_WhenProjectReferencesSystemWeb()
+    {
+        var hints = Analyze(
+            projects: new List<DiscoveredProject>
+            {
+                new()
+                {
+                    Name = "SampleLegacyApp.Web",
+                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
+                    TargetFramework = "net48",
+                    AssemblyReferences =
+                    {
+                        "System.Web"
+                    }
+                }
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Risk &&
+            x.Area == "Legacy ASP.NET" &&
+            x.Finding == "SampleLegacyApp.Web references System.Web");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenProjectReferencesSystemWebRelatedAssembly()
+    {
+        var hints = Analyze(
+            projects: new List<DiscoveredProject>
+            {
+                new()
+                {
+                    Name = "SampleLegacyApp.Web",
+                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
+                    TargetFramework = "net48",
+                    AssemblyReferences =
+                    {
+                        "System.Web.Mvc"
+                    }
+                }
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "Legacy ASP.NET" &&
+            x.Finding == "SampleLegacyApp.Web references System.Web.Mvc");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenConfigFileHasManyAppSettings()
+    {
+        var hints = Analyze(
+            configFiles: new List<DiscoveredConfigFile>
+            {
+                new()
+                {
+                    FilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                    AppSettingsCount = 10,
+                    ConnectionStringsCount = 0,
+                    CustomSectionCount = 0
+                }
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "Configuration" &&
+            x.Finding == "Web.config contains 10 appSettings entries");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsInfoHint_WhenConfigFileHasConnectionStrings()
+    {
+        var hints = Analyze(
+            configFiles: new List<DiscoveredConfigFile>
+            {
+                new()
+                {
+                    FilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                    AppSettingsCount = 0,
+                    ConnectionStringsCount = 2,
+                    CustomSectionCount = 0
+                }
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "Configuration" &&
+            x.Finding == "Web.config contains 2 connection string(s)");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsWarningHint_WhenConfigFileHasCustomSections()
+    {
+        var hints = Analyze(
+            configFiles: new List<DiscoveredConfigFile>
+            {
+                new()
+                {
+                    FilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                    AppSettingsCount = 0,
+                    ConnectionStringsCount = 0,
+                    CustomSectionCount = 1
+                }
+            });
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "Configuration" &&
+            x.Finding == "Web.config contains 1 custom configuration section(s)");
+    }
+
+    [Fact]
+    public void Analyze_ReturnsEmptyList_WhenNoInputsContainReviewSignals()
+    {
+        var hints = Analyze();
 
         Assert.Empty(hints);
     }
 
     [Fact]
-    public void Analyze_AddsWarningHint_ForBasicHttpBinding()
+    public void Analyze_ThrowsArgumentNullException_WhenProjectsIsNull()
     {
         var analyzer = new ModernisationHintAnalyzer();
 
-        var endpoints = new List<WcfEndpoint>
-        {
-            new()
-            {
-                ConfigFilePath = "web.config",
-                ServiceName = "SampleLegacyApp.Services.CustomerService",
-                Address = "",
-                Binding = "basicHttpBinding",
-                Contract = "SampleLegacyApp.Contracts.ICustomerService"
-            }
-        };
-
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            endpoints,
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Warning &&
-            hint.Area == "WCF Binding" &&
-            hint.Finding == "basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService");
+        Assert.Throws<ArgumentNullException>(() =>
+            analyzer.Analyze(
+                null!,
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredConfigFile>()));
     }
 
     [Fact]
-    public void Analyze_AddsRiskHint_ForNetTcpBinding()
+    public void Analyze_ThrowsArgumentNullException_WhenWcfEndpointsIsNull()
     {
         var analyzer = new ModernisationHintAnalyzer();
 
-        var endpoints = new List<WcfEndpoint>
-        {
-            new()
-            {
-                ConfigFilePath = "app.config",
-                ServiceName = "SampleLegacyApp.Services.CustomerService",
-                Address = "net.tcp://localhost/CustomerService",
-                Binding = "netTcpBinding",
-                Contract = "SampleLegacyApp.Contracts.ICustomerService"
-            }
-        };
-
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            endpoints,
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Risk &&
-            hint.Area == "WCF Binding" &&
-            hint.Finding == "netTcpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService");
+        Assert.Throws<ArgumentNullException>(() =>
+            analyzer.Analyze(
+                Array.Empty<DiscoveredProject>(),
+                null!,
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredConfigFile>()));
     }
 
     [Fact]
-    public void Analyze_AddsWarningHint_WhenWcfEndpointBindingIsMissing()
+    public void Analyze_ThrowsArgumentNullException_WhenWcfServiceContractsIsNull()
     {
         var analyzer = new ModernisationHintAnalyzer();
 
-        var endpoints = new List<WcfEndpoint>
+        Assert.Throws<ArgumentNullException>(() =>
+            analyzer.Analyze(
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                null!,
+                Array.Empty<DiscoveredConfigFile>()));
+    }
+
+    [Fact]
+    public void Analyze_ThrowsArgumentNullException_WhenConfigFilesIsNull()
+    {
+        var analyzer = new ModernisationHintAnalyzer();
+
+        Assert.Throws<ArgumentNullException>(() =>
+            analyzer.Analyze(
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                null!));
+    }
+
+    private static IReadOnlyList<ModernisationHint> Analyze(
+        IReadOnlyList<DiscoveredProject>? projects = null,
+        IReadOnlyList<WcfEndpoint>? wcfEndpoints = null,
+        IReadOnlyList<WcfServiceContract>? wcfServiceContracts = null,
+        IReadOnlyList<DiscoveredConfigFile>? configFiles = null)
+    {
+        var analyzer = new ModernisationHintAnalyzer();
+
+        return analyzer.Analyze(
+            projects ?? Array.Empty<DiscoveredProject>(),
+            wcfEndpoints ?? Array.Empty<WcfEndpoint>(),
+            wcfServiceContracts ?? Array.Empty<WcfServiceContract>(),
+            configFiles ?? Array.Empty<DiscoveredConfigFile>());
+    }
+
+    private static WcfEndpoint CreateEndpoint(
+        string? serviceName = "SampleLegacyApp.Services.CustomerService",
+        string? binding = "basicHttpBinding",
+        string? bindingConfiguration = null,
+        string? securityMode = null,
+        string? transportClientCredentialType = null,
+        bool isMetadataExchangeEndpoint = false,
+        string? openTimeout = null,
+        string? closeTimeout = null,
+        string? sendTimeout = null,
+        string? receiveTimeout = null,
+        string? maxReceivedMessageSize = null,
+        string? maxBufferSize = null,
+        string? maxBufferPoolSize = null,
+        string? transferMode = null,
+        string? readerQuotaMaxDepth = null,
+        string? readerQuotaMaxStringContentLength = null,
+        string? readerQuotaMaxArrayLength = null,
+        string? readerQuotaMaxBytesPerRead = null,
+        string? readerQuotaMaxNameTableCharCount = null)
+    {
+        return new WcfEndpoint
         {
-            new()
-            {
-                ConfigFilePath = "web.config",
-                ServiceName = "SampleLegacyApp.Services.CustomerService",
-                Address = "",
-                Binding = null,
-                Contract = "SampleLegacyApp.Contracts.ICustomerService"
-            }
+            ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+            ServiceName = serviceName,
+            Address = "",
+            Binding = binding,
+            BindingConfiguration = bindingConfiguration,
+            SecurityMode = securityMode,
+            TransportClientCredentialType = transportClientCredentialType,
+            IsMetadataExchangeEndpoint = isMetadataExchangeEndpoint,
+            Contract = "SampleLegacyApp.Contracts.ICustomerService",
+            OpenTimeout = openTimeout,
+            CloseTimeout = closeTimeout,
+            SendTimeout = sendTimeout,
+            ReceiveTimeout = receiveTimeout,
+            MaxReceivedMessageSize = maxReceivedMessageSize,
+            MaxBufferSize = maxBufferSize,
+            MaxBufferPoolSize = maxBufferPoolSize,
+            TransferMode = transferMode,
+            ReaderQuotaMaxDepth = readerQuotaMaxDepth,
+            ReaderQuotaMaxStringContentLength = readerQuotaMaxStringContentLength,
+            ReaderQuotaMaxArrayLength = readerQuotaMaxArrayLength,
+            ReaderQuotaMaxBytesPerRead = readerQuotaMaxBytesPerRead,
+            ReaderQuotaMaxNameTableCharCount = readerQuotaMaxNameTableCharCount
         };
-
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            endpoints,
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, hint =>
-            hint.Severity == ModernisationHintSeverity.Warning &&
-            hint.Area == "WCF Binding" &&
-            hint.Finding == "SampleLegacyApp.Services.CustomerService has a WCF endpoint without a binding");
     }
 }

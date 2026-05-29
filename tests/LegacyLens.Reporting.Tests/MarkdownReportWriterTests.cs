@@ -497,6 +497,101 @@ public sealed class MarkdownReportWriterTests
     }
 
     [Fact]
+    public void Write_IncludesWcfBindingDetails()
+    {
+        var markdown = WriteReport(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                new()
+                {
+                    ServiceName = "SampleLegacyApp.Services.CustomerService",
+                    Binding = "basicHttpBinding",
+                    BindingConfiguration = "CustomerBinding",
+                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
+                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                    OpenTimeout = "00:01:00",
+                    CloseTimeout = "00:02:00",
+                    SendTimeout = "00:03:00",
+                    ReceiveTimeout = "00:10:00",
+                    MaxReceivedMessageSize = "1048576",
+                    MaxBufferSize = "65536",
+                    MaxBufferPoolSize = "524288",
+                    TransferMode = "Streamed"
+                }
+            });
+
+        Assert.Contains("## WCF Binding Details", markdown);
+        Assert.Contains("| Service | Binding | Binding Configuration | Open Timeout | Close Timeout | Send Timeout | Receive Timeout | Max Received Message Size | Max Buffer Size | Max Buffer Pool Size | Transfer Mode |", markdown);
+        Assert.Contains("| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 00:01:00 | 00:02:00 | 00:03:00 | 00:10:00 | 1048576 | 65536 | 524288 | Streamed |", markdown);
+    }
+
+    [Fact]
+    public void Write_IncludesNoneRow_WhenNoWcfBindingDetailsExist()
+    {
+        var markdown = WriteReport(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                new()
+                {
+                    ServiceName = "SampleLegacyApp.Services.CustomerService",
+                    Binding = "basicHttpBinding",
+                    BindingConfiguration = "CustomerBinding",
+                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
+                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config"
+                }
+            });
+
+        Assert.Contains("## WCF Binding Details", markdown);
+        Assert.Contains("| None | None | None | None | None | None | None | None | None | None | None |", markdown);
+    }
+
+    [Fact]
+    public void Write_IncludesWcfReaderQuotas()
+    {
+        var markdown = WriteReport(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                new()
+                {
+                    ServiceName = "SampleLegacyApp.Services.CustomerService",
+                    Binding = "basicHttpBinding",
+                    BindingConfiguration = "CustomerBinding",
+                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
+                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                    ReaderQuotaMaxDepth = "32",
+                    ReaderQuotaMaxStringContentLength = "8192",
+                    ReaderQuotaMaxArrayLength = "16384",
+                    ReaderQuotaMaxBytesPerRead = "4096",
+                    ReaderQuotaMaxNameTableCharCount = "16384"
+                }
+            });
+
+        Assert.Contains("## WCF Reader Quotas", markdown);
+        Assert.Contains("| Service | Binding | Binding Configuration | Max Depth | Max String Content Length | Max Array Length | Max Bytes Per Read | Max Name Table Char Count |", markdown);
+        Assert.Contains("| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 32 | 8192 | 16384 | 4096 | 16384 |", markdown);
+    }
+
+    [Fact]
+    public void Write_IncludesNoneRow_WhenNoWcfReaderQuotasExist()
+    {
+        var markdown = WriteReport(
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                new()
+                {
+                    ServiceName = "SampleLegacyApp.Services.CustomerService",
+                    Binding = "basicHttpBinding",
+                    BindingConfiguration = "CustomerBinding",
+                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
+                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config"
+                }
+            });
+
+        Assert.Contains("## WCF Reader Quotas", markdown);
+        Assert.Contains("| None | None | None | None | None | None | None | None |", markdown);
+    }
+
+    [Fact]
     public void Write_IncludesWcfServiceContracts()
     {
         var markdown = WriteReport(
@@ -607,6 +702,26 @@ public sealed class MarkdownReportWriterTests
                     }
                 }
             },
+            wcfEndpoints: new List<WcfEndpoint>
+            {
+                new()
+                {
+                    ServiceName = "Service|With|Pipes",
+                    Address = "Address|With|Pipes",
+                    Binding = "Binding|With|Pipes",
+                    BindingConfiguration = "BindingConfiguration|With|Pipes",
+                    SecurityMode = "Security|With|Pipes",
+                    TransportClientCredentialType = "Transport|With|Pipes",
+                    MessageClientCredentialType = "Message|With|Pipes",
+                    Contract = "Contract|With|Pipes",
+                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                    OpenTimeout = "Timeout|With|Pipes",
+                    MaxReceivedMessageSize = "Size|With|Pipes",
+                    TransferMode = "Transfer|With|Pipes",
+                    ReaderQuotaMaxDepth = "Depth|With|Pipes",
+                    ReaderQuotaMaxStringContentLength = "StringLength|With|Pipes"
+                }
+            },
             modernisationHints: new List<ModernisationHint>
             {
                 new()
@@ -621,6 +736,19 @@ public sealed class MarkdownReportWriterTests
         Assert.Contains("Sample\\|Legacy\\|Web", markdown);
         Assert.Contains("Package\\|With\\|Pipes", markdown);
         Assert.Contains("Assembly\\|With\\|Pipes", markdown);
+        Assert.Contains("Service\\|With\\|Pipes", markdown);
+        Assert.Contains("Address\\|With\\|Pipes", markdown);
+        Assert.Contains("Binding\\|With\\|Pipes", markdown);
+        Assert.Contains("BindingConfiguration\\|With\\|Pipes", markdown);
+        Assert.Contains("Security\\|With\\|Pipes", markdown);
+        Assert.Contains("Transport\\|With\\|Pipes", markdown);
+        Assert.Contains("Message\\|With\\|Pipes", markdown);
+        Assert.Contains("Contract\\|With\\|Pipes", markdown);
+        Assert.Contains("Timeout\\|With\\|Pipes", markdown);
+        Assert.Contains("Size\\|With\\|Pipes", markdown);
+        Assert.Contains("Transfer\\|With\\|Pipes", markdown);
+        Assert.Contains("Depth\\|With\\|Pipes", markdown);
+        Assert.Contains("StringLength\\|With\\|Pipes", markdown);
         Assert.Contains("Area\\|With\\|Pipes", markdown);
         Assert.Contains("Finding\\|With\\|Pipes", markdown);
         Assert.Contains("Reason\\|With\\|Pipes", markdown);

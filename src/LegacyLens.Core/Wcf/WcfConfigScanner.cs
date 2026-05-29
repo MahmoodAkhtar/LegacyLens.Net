@@ -66,7 +66,7 @@ public sealed class WcfConfigScanner
                     var contract = endpoint.Attribute("contract")?.Value;
                     var bindingConfiguration = endpoint.Attribute("bindingConfiguration")?.Value;
                     var behaviorConfiguration = endpoint.Attribute("behaviorConfiguration")?.Value;
-                    
+
                     var bindingElement = FindBindingElement(
                         serviceModelElement,
                         binding,
@@ -83,7 +83,11 @@ public sealed class WcfConfigScanner
                     var messageElement = securityElement?
                         .Elements()
                         .FirstOrDefault(x => x.Name.LocalName == "message");
-                    
+
+                    var readerQuotasElement = bindingElement?
+                        .Elements()
+                        .FirstOrDefault(x => x.Name.LocalName == "readerQuotas");
+
                     endpoints.Add(new WcfEndpoint
                     {
                         ConfigFilePath = configFile,
@@ -93,12 +97,27 @@ public sealed class WcfConfigScanner
                         Contract = contract,
                         BindingConfiguration = bindingConfiguration,
                         BehaviorConfiguration = behaviorConfiguration,
-                        SecurityMode = securityElement?.Attribute("mode")?.Value,
-                        TransportClientCredentialType = transportElement?.Attribute("clientCredentialType")?.Value,
-                        MessageClientCredentialType = messageElement?.Attribute("clientCredentialType")?.Value,
+                        SecurityMode = GetAttributeValue(securityElement, "mode"),
+                        TransportClientCredentialType = GetAttributeValue(transportElement, "clientCredentialType"),
+                        MessageClientCredentialType = GetAttributeValue(messageElement, "clientCredentialType"),
                         IsMetadataExchangeEndpoint =
                             string.Equals(contract, "IMetadataExchange", StringComparison.OrdinalIgnoreCase) ||
-                            binding?.StartsWith("mex", StringComparison.OrdinalIgnoreCase) == true
+                            binding?.StartsWith("mex", StringComparison.OrdinalIgnoreCase) == true,
+
+                        OpenTimeout = GetAttributeValue(bindingElement, "openTimeout"),
+                        CloseTimeout = GetAttributeValue(bindingElement, "closeTimeout"),
+                        SendTimeout = GetAttributeValue(bindingElement, "sendTimeout"),
+                        ReceiveTimeout = GetAttributeValue(bindingElement, "receiveTimeout"),
+                        MaxReceivedMessageSize = GetAttributeValue(bindingElement, "maxReceivedMessageSize"),
+                        MaxBufferSize = GetAttributeValue(bindingElement, "maxBufferSize"),
+                        MaxBufferPoolSize = GetAttributeValue(bindingElement, "maxBufferPoolSize"),
+                        TransferMode = GetAttributeValue(bindingElement, "transferMode"),
+
+                        ReaderQuotaMaxDepth = GetAttributeValue(readerQuotasElement, "maxDepth"),
+                        ReaderQuotaMaxStringContentLength = GetAttributeValue(readerQuotasElement, "maxStringContentLength"),
+                        ReaderQuotaMaxArrayLength = GetAttributeValue(readerQuotasElement, "maxArrayLength"),
+                        ReaderQuotaMaxBytesPerRead = GetAttributeValue(readerQuotasElement, "maxBytesPerRead"),
+                        ReaderQuotaMaxNameTableCharCount = GetAttributeValue(readerQuotasElement, "maxNameTableCharCount")
                     });
                 }
             }
@@ -106,7 +125,7 @@ public sealed class WcfConfigScanner
 
         return endpoints;
     }
-    
+
     private static XElement? FindBindingElement(
         XElement serviceModelElement,
         string? binding,
@@ -135,5 +154,15 @@ public sealed class WcfConfigScanner
                     x.Attribute("name")?.Value,
                     bindingConfiguration,
                     StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? GetAttributeValue(XElement? element, string attributeName)
+    {
+        if (element is null)
+        {
+            return null;
+        }
+
+        return element.Attribute(attributeName)?.Value;
     }
 }

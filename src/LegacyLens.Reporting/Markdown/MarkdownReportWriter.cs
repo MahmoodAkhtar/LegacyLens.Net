@@ -81,6 +81,8 @@ public sealed class MarkdownReportWriter
         AppendAssemblyReferences(builder, projects);
         AppendPackageReferences(builder, projects);
         AppendWcfEndpoints(builder, wcfEndpoints);
+        AppendWcfBindingDetails(builder, wcfEndpoints);
+        AppendWcfReaderQuotas(builder, wcfEndpoints);
         AppendWcfServiceContracts(builder, wcfServiceContracts);
         AppendConfigurationFiles(builder, configFiles);
         AppendModernisationHints(builder, modernisationHints);
@@ -334,6 +336,68 @@ public sealed class MarkdownReportWriter
         builder.AppendLine();
     }
 
+    private static void AppendWcfBindingDetails(
+        StringBuilder builder,
+        IReadOnlyList<WcfEndpoint> endpoints)
+    {
+        builder.AppendLine("## WCF Binding Details");
+        builder.AppendLine();
+        builder.AppendLine("| Service | Binding | Binding Configuration | Open Timeout | Close Timeout | Send Timeout | Receive Timeout | Max Received Message Size | Max Buffer Size | Max Buffer Pool Size | Transfer Mode |");
+        builder.AppendLine("|---|---|---|---|---|---|---|---:|---:|---:|---|");
+
+        var endpointsWithBindingDetails = endpoints
+            .Where(HasBindingDetails)
+            .OrderBy(x => x.ServiceName)
+            .ThenBy(x => x.Contract)
+            .ToList();
+
+        if (endpointsWithBindingDetails.Count == 0)
+        {
+            builder.AppendLine("| None | None | None | None | None | None | None | None | None | None | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var endpoint in endpointsWithBindingDetails)
+        {
+            builder.AppendLine(
+                $"| {Escape(endpoint.ServiceName ?? "Unknown")} | {Escape(endpoint.Binding ?? "")} | {Escape(endpoint.BindingConfiguration ?? "")} | {Escape(endpoint.OpenTimeout ?? "")} | {Escape(endpoint.CloseTimeout ?? "")} | {Escape(endpoint.SendTimeout ?? "")} | {Escape(endpoint.ReceiveTimeout ?? "")} | {Escape(endpoint.MaxReceivedMessageSize ?? "")} | {Escape(endpoint.MaxBufferSize ?? "")} | {Escape(endpoint.MaxBufferPoolSize ?? "")} | {Escape(endpoint.TransferMode ?? "")} |");
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendWcfReaderQuotas(
+        StringBuilder builder,
+        IReadOnlyList<WcfEndpoint> endpoints)
+    {
+        builder.AppendLine("## WCF Reader Quotas");
+        builder.AppendLine();
+        builder.AppendLine("| Service | Binding | Binding Configuration | Max Depth | Max String Content Length | Max Array Length | Max Bytes Per Read | Max Name Table Char Count |");
+        builder.AppendLine("|---|---|---|---:|---:|---:|---:|---:|");
+
+        var endpointsWithReaderQuotas = endpoints
+            .Where(HasReaderQuotas)
+            .OrderBy(x => x.ServiceName)
+            .ThenBy(x => x.Contract)
+            .ToList();
+
+        if (endpointsWithReaderQuotas.Count == 0)
+        {
+            builder.AppendLine("| None | None | None | None | None | None | None | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var endpoint in endpointsWithReaderQuotas)
+        {
+            builder.AppendLine(
+                $"| {Escape(endpoint.ServiceName ?? "Unknown")} | {Escape(endpoint.Binding ?? "")} | {Escape(endpoint.BindingConfiguration ?? "")} | {Escape(endpoint.ReaderQuotaMaxDepth ?? "")} | {Escape(endpoint.ReaderQuotaMaxStringContentLength ?? "")} | {Escape(endpoint.ReaderQuotaMaxArrayLength ?? "")} | {Escape(endpoint.ReaderQuotaMaxBytesPerRead ?? "")} | {Escape(endpoint.ReaderQuotaMaxNameTableCharCount ?? "")} |");
+        }
+
+        builder.AppendLine();
+    }
+
     private static void AppendWcfServiceContracts(
         StringBuilder builder,
         IReadOnlyList<WcfServiceContract> contracts)
@@ -411,6 +475,27 @@ public sealed class MarkdownReportWriter
         }
 
         builder.AppendLine();
+    }
+
+    private static bool HasBindingDetails(WcfEndpoint endpoint)
+    {
+        return !string.IsNullOrWhiteSpace(endpoint.OpenTimeout) ||
+               !string.IsNullOrWhiteSpace(endpoint.CloseTimeout) ||
+               !string.IsNullOrWhiteSpace(endpoint.SendTimeout) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReceiveTimeout) ||
+               !string.IsNullOrWhiteSpace(endpoint.MaxReceivedMessageSize) ||
+               !string.IsNullOrWhiteSpace(endpoint.MaxBufferSize) ||
+               !string.IsNullOrWhiteSpace(endpoint.MaxBufferPoolSize) ||
+               !string.IsNullOrWhiteSpace(endpoint.TransferMode);
+    }
+
+    private static bool HasReaderQuotas(WcfEndpoint endpoint)
+    {
+        return !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxDepth) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxStringContentLength) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxArrayLength) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxBytesPerRead) ||
+               !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxNameTableCharCount);
     }
 
     private static string Escape(string value)

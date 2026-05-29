@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, and configuration files, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding and security details, WCF service contracts, service-related configuration, general configuration file usage, and basic modernisation hints.
+It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, and configuration files, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, and reader quota details, WCF service contracts, service-related configuration, general configuration file usage, and basic modernisation hints.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -13,6 +13,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - Which NuGet packages are referenced?
 - Are there signs of legacy technologies such as WCF?
 - Which WCF endpoints are configured?
+- Which WCF binding configurations, security modes, timeout settings, message size limits, buffer limits, transfer modes, or reader quotas are configured?
 - Which WCF service contracts and operations are defined in the source code?
 - What configuration files, settings, connection strings, or custom sections exist?
 - What modernisation risks or review areas should be looked at first?
@@ -39,14 +40,14 @@ The current implementation can scan a folder containing .NET solutions and proje
 - NuGet package references from SDK-style `<PackageReference />` entries in `.csproj` files
 - NuGet package references from legacy `packages.config` files located alongside project files
 - WCF endpoints from `app.config` and `web.config` files
-- WCF endpoint binding configuration names, behaviour configuration names, security modes, transport credential types, message credential types, and metadata exchange endpoint indicators
+- WCF endpoint binding configuration names, behaviour configuration names, security modes, transport credential types, message credential types, timeout settings, message size limits, buffer limits, transfer modes, reader quota settings, and metadata exchange endpoint indicators
 - configuration files from `app.config` and `web.config`
 - `appSettings` entry counts
 - `connectionStrings` entry counts
 - custom configuration section counts from `configSections`
 - WCF service contracts from C# source files
 - WCF operations marked with `[OperationContract]`
-- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, higher project coupling, selected WCF binding types, WCF security-related endpoint details, metadata exchange endpoints, and configuration-heavy applications
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
@@ -68,6 +69,8 @@ The generated report currently includes:
 - assembly reference information
 - package reference information
 - WCF endpoint information, including binding configuration, security mode, transport credential type, message credential type, and metadata exchange indicators
+- WCF binding detail information, including timeout settings, message size limits, buffer limits, and transfer mode
+- WCF reader quota information, including max depth, max string content length, max array length, max bytes per read, and max name table character count
 - WCF service contract and operation information
 - configuration file information, including `appSettings`, `connectionStrings`, and custom configuration section counts
 - modernisation hints with severity, area, finding, and reason, including Legacy ASP.NET hints when `System.Web` assembly references are found
@@ -196,6 +199,10 @@ Even if the solution does not build, it can still discover useful information fr
 - WCF configuration files
 - WCF endpoint binding configuration names
 - WCF endpoint security modes and credential types
+- WCF endpoint timeout settings
+- WCF endpoint message size and buffer limits
+- WCF endpoint transfer modes
+- WCF endpoint reader quota settings
 - WCF metadata exchange endpoint indicators
 - WCF `[ServiceContract]` interfaces
 - WCF `[OperationContract]` methods
@@ -211,7 +218,7 @@ This makes it useful for old or broken solutions where restoring packages, insta
 
 > Note: configuration file discovery currently supports `app.config` and `web.config` files. Invalid or unreadable configuration files are ignored so discovery can continue.
 
-> Note: WCF endpoint discovery currently reads configured service endpoints from `app.config` and `web.config` files. Where endpoints reference named binding configurations, LegacyLens.NET also attempts to resolve related security mode, transport credential type, and message credential type details from the matching binding configuration.
+> Note: WCF endpoint discovery currently reads configured service endpoints from `app.config` and `web.config` files. Where endpoints reference named binding configurations, LegacyLens.NET also attempts to resolve related security mode, transport credential type, message credential type, timeout, message size, buffer, transfer mode, and reader quota details from the matching binding configuration.
 
 > Note: solution discovery currently supports `.sln` files and extracts referenced C# project paths from project entries. Non-C# project entries and solution folders are ignored.
 
@@ -439,6 +446,10 @@ Current analysis work includes:
 - highlighting WCF endpoints that use named binding configurations
 - highlighting WCF endpoint security modes
 - highlighting WCF transport credential types
+- highlighting WCF timeout settings
+- highlighting WCF message size and buffer limits
+- highlighting WCF transfer modes, including streaming transfer modes
+- highlighting WCF reader quota settings
 - highlighting WCF metadata exchange endpoints
 - highlighting discovered WCF service contracts
 - identifying configuration-heavy applications from `app.config` and `web.config`
@@ -496,7 +507,7 @@ Current WCF work includes:
 - scanning `app.config` and `web.config` files
 - detecting `<system.serviceModel>` configuration
 - extracting configured WCF endpoints
-- modelling WCF endpoint details such as service name, address, binding, binding configuration, behaviour configuration, security mode, transport credential type, message credential type, metadata exchange endpoint indicator, contract, and config file path
+- modelling WCF endpoint details such as service name, address, binding, binding configuration, behaviour configuration, security mode, transport credential type, message credential type, timeout settings, message size limits, buffer limits, transfer mode, reader quota settings, metadata exchange endpoint indicator, contract, and config file path
 - scanning C# source files for WCF service contracts
 - detecting interfaces marked with `[ServiceContract]`
 - detecting operations marked with `[OperationContract]`
@@ -504,7 +515,7 @@ Current WCF work includes:
 
 Planned WCF work includes:
 
-- richer WCF endpoint analysis beyond the currently detected binding, security, credential, and metadata exchange hints
+- richer WCF endpoint analysis beyond the currently detected binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
 - more detailed WCF-related risk and modernisation indicators
 - improved service contract parsing for more complex C# syntax
 
@@ -546,6 +557,8 @@ The Markdown report currently includes:
 - assembly references
 - package references
 - WCF endpoint details, including binding configuration, security mode, transport credential type, message credential type, metadata exchange indicator, contract, and config file path
+- WCF binding details, including timeout settings, message size limits, buffer limits, and transfer mode
+- WCF reader quota details
 - WCF service contract details
 - WCF operation names
 - configuration file details
@@ -696,6 +709,8 @@ The current report sections are:
 - Assembly References
 - Package References
 - WCF Endpoints
+- WCF Binding Details
+- WCF Reader Quotas
 - WCF Service Contracts
 - Configuration Files
 - Modernisation Hints
@@ -774,6 +789,18 @@ graph TD
 |---|---|---|---|---|---|---|---|---|---|
 | SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | CustomerBinding | Transport | Windows | UserName | True | SampleLegacyApp.Contracts.ICustomerService | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config` |
 
+## WCF Binding Details
+
+| Service | Binding | Binding Configuration | Open Timeout | Close Timeout | Send Timeout | Receive Timeout | Max Received Message Size | Max Buffer Size | Max Buffer Pool Size | Transfer Mode |
+|---|---|---|---|---|---|---|---:|---:|---:|---|
+| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 00:01:00 | 00:01:00 | 00:02:00 | 00:10:00 | 1048576 | 65536 | 524288 | Streamed |
+
+## WCF Reader Quotas
+
+| Service | Binding | Binding Configuration | Max Depth | Max String Content Length | Max Array Length | Max Bytes Per Read | Max Name Table Char Count |
+|---|---|---|---:|---:|---:|---:|---:|
+| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 32 | 8192 | 16384 | 4096 | 16384 |
+
 ## WCF Service Contracts
 
 | Contract | Operations | Source File |
@@ -800,6 +827,10 @@ graph TD
 | Warning | WCF Binding | basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService | basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning. |
 | Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses WCF security mode Transport | WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints. |
 | Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses transport credential type Windows | Transport credential settings may affect authentication and hosting choices during service migration. |
+| Warning | WCF Transfer Mode | SampleLegacyApp.Services.CustomerService uses WCF transfer mode Streamed | Streaming WCF transfer modes may affect endpoint redesign, request buffering, file upload/download behaviour, hosting limits, and client compatibility. |
+| Warning | WCF Reader Quotas | SampleLegacyApp.Services.CustomerService has explicit WCF reader quota settings | Configured WCF reader quotas may affect XML payload compatibility, maximum object graph depth, string sizes, array sizes, and generated SOAP client behaviour during migration. |
+| Info | WCF Timeout | SampleLegacyApp.Services.CustomerService has explicit WCF timeout settings | Configured WCF timeout values should be reviewed when replacing endpoints because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ. |
+| Info | WCF Binding Limits | SampleLegacyApp.Services.CustomerService has explicit WCF message size or buffer limits | Configured WCF message size and buffer limits should be reviewed when migrating endpoints because equivalent request, response, and hosting limits may need to be set explicitly. |
 | Info | WCF Configuration | SampleLegacyApp.Services.CustomerService uses binding configuration CustomerBinding | Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review. |
 | Info | WCF Metadata | SampleLegacyApp.Services.CustomerService exposes a metadata exchange endpoint | Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies. |
 | Info | Packages | SampleLegacyApp.Web references Newtonsoft.Json | This is common in legacy and modern projects, but may be reviewed during modernisation. |
@@ -833,7 +864,7 @@ This makes it easier to visually understand project-to-project relationships.
 
 LegacyLens.NET can detect WCF endpoint configuration from `app.config` and `web.config` files, including endpoint-level details and selected binding configuration details.
 
-The current WCF scanner looks for `<system.serviceModel>` configuration, extracts endpoint details from configured services, and attempts to resolve selected details from named binding configurations.
+The current WCF scanner looks for `<system.serviceModel>` configuration, extracts endpoint details from configured services, and attempts to resolve selected details from named binding configurations, including security settings, credential settings, timeout values, message size limits, buffer limits, transfer mode, and reader quotas.
 
 Example WCF configuration:
 
@@ -842,11 +873,26 @@ Example WCF configuration:
   <system.serviceModel>
     <bindings>
       <basicHttpBinding>
-        <binding name="CustomerBinding">
+        <binding
+          name="CustomerBinding"
+          openTimeout="00:01:00"
+          closeTimeout="00:01:00"
+          sendTimeout="00:02:00"
+          receiveTimeout="00:10:00"
+          maxReceivedMessageSize="1048576"
+          maxBufferSize="65536"
+          maxBufferPoolSize="524288"
+          transferMode="Streamed">
           <security mode="Transport">
             <transport clientCredentialType="Windows" />
             <message clientCredentialType="UserName" />
           </security>
+          <readerQuotas
+            maxDepth="32"
+            maxStringContentLength="8192"
+            maxArrayLength="16384"
+            maxBytesPerRead="4096"
+            maxNameTableCharCount="16384" />
         </binding>
       </basicHttpBinding>
     </bindings>
@@ -878,6 +924,22 @@ Example report output:
 |---|---|---|---|---|---|---|---|---|---|
 | SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | CustomerBinding | Transport | Windows | UserName | False | SampleLegacyApp.Contracts.ICustomerService | `...\SampleLegacyApp.Web\Web.config` |
 | SampleLegacyApp.Services.CustomerService | mex | mexHttpBinding |  |  |  |  | True | IMetadataExchange | `...\SampleLegacyApp.Web\Web.config` |
+```
+
+Additional WCF binding detail report output:
+
+```markdown
+## WCF Binding Details
+
+| Service | Binding | Binding Configuration | Open Timeout | Close Timeout | Send Timeout | Receive Timeout | Max Received Message Size | Max Buffer Size | Max Buffer Pool Size | Transfer Mode |
+|---|---|---|---|---|---|---|---:|---:|---:|---|
+| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 00:01:00 | 00:01:00 | 00:02:00 | 00:10:00 | 1048576 | 65536 | 524288 | Streamed |
+
+## WCF Reader Quotas
+
+| Service | Binding | Binding Configuration | Max Depth | Max String Content Length | Max Array Length | Max Bytes Per Read | Max Name Table Char Count |
+|---|---|---|---:|---:|---:|---:|---:|
+| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 32 | 8192 | 16384 | 4096 | 16384 |
 ```
 
 This helps identify legacy service boundaries and integration points without needing to build or run the target application.
@@ -939,6 +1001,10 @@ Current hint areas include:
 - WCF binding review
 - WCF endpoint configuration review
 - WCF security review
+- WCF timeout review
+- WCF message size and buffer limit review
+- WCF transfer mode review
+- WCF reader quota review
 - WCF metadata exchange review
 - WCF service contract review
 - configuration-heavy application review
@@ -972,6 +1038,17 @@ Current WCF endpoint detail hints include:
 | Metadata exchange endpoint | `Info` | Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies |
 
 
+Current WCF operational detail hints include:
+
+| Indicator | Severity | Meaning |
+|---|---|---|
+| Explicit timeout settings | `Info` | Configured WCF timeout values should be reviewed because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ |
+| Explicit message size or buffer limits | `Info` | Configured WCF message size and buffer limits should be reviewed because equivalent request, response, and hosting limits may need to be set explicitly |
+| Explicit non-streaming transfer mode | `Info` | Explicit transfer mode settings should be reviewed because modern hosting and client behaviour may differ |
+| Streaming transfer mode | `Warning` | Streaming transfer modes may affect endpoint redesign, request buffering, file upload/download behaviour, hosting limits, and client compatibility |
+| Reader quota settings | `Warning` | Reader quotas may affect XML payload compatibility, maximum object graph depth, string sizes, array sizes, and generated SOAP client behaviour during migration |
+
+
 Current legacy ASP.NET hints include:
 
 | Indicator | Severity | Meaning |
@@ -1000,6 +1077,10 @@ Example report output:
 | Info | WCF Configuration | SampleLegacyApp.Services.CustomerService uses binding configuration CustomerBinding | Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review. |
 | Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses WCF security mode Transport | WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints. |
 | Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses transport credential type Windows | Transport credential settings may affect authentication and hosting choices during service migration. |
+| Info | WCF Timeout | SampleLegacyApp.Services.CustomerService has explicit WCF timeout settings | Configured WCF timeout values should be reviewed when replacing endpoints because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ. |
+| Info | WCF Binding Limits | SampleLegacyApp.Services.CustomerService has explicit WCF message size or buffer limits | Configured WCF message size and buffer limits should be reviewed when migrating endpoints because equivalent request, response, and hosting limits may need to be set explicitly. |
+| Warning | WCF Transfer Mode | SampleLegacyApp.Services.CustomerService uses WCF transfer mode Streamed | Streaming WCF transfer modes may affect endpoint redesign, request buffering, file upload/download behaviour, hosting limits, and client compatibility. |
+| Warning | WCF Reader Quotas | SampleLegacyApp.Services.CustomerService has explicit WCF reader quota settings | Configured WCF reader quotas may affect XML payload compatibility, maximum object graph depth, string sizes, array sizes, and generated SOAP client behaviour during migration. |
 | Info | WCF Metadata | SampleLegacyApp.Services.CustomerService exposes a metadata exchange endpoint | Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies. |
 | Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core. |
 | Warning | Legacy ASP.NET | SampleLegacyApp.Web references System.Web.Mvc | System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment. |
@@ -1032,8 +1113,14 @@ Current MVP functionality includes:
 - WCF binding configuration discovery from named endpoint binding configurations
 - WCF endpoint security mode discovery
 - WCF endpoint transport and message credential type discovery
+- WCF endpoint timeout discovery from named binding configurations
+- WCF endpoint message size and buffer limit discovery from named binding configurations
+- WCF endpoint transfer mode discovery from named binding configurations
+- WCF endpoint reader quota discovery from named binding configurations
 - WCF metadata exchange endpoint detection
 - WCF endpoint reporting
+- WCF binding detail reporting
+- WCF reader quota reporting
 - WCF service contract discovery from C# source files
 - WCF operation discovery from `[OperationContract]` methods
 - WCF service contract reporting
@@ -1045,15 +1132,16 @@ Current MVP functionality includes:
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
 - modernisation hints for legacy ASP.NET and `System.Web` assembly references
-- modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, metadata exchange endpoints, and service contracts
+- modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, timeout settings, message size and buffer limits, transfer modes, reader quotas, metadata exchange endpoints, and service contracts
 - modernisation hints for configuration-heavy applications
 - modernisation hint reporting in the generated Markdown report
 - output file generation under the `output/` directory
 
 Planned MVP features include:
 
-- richer WCF endpoint analysis beyond the current binding, security, credential, and metadata exchange hints
-- richer risk and modernisation indicators
+- improved service contract parsing for more complex C# syntax
+- additional legacy ASP.NET indicators beyond the current `System.Web` and `System.Web.*` assembly reference hints
+- improved severity classification as more discovery signals are added
 
 ---
 
@@ -1088,6 +1176,8 @@ Status: Implemented
 - Include assembly references
 - Include package references
 - Include configuration file details
+- Include WCF binding detail sections
+- Include WCF reader quota sections
 
 ### Step 3: Dependency diagram generation
 
@@ -1106,6 +1196,11 @@ Implemented:
 - Detect configured WCF endpoints
 - Report service name, address, binding, binding configuration, security mode, transport credential type, message credential type, metadata exchange indicator, contract, and config file path
 - Resolve selected details from named WCF binding configurations
+- Detect WCF binding timeout settings from named binding configurations
+- Detect WCF message size and buffer limits from named binding configurations
+- Detect WCF transfer mode from named binding configurations
+- Detect WCF reader quota settings from named binding configurations
+- Report WCF binding details and reader quotas in the generated Markdown report
 - Detect WCF metadata exchange endpoints from `IMetadataExchange` contracts and `mex*` bindings
 - Detect WCF service contracts from C# source files
 - Detect WCF operations marked with `[OperationContract]`
@@ -1113,7 +1208,7 @@ Implemented:
 
 Remaining work:
 
-- Improve endpoint analysis beyond the currently detected binding, security, credential, and metadata exchange hints
+- Improve endpoint analysis beyond the currently detected binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
 - Improve service contract parsing for more complex C# syntax
 
 ### Step 5: Risk and modernisation hints
@@ -1134,6 +1229,10 @@ Implemented:
 - Highlight WCF endpoints that use named binding configurations
 - Highlight WCF endpoint security modes
 - Highlight WCF transport credential types
+- Highlight WCF timeout settings
+- Highlight WCF message size and buffer limits
+- Highlight WCF transfer modes, including streaming transfer modes
+- Highlight WCF reader quota settings
 - Highlight WCF metadata exchange endpoints
 - Highlight discovered WCF service contracts
 - Identify legacy ASP.NET indicators from `System.Web` and `System.Web.*` assembly references
@@ -1146,7 +1245,7 @@ Implemented:
 Remaining work:
 
 - Add more legacy ASP.NET indicators beyond the current `System.Web` and `System.Web.*` assembly reference hints
-- Add richer WCF endpoint risk analysis beyond the current binding, security, credential, and metadata exchange hints
+- Add richer WCF endpoint risk analysis beyond the current binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
 - Improve severity classification as more discovery signals are added
 
 ---
@@ -1164,7 +1263,7 @@ LegacyLens.NET can be used when:
 - you are assessing modernisation effort
 - you are preparing for refactoring or migration
 - you need to identify legacy WCF configuration and integration points
-- you need to identify WCF binding configuration, security, credential, or metadata exchange usage before planning endpoint migration
+- you need to identify WCF binding configuration, security, credential, timeout, message size, buffer, transfer mode, reader quota, or metadata exchange usage before planning endpoint migration
 - you need to identify WCF service contracts and operations defined in source code
 - you need to identify configuration-heavy applications, connection strings, or custom configuration sections
 - you want an initial list of modernisation review areas
