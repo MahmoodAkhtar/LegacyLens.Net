@@ -4,7 +4,7 @@ using LegacyLens.Core.Discovery;
 using LegacyLens.Core.Wcf;
 using LegacyLens.Reporting.Markdown;
 
-namespace LegacyLens.Reporting.Tests;
+namespace LegacyLens.Reporting.Tests.Markdown;
 
 public sealed class MarkdownReportWriterTests
 {

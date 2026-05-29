@@ -4,12 +4,12 @@ namespace LegacyLens.Core.Wcf;
 
 public sealed class WcfServiceContractScanner
 {
-    private static readonly Regex ServiceContractInterfaceRegex = new(
-        @"\[ServiceContract(?:\([^\)]*\))?\]\s*(?:public\s+|internal\s+)?interface\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)",
+    private static readonly Regex InterfaceRegex = new(
+        @"(?s)(?<attributes>(?:\s*\[[^\]]+\]\s*)+)\s*(?:public\s+|internal\s+|private\s+|protected\s+|new\s+|partial\s+)*interface\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)(?:\s*:\s*[^{]+)?\s*\{",
         RegexOptions.Compiled | RegexOptions.Multiline);
 
-    private static readonly Regex OperationContractRegex = new(
-        @"\[OperationContract(?:\([^\)]*\))?\]\s*(?:[A-Za-z0-9_<>,\?\[\]\s]+\s+)?(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(",
+    private static readonly Regex OperationMemberRegex = new(
+        @"(?s)(?<attributes>(?:\s*\[[^\]]+\]\s*)+)\s*(?:public\s+|internal\s+|private\s+|protected\s+|new\s+|static\s+|virtual\s+|abstract\s+|partial\s+|async\s+)*[A-Za-z_][A-Za-z0-9_<>,\.\?\[\]\s]*\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*(?:<[^>]+>\s*)?\(",
         RegexOptions.Compiled | RegexOptions.Multiline);
 
     public IReadOnlyList<WcfServiceContract> Scan(string rootPath)
@@ -28,23 +28,41 @@ public sealed class WcfServiceContractScanner
 
         var contracts = new List<WcfServiceContract>();
 
-        foreach (var sourceFile in sourceFiles)
+        foreach (var sourceFile in sourceFiles.OrderBy(x => x))
         {
             var content = File.ReadAllText(sourceFile);
 
-            var serviceContractMatches = ServiceContractInterfaceRegex.Matches(content);
+            var interfaceMatches = InterfaceRegex.Matches(content);
 
-            foreach (Match contractMatch in serviceContractMatches)
+            foreach (Match interfaceMatch in interfaceMatches)
             {
-                var contractName = contractMatch.Groups["name"].Value;
+                var attributes = interfaceMatch.Groups["attributes"].Value;
 
-                var operations = OperationContractRegex
-                    .Matches(content)
-                    .Select(x => x.Groups["name"].Value)
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Distinct()
-                    .OrderBy(x => x)
-                    .ToList();
+                if (!ContainsAttribute(attributes, "ServiceContract"))
+                {
+                    continue;
+                }
+
+                var contractName = interfaceMatch.Groups["name"].Value;
+                var openingBraceIndex = content.IndexOf('{', interfaceMatch.Index + interfaceMatch.Length - 1);
+
+                if (openingBraceIndex < 0)
+                {
+                    continue;
+                }
+
+                var closingBraceIndex = FindMatchingClosingBrace(content, openingBraceIndex);
+
+                if (closingBraceIndex < 0)
+                {
+                    continue;
+                }
+
+                var interfaceBody = content.Substring(
+                    openingBraceIndex + 1,
+                    closingBraceIndex - openingBraceIndex - 1);
+
+                var operations = FindOperations(interfaceBody);
 
                 contracts.Add(new WcfServiceContract
                 {
@@ -55,6 +73,136 @@ public sealed class WcfServiceContractScanner
             }
         }
 
-        return contracts;
+        return contracts
+            .OrderBy(x => x.Name)
+            .ToList();
+    }
+
+    private static List<string> FindOperations(string interfaceBody)
+    {
+        return OperationMemberRegex
+            .Matches(interfaceBody)
+            .Where(x => ContainsAttribute(x.Groups["attributes"].Value, "OperationContract"))
+            .Select(x => x.Groups["name"].Value)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x)
+            .ToList();
+    }
+
+    private static bool ContainsAttribute(string attributes, string attributeName)
+    {
+        var pattern =
+            $@"\[\s*(?:[A-Za-z_][A-Za-z0-9_]*\.)*{Regex.Escape(attributeName)}(?:Attribute)?(?:\s*\(|\s*,|\s*\])";
+
+        return Regex.IsMatch(
+            attributes,
+            pattern,
+            RegexOptions.IgnoreCase | RegexOptions.Multiline);
+    }
+
+    private static int FindMatchingClosingBrace(string content, int openingBraceIndex)
+    {
+        var depth = 0;
+        var inString = false;
+        var inChar = false;
+        var inSingleLineComment = false;
+        var inMultiLineComment = false;
+        var isEscaped = false;
+
+        for (var i = openingBraceIndex; i < content.Length; i++)
+        {
+            var current = content[i];
+            var next = i + 1 < content.Length ? content[i + 1] : '\0';
+
+            if (inSingleLineComment)
+            {
+                if (current is '\r' or '\n')
+                {
+                    inSingleLineComment = false;
+                }
+
+                continue;
+            }
+
+            if (inMultiLineComment)
+            {
+                if (current == '*' && next == '/')
+                {
+                    inMultiLineComment = false;
+                    i++;
+                }
+
+                continue;
+            }
+
+            if (inString)
+            {
+                if (current == '"' && !isEscaped)
+                {
+                    inString = false;
+                }
+
+                isEscaped = current == '\\' && !isEscaped;
+                continue;
+            }
+
+            if (inChar)
+            {
+                if (current == '\'' && !isEscaped)
+                {
+                    inChar = false;
+                }
+
+                isEscaped = current == '\\' && !isEscaped;
+                continue;
+            }
+
+            if (current == '/' && next == '/')
+            {
+                inSingleLineComment = true;
+                i++;
+                continue;
+            }
+
+            if (current == '/' && next == '*')
+            {
+                inMultiLineComment = true;
+                i++;
+                continue;
+            }
+
+            if (current == '"')
+            {
+                inString = true;
+                isEscaped = false;
+                continue;
+            }
+
+            if (current == '\'')
+            {
+                inChar = true;
+                isEscaped = false;
+                continue;
+            }
+
+            if (current == '{')
+            {
+                depth++;
+                continue;
+            }
+
+            if (current == '}')
+            {
+                depth--;
+
+                if (depth == 0)
+                {
+                    return i;
+                }
+            }
+        }
+
+        return -1;
     }
 }

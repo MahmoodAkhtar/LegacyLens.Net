@@ -46,7 +46,7 @@ The current implementation can scan a folder containing .NET solutions and proje
 - `connectionStrings` entry counts
 - custom configuration section counts from `configSections`
 - WCF service contracts from C# source files
-- WCF operations marked with `[OperationContract]`
+- WCF operations marked with `[OperationContract]`, scoped to the containing `[ServiceContract]` interface
 - basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
@@ -205,7 +205,7 @@ Even if the solution does not build, it can still discover useful information fr
 - WCF endpoint reader quota settings
 - WCF metadata exchange endpoint indicators
 - WCF `[ServiceContract]` interfaces
-- WCF `[OperationContract]` methods
+- WCF `[OperationContract]` methods scoped to their containing service contract interface
 - project references
 - assembly references
 - package references
@@ -509,15 +509,16 @@ Current WCF work includes:
 - extracting configured WCF endpoints
 - modelling WCF endpoint details such as service name, address, binding, binding configuration, behaviour configuration, security mode, transport credential type, message credential type, timeout settings, message size limits, buffer limits, transfer mode, reader quota settings, metadata exchange endpoint indicator, contract, and config file path
 - scanning C# source files for WCF service contracts
-- detecting interfaces marked with `[ServiceContract]`
-- detecting operations marked with `[OperationContract]`
+- detecting interfaces marked with `[ServiceContract]`, `[ServiceContract(...)]`, or `[ServiceContractAttribute]`
+- detecting operations marked with `[OperationContract]`, `[OperationContract(...)]`, or `[OperationContractAttribute]`
+- scoping discovered operations to their containing service contract interface
 - modelling WCF service contract details such as contract name, source file path, and operation names
 
 Planned WCF work includes:
 
 - richer WCF endpoint analysis beyond the currently detected binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
 - more detailed WCF-related risk and modernisation indicators
-- improved service contract parsing for more complex C# syntax
+- further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
 
 ---
 
@@ -952,7 +953,9 @@ Current WCF endpoint discovery is configuration-based. It does not require the t
 
 LegacyLens.NET can also detect WCF service contracts from C# source files.
 
-The current WCF service contract scanner looks for interfaces marked with `[ServiceContract]` and operations marked with `[OperationContract]`.
+The current WCF service contract scanner looks for interfaces marked with `[ServiceContract]`, `[ServiceContract(...)]`, or `[ServiceContractAttribute]`, and operations marked with `[OperationContract]`, `[OperationContract(...)]`, or `[OperationContractAttribute]`.
+
+Operation discovery is scoped to the containing service contract interface. This means multiple service contracts can exist in the same source file without operations being incorrectly shared between contracts.
 
 Example WCF service contract:
 
@@ -979,9 +982,42 @@ Example report output:
 | ICustomerService | GetCustomer | `...\SampleLegacyApp.Contracts\CustomerContracts.cs` |
 ```
 
+Multiple service contracts can be declared in the same source file:
+
+```csharp
+using System.ServiceModel;
+
+namespace SampleLegacyApp.Contracts;
+
+[ServiceContract]
+public interface ICustomerService
+{
+    [OperationContract]
+    CustomerDto GetCustomer(int id);
+}
+
+[ServiceContract]
+public interface IOrderService
+{
+    [OperationContract]
+    OrderDto GetOrder(int id);
+}
+```
+
+These are reported as separate contracts with their own operation lists:
+
+```markdown
+## WCF Service Contracts
+
+| Contract | Operations | Source File |
+|---|---|---|
+| ICustomerService | GetCustomer | `...\Contracts.cs` |
+| IOrderService | GetOrder | `...\Contracts.cs` |
+```
+
 This helps identify service boundaries defined in code, even when the target solution cannot be built or run.
 
-Current service contract discovery is intentionally lightweight and static. It is based on source scanning rather than compilation.
+Current service contract discovery is intentionally lightweight and static. It is based on source scanning rather than compilation, so it does not require the target solution to build.
 
 ---
 
@@ -1123,6 +1159,7 @@ Current MVP functionality includes:
 - WCF reader quota reporting
 - WCF service contract discovery from C# source files
 - WCF operation discovery from `[OperationContract]` methods
+- WCF operation discovery scoped to the containing service contract interface
 - WCF service contract reporting
 - configuration file discovery from `app.config` and `web.config`
 - `appSettings`, `connectionStrings`, and custom configuration section counting
@@ -1139,7 +1176,7 @@ Current MVP functionality includes:
 
 Planned MVP features include:
 
-- improved service contract parsing for more complex C# syntax
+- further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
 - additional legacy ASP.NET indicators beyond the current `System.Web` and `System.Web.*` assembly reference hints
 - improved severity classification as more discovery signals are added
 
@@ -1204,12 +1241,13 @@ Implemented:
 - Detect WCF metadata exchange endpoints from `IMetadataExchange` contracts and `mex*` bindings
 - Detect WCF service contracts from C# source files
 - Detect WCF operations marked with `[OperationContract]`
+- Scope detected WCF operations to their containing service contract interface
 - Report contract name, operation names, and source file path
 
 Remaining work:
 
 - Improve endpoint analysis beyond the currently detected binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
-- Improve service contract parsing for more complex C# syntax
+- Further improve service contract parsing for more complex C# syntax beyond the currently supported static interface and operation contract patterns
 
 ### Step 5: Risk and modernisation hints
 
