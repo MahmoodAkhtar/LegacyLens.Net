@@ -2,6 +2,7 @@ using System.Text;
 using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.LegacyAspNet;
 using LegacyLens.Core.Wcf;
 using LegacyLens.Reporting.Mermaid;
 
@@ -15,6 +16,7 @@ public sealed class MarkdownReportWriter
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
         IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts,
         IReadOnlyList<ModernisationHint> modernisationHints,
         IReadOnlyList<DiscoveredConfigFile> configFiles)
     {
@@ -27,6 +29,7 @@ public sealed class MarkdownReportWriter
         ArgumentNullException.ThrowIfNull(projects);
         ArgumentNullException.ThrowIfNull(wcfEndpoints);
         ArgumentNullException.ThrowIfNull(wcfServiceContracts);
+        ArgumentNullException.ThrowIfNull(legacyAspNetArtifacts);
         ArgumentNullException.ThrowIfNull(modernisationHints);
         ArgumentNullException.ThrowIfNull(configFiles);
 
@@ -42,6 +45,7 @@ public sealed class MarkdownReportWriter
             projects,
             wcfEndpoints,
             wcfServiceContracts,
+            legacyAspNetArtifacts,
             modernisationHints,
             configFiles);
 
@@ -53,6 +57,7 @@ public sealed class MarkdownReportWriter
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
         IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts,
         IReadOnlyList<ModernisationHint> modernisationHints,
         IReadOnlyList<DiscoveredConfigFile> configFiles)
     {
@@ -69,6 +74,7 @@ public sealed class MarkdownReportWriter
         builder.AppendLine($"- Package references discovered: {projects.Sum(x => x.PackageReferences.Count)}");
         builder.AppendLine($"- WCF endpoints discovered: {wcfEndpoints.Count}");
         builder.AppendLine($"- WCF service contracts discovered: {wcfServiceContracts.Count}");
+        builder.AppendLine($"- Legacy ASP.NET artifacts discovered: {legacyAspNetArtifacts.Count}");
         builder.AppendLine($"- Assembly references discovered: {projects.Sum(x => x.AssemblyReferences.Count)}");
         builder.AppendLine();
 
@@ -84,6 +90,7 @@ public sealed class MarkdownReportWriter
         AppendWcfBindingDetails(builder, wcfEndpoints);
         AppendWcfReaderQuotas(builder, wcfEndpoints);
         AppendWcfServiceContracts(builder, wcfServiceContracts);
+        AppendLegacyAspNetArtifacts(builder, legacyAspNetArtifacts);
         AppendConfigurationFiles(builder, configFiles);
         AppendModernisationHints(builder, modernisationHints);
 
@@ -422,6 +429,38 @@ public sealed class MarkdownReportWriter
 
             builder.AppendLine(
                 $"| {Escape(contract.Name)} | {operations} | `{contract.SourceFilePath}` |");
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendLegacyAspNetArtifacts(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        builder.AppendLine("## Legacy ASP.NET Artifacts");
+        builder.AppendLine();
+        builder.AppendLine("| Kind | Name | File |");
+        builder.AppendLine("|---|---|---|");
+
+        if (artifacts.Count == 0)
+        {
+            builder.AppendLine("| None | None | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var artifact in artifacts
+                     .OrderBy(x => x.Kind)
+                     .ThenBy(x => x.Name)
+                     .ThenBy(x => x.FilePath))
+        {
+            var name = string.IsNullOrWhiteSpace(artifact.Name)
+                ? Path.GetFileName(artifact.FilePath)
+                : artifact.Name;
+
+            builder.AppendLine(
+                $"| {Escape(artifact.Kind.ToString())} | {Escape(name)} | `{artifact.FilePath}` |");
         }
 
         builder.AppendLine();

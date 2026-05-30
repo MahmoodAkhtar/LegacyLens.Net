@@ -1,5 +1,6 @@
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.LegacyAspNet;
 using LegacyLens.Core.Wcf;
 
 namespace LegacyLens.Core.Analysis;
@@ -10,11 +11,13 @@ public sealed class ModernisationHintAnalyzer
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
         IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts,
         IReadOnlyList<DiscoveredConfigFile> configFiles)
     {
         ArgumentNullException.ThrowIfNull(projects);
         ArgumentNullException.ThrowIfNull(wcfEndpoints);
         ArgumentNullException.ThrowIfNull(wcfServiceContracts);
+        ArgumentNullException.ThrowIfNull(legacyAspNetArtifacts);
         ArgumentNullException.ThrowIfNull(configFiles);
 
         var hints = new List<ModernisationHint>();
@@ -24,6 +27,7 @@ public sealed class ModernisationHintAnalyzer
         AddPackageHints(projects, hints);
         AddWcfHints(wcfEndpoints, wcfServiceContracts, hints);
         AddAssemblyReferenceHints(projects, hints);
+        AddLegacyAspNetArtifactHints(legacyAspNetArtifacts, hints);
         AddConfigHints(configFiles, hints);
 
         return hints;
@@ -437,6 +441,99 @@ public sealed class ModernisationHintAnalyzer
                 }
             }
         }
+    }
+
+    private static void AddLegacyAspNetArtifactHints(
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts,
+        List<ModernisationHint> hints)
+    {
+        foreach (var artifact in legacyAspNetArtifacts)
+        {
+            var name = GetLegacyAspNetArtifactName(artifact);
+
+            switch (artifact.Kind)
+            {
+                case LegacyAspNetArtifactKind.WebFormsPage:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Risk,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is a WebForms page",
+                        Reason =
+                            "WebForms pages indicate classic ASP.NET UI that does not directly migrate to ASP.NET Core and usually needs redesign or replacement planning."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebFormsUserControl:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is a WebForms user control",
+                        Reason =
+                            "WebForms user controls may contain reusable UI and page lifecycle behaviour that needs review during ASP.NET Core migration planning."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MasterPage:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is a WebForms master page",
+                        Reason =
+                            "Master pages usually indicate shared WebForms layout structure that may need redesign when moving to modern ASP.NET."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.AsmxWebService:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Risk,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is an ASMX web service",
+                        Reason =
+                            "ASMX web services are legacy SOAP-style ASP.NET endpoints that usually need replacement or compatibility planning during modernisation."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.HttpHandler:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is an ASP.NET HTTP handler",
+                        Reason =
+                            "HTTP handlers may contain custom request processing behaviour that needs mapping to modern ASP.NET middleware, endpoints, or controllers."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.GlobalAsax:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is a Global.asax application file",
+                        Reason =
+                            "Global.asax may contain application startup, routing, error handling, or lifecycle code that should be reviewed when migrating to modern ASP.NET hosting."
+                    });
+                    break;
+            }
+        }
+    }
+
+    private static string GetLegacyAspNetArtifactName(DiscoveredLegacyAspNetArtifact artifact)
+    {
+        if (!string.IsNullOrWhiteSpace(artifact.Name))
+        {
+            return artifact.Name;
+        }
+
+        var fileName = Path.GetFileName(artifact.FilePath);
+
+        return string.IsNullOrWhiteSpace(fileName)
+            ? artifact.FilePath
+            : fileName;
     }
 
     private static string GetServiceName(WcfEndpoint endpoint)

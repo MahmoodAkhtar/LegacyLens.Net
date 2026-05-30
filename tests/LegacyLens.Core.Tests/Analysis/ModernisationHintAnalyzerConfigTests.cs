@@ -1,6 +1,7 @@
 using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.LegacyAspNet;
 using LegacyLens.Core.Wcf;
 
 namespace LegacyLens.Core.Tests.Analysis;
@@ -27,6 +28,7 @@ public sealed class ModernisationHintAnalyzerConfigTests
             Array.Empty<DiscoveredProject>(),
             Array.Empty<WcfEndpoint>(),
             Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
             configFiles);
 
         Assert.Contains(hints, hint =>
@@ -56,6 +58,7 @@ public sealed class ModernisationHintAnalyzerConfigTests
             Array.Empty<DiscoveredProject>(),
             Array.Empty<WcfEndpoint>(),
             Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
             configFiles);
 
         Assert.Contains(hints, hint =>
@@ -85,6 +88,7 @@ public sealed class ModernisationHintAnalyzerConfigTests
             Array.Empty<DiscoveredProject>(),
             Array.Empty<WcfEndpoint>(),
             Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
             configFiles);
 
         Assert.Contains(hints, hint =>

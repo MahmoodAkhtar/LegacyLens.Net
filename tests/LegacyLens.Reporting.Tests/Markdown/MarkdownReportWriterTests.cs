@@ -1,6 +1,8 @@
-﻿using LegacyLens.Core.Analysis;
+﻿using FluentAssertions;
+using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.LegacyAspNet;
 using LegacyLens.Core.Wcf;
 using LegacyLens.Reporting.Markdown;
 
@@ -11,757 +13,12 @@ public sealed class MarkdownReportWriterTests
     [Fact]
     public void Write_CreatesMarkdownReport()
     {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48"
-                }
-            });
-
-        Assert.Contains("# LegacyLens.NET Discovery Report", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesSummaryCounts()
-    {
-        var markdown = WriteReport(
-            solutions: new List<DiscoveredSolution>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp",
-                    SolutionFilePath = @"C:\Code\SampleLegacyApp\SampleLegacyApp.sln",
-                    ProjectFilePaths =
-                    {
-                        @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj"
-                    }
-                }
-            },
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48",
-                    ProjectReferences =
-                    {
-                        @"..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj"
-                    },
-                    PackageReferences =
-                    {
-                        "Newtonsoft.Json"
-                    },
-                    AssemblyReferences =
-                    {
-                        "System.Web"
-                    }
-                }
-            },
-            wcfEndpoints: new List<WcfEndpoint>
-            {
-                new()
-                {
-                    ServiceName = "SampleLegacyApp.Services.CustomerService",
-                    Address = "",
-                    Binding = "basicHttpBinding",
-                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
-                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config"
-                }
-            },
-            wcfServiceContracts: new List<WcfServiceContract>
-            {
-                new()
-                {
-                    Name = "ICustomerService",
-                    SourceFilePath = @"C:\Code\SampleLegacyApp.Contracts\CustomerContracts.cs",
-                    Operations =
-                    {
-                        "GetCustomer"
-                    }
-                }
-            });
-
-        Assert.Contains("- Solutions discovered: 1", markdown);
-        Assert.Contains("- Projects discovered: 1", markdown);
-        Assert.Contains("- Project references discovered: 1", markdown);
-        Assert.Contains("- Package references discovered: 1", markdown);
-        Assert.Contains("- WCF endpoints discovered: 1", markdown);
-        Assert.Contains("- WCF service contracts discovered: 1", markdown);
-        Assert.Contains("- Assembly references discovered: 1", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesSolutions()
-    {
-        var markdown = WriteReport(
-            solutions: new List<DiscoveredSolution>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp",
-                    SolutionFilePath = @"C:\Code\SampleLegacyApp\SampleLegacyApp.sln",
-                    ProjectFilePaths =
-                    {
-                        @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                        @"C:\Code\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj"
-                    }
-                }
-            });
-
-        Assert.Contains("## Solutions", markdown);
-        Assert.Contains("| Solution | Projects | Solution File |", markdown);
-        Assert.Contains("| SampleLegacyApp | 2 | `C:\\Code\\SampleLegacyApp\\SampleLegacyApp.sln` |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoSolutionsExist()
-    {
-        var markdown = WriteReport();
-
-        Assert.Contains("## Solutions", markdown);
-        Assert.Contains("| None | 0 | None |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesProjects()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48"
-                }
-            });
-
-        Assert.Contains("## Projects", markdown);
-        Assert.Contains("| Project | Target Framework | Project File |", markdown);
-        Assert.Contains("| SampleLegacyApp.Web | net48 | `C:\\Code\\SampleLegacyApp.Web\\SampleLegacyApp.Web.csproj` |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesUnknownTargetFramework_WhenProjectTargetFrameworkIsMissing()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Legacy",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Legacy\SampleLegacyApp.Legacy.csproj"
-                }
-            });
-
-        Assert.Contains("| SampleLegacyApp.Legacy | Unknown | `C:\\Code\\SampleLegacyApp.Legacy\\SampleLegacyApp.Legacy.csproj` |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesTargetFrameworkSummary()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48"
-                },
-                new()
-                {
-                    Name = "SampleLegacyApp.Services",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj",
-                    TargetFramework = "net48"
-                },
-                new()
-                {
-                    Name = "SampleLegacyApp.ModernApi",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.ModernApi\SampleLegacyApp.ModernApi.csproj",
-                    TargetFramework = "net8.0"
-                }
-            });
-
-        Assert.Contains("## Target Framework Summary", markdown);
-        Assert.Contains("| Target Framework | Projects |", markdown);
-        Assert.Contains("| net48 | 2 |", markdown);
-        Assert.Contains("| net8.0 | 1 |", markdown);
-    }
-
-    [Fact]
-    public void Write_GroupsUnknownTargetFrameworks_WhenTargetFrameworkIsMissing()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.LegacyA",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.LegacyA\SampleLegacyApp.LegacyA.csproj"
-                },
-                new()
-                {
-                    Name = "SampleLegacyApp.LegacyB",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.LegacyB\SampleLegacyApp.LegacyB.csproj",
-                    TargetFramework = ""
-                }
-            });
-
-        Assert.Contains("## Target Framework Summary", markdown);
-        Assert.Contains("| Unknown | 2 |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRowInTargetFrameworkSummary_WhenNoProjectsExist()
-    {
-        var markdown = WriteReport();
-
-        Assert.Contains("## Target Framework Summary", markdown);
-        Assert.Contains("| None | 0 |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesPackageReferenceSummary()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48",
-                    PackageReferences =
-                    {
-                        "EntityFramework",
-                        "Newtonsoft.Json"
-                    }
-                },
-                new()
-                {
-                    Name = "SampleLegacyApp.Data",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj",
-                    TargetFramework = "net48",
-                    PackageReferences =
-                    {
-                        "EntityFramework",
-                        "Dapper"
-                    }
-                }
-            });
-
-        Assert.Contains("## Package Reference Summary", markdown);
-        Assert.Contains("| Package | Projects |", markdown);
-        Assert.Contains("| Dapper | 1 |", markdown);
-        Assert.Contains("| EntityFramework | 2 |", markdown);
-        Assert.Contains("| Newtonsoft.Json | 1 |", markdown);
-    }
-
-    [Fact]
-    public void Write_CountsPackageReferenceSummaryOncePerProject()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48",
-                    PackageReferences =
-                    {
-                        "Newtonsoft.Json",
-                        "Newtonsoft.Json"
-                    }
-                }
-            });
-
-        Assert.Contains("## Package Reference Summary", markdown);
-        Assert.Contains("| Newtonsoft.Json | 1 |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRowInPackageReferenceSummary_WhenNoPackagesExist()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48"
-                }
-            });
-
-        Assert.Contains("## Package Reference Summary", markdown);
-        Assert.Contains("| None | 0 |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesProjectDependencyDiagram()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48",
-                    ProjectReferences =
-                    {
-                        @"..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj"
-                    }
-                },
-                new()
-                {
-                    Name = "SampleLegacyApp.Services",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj",
-                    TargetFramework = "net48"
-                }
-            });
-
-        Assert.Contains("## Project Dependency Diagram", markdown);
-        Assert.Contains("```mermaid", markdown);
-        Assert.Contains("graph TD", markdown);
-        Assert.Contains("SampleLegacyApp_Web --> SampleLegacyApp_Services", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesProjectReferences()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48",
-                    ProjectReferences =
-                    {
-                        @"..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj"
-                    }
-                }
-            });
-
-        Assert.Contains("## Project References", markdown);
-        Assert.Contains("| From | To |", markdown);
-        Assert.Contains("| SampleLegacyApp.Web | `..\\SampleLegacyApp.Services\\SampleLegacyApp.Services.csproj` |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoProjectReferencesExist()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48"
-                }
-            });
-
-        Assert.Contains("## Project References", markdown);
-        Assert.Contains("| None | None |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesAssemblyReferences()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48",
-                    AssemblyReferences =
-                    {
-                        "System.Web",
-                        "System.Web.Mvc"
-                    }
-                }
-            });
-
-        Assert.Contains("## Assembly References", markdown);
-        Assert.Contains("| Project | Assembly |", markdown);
-        Assert.Contains("| SampleLegacyApp.Web | `System.Web` |", markdown);
-        Assert.Contains("| SampleLegacyApp.Web | `System.Web.Mvc` |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoAssemblyReferencesExist()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48"
-                }
-            });
-
-        Assert.Contains("## Assembly References", markdown);
-        Assert.Contains("| None | None |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesPackageReferences()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48",
-                    PackageReferences =
-                    {
-                        "Newtonsoft.Json",
-                        "System.ServiceModel.Http"
-                    }
-                }
-            });
-
-        Assert.Contains("## Package References", markdown);
-        Assert.Contains("| Project | Package |", markdown);
-        Assert.Contains("| SampleLegacyApp.Web | `Newtonsoft.Json` |", markdown);
-        Assert.Contains("| SampleLegacyApp.Web | `System.ServiceModel.Http` |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoPackageReferencesExist()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "SampleLegacyApp.Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48"
-                }
-            });
-
-        Assert.Contains("## Package References", markdown);
-        Assert.Contains("| None | None |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesWcfEndpoints()
-    {
-        var markdown = WriteReport(
-            wcfEndpoints: new List<WcfEndpoint>
-            {
-                new()
-                {
-                    ServiceName = "SampleLegacyApp.Services.CustomerService",
-                    Address = "",
-                    Binding = "basicHttpBinding",
-                    BindingConfiguration = "CustomerBinding",
-                    SecurityMode = "Transport",
-                    TransportClientCredentialType = "Windows",
-                    MessageClientCredentialType = "UserName",
-                    IsMetadataExchangeEndpoint = false,
-                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
-                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config"
-                }
-            });
-
-        Assert.Contains("## WCF Endpoints", markdown);
-        Assert.Contains("| Service | Address | Binding | Binding Configuration | Security Mode | Transport Credential | Message Credential | Metadata Exchange | Contract | Config File |", markdown);
-        Assert.Contains("| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | CustomerBinding | Transport | Windows | UserName | False | SampleLegacyApp.Contracts.ICustomerService | `C:\\Code\\SampleLegacyApp.Web\\Web.config` |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoWcfEndpointsExist()
-    {
-        var markdown = WriteReport();
-
-        Assert.Contains("## WCF Endpoints", markdown);
-        Assert.Contains("| None | None | None | None | None | None | None | None | None | None |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesWcfBindingDetails()
-    {
-        var markdown = WriteReport(
-            wcfEndpoints: new List<WcfEndpoint>
-            {
-                new()
-                {
-                    ServiceName = "SampleLegacyApp.Services.CustomerService",
-                    Binding = "basicHttpBinding",
-                    BindingConfiguration = "CustomerBinding",
-                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
-                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
-                    OpenTimeout = "00:01:00",
-                    CloseTimeout = "00:02:00",
-                    SendTimeout = "00:03:00",
-                    ReceiveTimeout = "00:10:00",
-                    MaxReceivedMessageSize = "1048576",
-                    MaxBufferSize = "65536",
-                    MaxBufferPoolSize = "524288",
-                    TransferMode = "Streamed"
-                }
-            });
-
-        Assert.Contains("## WCF Binding Details", markdown);
-        Assert.Contains("| Service | Binding | Binding Configuration | Open Timeout | Close Timeout | Send Timeout | Receive Timeout | Max Received Message Size | Max Buffer Size | Max Buffer Pool Size | Transfer Mode |", markdown);
-        Assert.Contains("| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 00:01:00 | 00:02:00 | 00:03:00 | 00:10:00 | 1048576 | 65536 | 524288 | Streamed |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoWcfBindingDetailsExist()
-    {
-        var markdown = WriteReport(
-            wcfEndpoints: new List<WcfEndpoint>
-            {
-                new()
-                {
-                    ServiceName = "SampleLegacyApp.Services.CustomerService",
-                    Binding = "basicHttpBinding",
-                    BindingConfiguration = "CustomerBinding",
-                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
-                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config"
-                }
-            });
-
-        Assert.Contains("## WCF Binding Details", markdown);
-        Assert.Contains("| None | None | None | None | None | None | None | None | None | None | None |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesWcfReaderQuotas()
-    {
-        var markdown = WriteReport(
-            wcfEndpoints: new List<WcfEndpoint>
-            {
-                new()
-                {
-                    ServiceName = "SampleLegacyApp.Services.CustomerService",
-                    Binding = "basicHttpBinding",
-                    BindingConfiguration = "CustomerBinding",
-                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
-                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
-                    ReaderQuotaMaxDepth = "32",
-                    ReaderQuotaMaxStringContentLength = "8192",
-                    ReaderQuotaMaxArrayLength = "16384",
-                    ReaderQuotaMaxBytesPerRead = "4096",
-                    ReaderQuotaMaxNameTableCharCount = "16384"
-                }
-            });
-
-        Assert.Contains("## WCF Reader Quotas", markdown);
-        Assert.Contains("| Service | Binding | Binding Configuration | Max Depth | Max String Content Length | Max Array Length | Max Bytes Per Read | Max Name Table Char Count |", markdown);
-        Assert.Contains("| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 32 | 8192 | 16384 | 4096 | 16384 |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoWcfReaderQuotasExist()
-    {
-        var markdown = WriteReport(
-            wcfEndpoints: new List<WcfEndpoint>
-            {
-                new()
-                {
-                    ServiceName = "SampleLegacyApp.Services.CustomerService",
-                    Binding = "basicHttpBinding",
-                    BindingConfiguration = "CustomerBinding",
-                    Contract = "SampleLegacyApp.Contracts.ICustomerService",
-                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config"
-                }
-            });
-
-        Assert.Contains("## WCF Reader Quotas", markdown);
-        Assert.Contains("| None | None | None | None | None | None | None | None |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesWcfServiceContracts()
-    {
-        var markdown = WriteReport(
-            wcfServiceContracts: new List<WcfServiceContract>
-            {
-                new()
-                {
-                    Name = "ICustomerService",
-                    SourceFilePath = @"C:\Code\SampleLegacyApp.Contracts\CustomerContracts.cs",
-                    Operations =
-                    {
-                        "GetCustomer",
-                        "SaveCustomer"
-                    }
-                }
-            });
-
-        Assert.Contains("## WCF Service Contracts", markdown);
-        Assert.Contains("| Contract | Operations | Source File |", markdown);
-        Assert.Contains("| ICustomerService | GetCustomer, SaveCustomer | `C:\\Code\\SampleLegacyApp.Contracts\\CustomerContracts.cs` |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoWcfServiceContractsExist()
-    {
-        var markdown = WriteReport();
-
-        Assert.Contains("## WCF Service Contracts", markdown);
-        Assert.Contains("| None | None | None |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesConfigurationFiles()
-    {
-        var markdown = WriteReport(
-            configFiles: new List<DiscoveredConfigFile>
-            {
-                new()
-                {
-                    FilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
-                    AppSettingsCount = 12,
-                    ConnectionStringsCount = 2,
-                    CustomSectionCount = 1
-                }
-            });
-
-        Assert.Contains("## Configuration Files", markdown);
-        Assert.Contains("| Config File | App Settings | Connection Strings | Custom Sections |", markdown);
-        Assert.Contains("| `C:\\Code\\SampleLegacyApp.Web\\Web.config` | 12 | 2 | 1 |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoConfigurationFilesExist()
-    {
-        var markdown = WriteReport();
-
-        Assert.Contains("## Configuration Files", markdown);
-        Assert.Contains("| None | 0 | 0 | 0 |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesModernisationHints()
-    {
-        var markdown = WriteReport(
-            modernisationHints: new List<ModernisationHint>
-            {
-                new()
-                {
-                    Severity = ModernisationHintSeverity.Risk,
-                    Area = "Target Framework",
-                    Finding = "SampleLegacyApp.Web targets net48",
-                    Reason = ".NET Framework projects usually need extra assessment before migration to modern .NET."
-                }
-            });
-
-        Assert.Contains("## Modernisation Hints", markdown);
-        Assert.Contains("| Severity | Area | Finding | Reason |", markdown);
-        Assert.Contains("| Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |", markdown);
-    }
-
-    [Fact]
-    public void Write_IncludesNoneRow_WhenNoModernisationHintsExist()
-    {
-        var markdown = WriteReport();
-
-        Assert.Contains("## Modernisation Hints", markdown);
-        Assert.Contains("| None | None | None | None |", markdown);
-    }
-
-    [Fact]
-    public void Write_EscapesMarkdownTablePipes()
-    {
-        var markdown = WriteReport(
-            projects: new List<DiscoveredProject>
-            {
-                new()
-                {
-                    Name = "Sample|Legacy|Web",
-                    ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                    TargetFramework = "net48",
-                    PackageReferences =
-                    {
-                        "Package|With|Pipes"
-                    },
-                    AssemblyReferences =
-                    {
-                        "Assembly|With|Pipes"
-                    }
-                }
-            },
-            wcfEndpoints: new List<WcfEndpoint>
-            {
-                new()
-                {
-                    ServiceName = "Service|With|Pipes",
-                    Address = "Address|With|Pipes",
-                    Binding = "Binding|With|Pipes",
-                    BindingConfiguration = "BindingConfiguration|With|Pipes",
-                    SecurityMode = "Security|With|Pipes",
-                    TransportClientCredentialType = "Transport|With|Pipes",
-                    MessageClientCredentialType = "Message|With|Pipes",
-                    Contract = "Contract|With|Pipes",
-                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
-                    OpenTimeout = "Timeout|With|Pipes",
-                    MaxReceivedMessageSize = "Size|With|Pipes",
-                    TransferMode = "Transfer|With|Pipes",
-                    ReaderQuotaMaxDepth = "Depth|With|Pipes",
-                    ReaderQuotaMaxStringContentLength = "StringLength|With|Pipes"
-                }
-            },
-            modernisationHints: new List<ModernisationHint>
-            {
-                new()
-                {
-                    Severity = ModernisationHintSeverity.Warning,
-                    Area = "Area|With|Pipes",
-                    Finding = "Finding|With|Pipes",
-                    Reason = "Reason|With|Pipes"
-                }
-            });
-
-        Assert.Contains("Sample\\|Legacy\\|Web", markdown);
-        Assert.Contains("Package\\|With\\|Pipes", markdown);
-        Assert.Contains("Assembly\\|With\\|Pipes", markdown);
-        Assert.Contains("Service\\|With\\|Pipes", markdown);
-        Assert.Contains("Address\\|With\\|Pipes", markdown);
-        Assert.Contains("Binding\\|With\\|Pipes", markdown);
-        Assert.Contains("BindingConfiguration\\|With\\|Pipes", markdown);
-        Assert.Contains("Security\\|With\\|Pipes", markdown);
-        Assert.Contains("Transport\\|With\\|Pipes", markdown);
-        Assert.Contains("Message\\|With\\|Pipes", markdown);
-        Assert.Contains("Contract\\|With\\|Pipes", markdown);
-        Assert.Contains("Timeout\\|With\\|Pipes", markdown);
-        Assert.Contains("Size\\|With\\|Pipes", markdown);
-        Assert.Contains("Transfer\\|With\\|Pipes", markdown);
-        Assert.Contains("Depth\\|With\\|Pipes", markdown);
-        Assert.Contains("StringLength\\|With\\|Pipes", markdown);
-        Assert.Contains("Area\\|With\\|Pipes", markdown);
-        Assert.Contains("Finding\\|With\\|Pipes", markdown);
-        Assert.Contains("Reason\\|With\\|Pipes", markdown);
-    }
-
-    [Fact]
-    public void Write_CreatesOutputDirectory_WhenItDoesNotExist()
-    {
-        var rootDirectory = CreateTemporaryDirectory();
-        var outputPath = Path.Combine(rootDirectory, "nested", "reports", "discovery-report.md");
+        var rootPath = CreateTemporaryDirectory();
 
         try
         {
+            var outputPath = Path.Combine(rootPath, "output", "discovery-report.md");
+
             var writer = new MarkdownReportWriter();
 
             writer.Write(
@@ -770,14 +27,659 @@ public sealed class MarkdownReportWriterTests
                 Array.Empty<DiscoveredProject>(),
                 Array.Empty<WcfEndpoint>(),
                 Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
                 Array.Empty<ModernisationHint>(),
                 Array.Empty<DiscoveredConfigFile>());
 
-            Assert.True(File.Exists(outputPath));
+            File.Exists(outputPath).Should().BeTrue();
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("# LegacyLens.NET Discovery Report");
         }
         finally
         {
-            DeleteDirectory(rootDirectory);
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesSummaryCounts()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var solution = new DiscoveredSolution
+            {
+                Name = "SampleLegacyApp",
+                SolutionFilePath = Path.Combine(rootPath, "SampleLegacyApp.sln"),
+                ProjectFilePaths =
+                {
+                    Path.Combine(rootPath, "SampleLegacyApp.Web", "SampleLegacyApp.Web.csproj")
+                }
+            };
+
+            var project = new DiscoveredProject
+            {
+                Name = "SampleLegacyApp.Web",
+                ProjectFilePath = Path.Combine(rootPath, "SampleLegacyApp.Web", "SampleLegacyApp.Web.csproj"),
+                TargetFramework = "net48",
+                ProjectReferences =
+                {
+                    @"..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj"
+                },
+                PackageReferences =
+                {
+                    "Newtonsoft.Json"
+                },
+                AssemblyReferences =
+                {
+                    "System.Web"
+                }
+            };
+
+            var wcfEndpoint = new WcfEndpoint
+            {
+                ConfigFilePath = Path.Combine(rootPath, "Web.config"),
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Address = "",
+                Binding = "basicHttpBinding",
+                Contract = "SampleLegacyApp.Contracts.ICustomerService"
+            };
+
+            var wcfServiceContract = new WcfServiceContract
+            {
+                Name = "ICustomerService",
+                SourceFilePath = Path.Combine(rootPath, "CustomerContracts.cs"),
+                Operations =
+                {
+                    "GetCustomer"
+                }
+            };
+
+            var legacyAspNetArtifact = new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebFormsPage,
+                Name = "Default.aspx",
+                FilePath = Path.Combine(rootPath, "Default.aspx")
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                new[] { solution },
+                new[] { project },
+                new[] { wcfEndpoint },
+                new[] { wcfServiceContract },
+                new[] { legacyAspNetArtifact },
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("- Solutions discovered: 1");
+            markdown.Should().Contain("- Projects discovered: 1");
+            markdown.Should().Contain("- Project references discovered: 1");
+            markdown.Should().Contain("- Package references discovered: 1");
+            markdown.Should().Contain("- WCF endpoints discovered: 1");
+            markdown.Should().Contain("- WCF service contracts discovered: 1");
+            markdown.Should().Contain("- Legacy ASP.NET artifacts discovered: 1");
+            markdown.Should().Contain("- Assembly references discovered: 1");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesSolutionsSection()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var solutionFilePath = Path.Combine(rootPath, "SampleLegacyApp.sln");
+            var projectFilePath = Path.Combine(rootPath, "SampleLegacyApp.Web", "SampleLegacyApp.Web.csproj");
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var solution = new DiscoveredSolution
+            {
+                Name = "SampleLegacyApp",
+                SolutionFilePath = solutionFilePath,
+                ProjectFilePaths =
+                {
+                    projectFilePath
+                }
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                new[] { solution },
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## Solutions");
+            markdown.Should().Contain("| Solution | Projects | Solution File |");
+            markdown.Should().Contain($"| SampleLegacyApp | 1 | `{solutionFilePath}` |");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesProjectAndDependencySections()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var projectFilePath = Path.Combine(rootPath, "SampleLegacyApp.Web", "SampleLegacyApp.Web.csproj");
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var project = new DiscoveredProject
+            {
+                Name = "SampleLegacyApp.Web",
+                ProjectFilePath = projectFilePath,
+                TargetFramework = "net48",
+                ProjectReferences =
+                {
+                    @"..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj"
+                },
+                AssemblyReferences =
+                {
+                    "System.Web"
+                },
+                PackageReferences =
+                {
+                    "Newtonsoft.Json"
+                }
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                new[] { project },
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## Projects");
+            markdown.Should().Contain($"| SampleLegacyApp.Web | net48 | `{projectFilePath}` |");
+
+            markdown.Should().Contain("## Target Framework Summary");
+            markdown.Should().Contain("| net48 | 1 |");
+
+            markdown.Should().Contain("## Package Reference Summary");
+            markdown.Should().Contain("| Newtonsoft.Json | 1 |");
+
+            markdown.Should().Contain("## Project References");
+            markdown.Should().Contain(@"| SampleLegacyApp.Web | `..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj` |");
+
+            markdown.Should().Contain("## Assembly References");
+            markdown.Should().Contain("| SampleLegacyApp.Web | `System.Web` |");
+
+            markdown.Should().Contain("## Package References");
+            markdown.Should().Contain("| SampleLegacyApp.Web | `Newtonsoft.Json` |");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesProjectDependencyDiagram()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var webProjectPath = Path.Combine(rootPath, "SampleLegacyApp.Web", "SampleLegacyApp.Web.csproj");
+            var servicesProjectPath = Path.Combine(rootPath, "SampleLegacyApp.Services", "SampleLegacyApp.Services.csproj");
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var webProject = new DiscoveredProject
+            {
+                Name = "SampleLegacyApp.Web",
+                ProjectFilePath = webProjectPath,
+                TargetFramework = "net48",
+                ProjectReferences =
+                {
+                    @"..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj"
+                }
+            };
+
+            var servicesProject = new DiscoveredProject
+            {
+                Name = "SampleLegacyApp.Services",
+                ProjectFilePath = servicesProjectPath,
+                TargetFramework = "net48"
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                new[] { webProject, servicesProject },
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## Project Dependency Diagram");
+            markdown.Should().Contain("```mermaid");
+            markdown.Should().Contain("graph TD");
+            markdown.Should().Contain("SampleLegacyApp_Web --> SampleLegacyApp_Services");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesWcfEndpointDetails()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var configFilePath = Path.Combine(rootPath, "Web.config");
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var endpoint = new WcfEndpoint
+            {
+                ConfigFilePath = configFilePath,
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Address = "",
+                Binding = "basicHttpBinding",
+                BindingConfiguration = "CustomerBinding",
+                Contract = "SampleLegacyApp.Contracts.ICustomerService",
+                SecurityMode = "Transport",
+                TransportClientCredentialType = "Windows",
+                MessageClientCredentialType = "UserName",
+                IsMetadataExchangeEndpoint = false,
+                OpenTimeout = "00:01:00",
+                CloseTimeout = "00:01:00",
+                SendTimeout = "00:02:00",
+                ReceiveTimeout = "00:10:00",
+                MaxReceivedMessageSize = "1048576",
+                MaxBufferSize = "65536",
+                MaxBufferPoolSize = "524288",
+                TransferMode = "Streamed",
+                ReaderQuotaMaxDepth = "32",
+                ReaderQuotaMaxStringContentLength = "8192",
+                ReaderQuotaMaxArrayLength = "16384",
+                ReaderQuotaMaxBytesPerRead = "4096",
+                ReaderQuotaMaxNameTableCharCount = "16384"
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                Array.Empty<DiscoveredProject>(),
+                new[] { endpoint },
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## WCF Endpoints");
+            markdown.Should().Contain($"| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | CustomerBinding | Transport | Windows | UserName | False | SampleLegacyApp.Contracts.ICustomerService | `{configFilePath}` |");
+
+            markdown.Should().Contain("## WCF Binding Details");
+            markdown.Should().Contain("| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 00:01:00 | 00:01:00 | 00:02:00 | 00:10:00 | 1048576 | 65536 | 524288 | Streamed |");
+
+            markdown.Should().Contain("## WCF Reader Quotas");
+            markdown.Should().Contain("| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 32 | 8192 | 16384 | 4096 | 16384 |");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesWcfServiceContracts()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var sourceFilePath = Path.Combine(rootPath, "CustomerContracts.cs");
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var contract = new WcfServiceContract
+            {
+                Name = "ICustomerService",
+                SourceFilePath = sourceFilePath,
+                Operations =
+                {
+                    "GetCustomer",
+                    "SaveCustomer"
+                }
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                new[] { contract },
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## WCF Service Contracts");
+            markdown.Should().Contain($"| ICustomerService | GetCustomer, SaveCustomer | `{sourceFilePath}` |");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesLegacyAspNetArtifacts()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var defaultPagePath = Path.Combine(rootPath, "Default.aspx");
+            var globalAsaxPath = Path.Combine(rootPath, "Global.asax");
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var artifacts = new[]
+            {
+                new DiscoveredLegacyAspNetArtifact
+                {
+                    Kind = LegacyAspNetArtifactKind.WebFormsPage,
+                    Name = "Default.aspx",
+                    FilePath = defaultPagePath
+                },
+                new DiscoveredLegacyAspNetArtifact
+                {
+                    Kind = LegacyAspNetArtifactKind.GlobalAsax,
+                    Name = "Global.asax",
+                    FilePath = globalAsaxPath
+                }
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                artifacts,
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## Legacy ASP.NET Artifacts");
+            markdown.Should().Contain("| Kind | Name | File |");
+            markdown.Should().Contain($"| WebFormsPage | Default.aspx | `{defaultPagePath}` |");
+            markdown.Should().Contain($"| GlobalAsax | Global.asax | `{globalAsaxPath}` |");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesNoneRow_WhenNoLegacyAspNetArtifactsExist()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## Legacy ASP.NET Artifacts");
+            markdown.Should().Contain("| None | None | None |");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_UsesFileName_WhenLegacyAspNetArtifactNameIsEmpty()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var artifactPath = Path.Combine(rootPath, "Default.aspx");
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var artifact = new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebFormsPage,
+                Name = "",
+                FilePath = artifactPath
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                new[] { artifact },
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain($"| WebFormsPage | Default.aspx | `{artifactPath}` |");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesConfigurationFiles()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var configFilePath = Path.Combine(rootPath, "Web.config");
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var configFile = new DiscoveredConfigFile
+            {
+                FilePath = configFilePath,
+                AppSettingsCount = 12,
+                ConnectionStringsCount = 2,
+                CustomSectionCount = 1
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                Array.Empty<ModernisationHint>(),
+                new[] { configFile });
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## Configuration Files");
+            markdown.Should().Contain($"| `{configFilePath}` | 12 | 2 | 1 |");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_IncludesModernisationHints()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var hint = new ModernisationHint
+            {
+                Severity = ModernisationHintSeverity.Risk,
+                Area = "Legacy ASP.NET",
+                Finding = "SampleLegacyApp.Web references System.Web",
+                Reason = "System.Web usually indicates classic ASP.NET."
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                new[] { hint },
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## Modernisation Hints");
+            markdown.Should().Contain("| Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET. |");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_EscapesPipeCharactersInMarkdownTables()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var project = new DiscoveredProject
+            {
+                Name = "Project|WithPipe",
+                ProjectFilePath = Path.Combine(rootPath, "Project.csproj"),
+                TargetFramework = "net48",
+                PackageReferences =
+                {
+                    "Package|WithPipe"
+                },
+                AssemblyReferences =
+                {
+                    "Assembly|WithPipe"
+                }
+            };
+
+            var hint = new ModernisationHint
+            {
+                Severity = ModernisationHintSeverity.Warning,
+                Area = "Area|WithPipe",
+                Finding = "Finding|WithPipe",
+                Reason = "Reason|WithPipe"
+            };
+
+            var artifact = new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebFormsPage,
+                Name = "Name|WithPipe.aspx",
+                FilePath = Path.Combine(rootPath, "Default.aspx")
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                new[] { project },
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                new[] { artifact },
+                new[] { hint },
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("Project\\|WithPipe");
+            markdown.Should().Contain("Package\\|WithPipe");
+            markdown.Should().Contain("Assembly\\|WithPipe");
+            markdown.Should().Contain("Name\\|WithPipe.aspx");
+            markdown.Should().Contain("Area\\|WithPipe");
+            markdown.Should().Contain("Finding\\|WithPipe");
+            markdown.Should().Contain("Reason\\|WithPipe");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
         }
     }
 
@@ -786,162 +688,233 @@ public sealed class MarkdownReportWriterTests
     {
         var writer = new MarkdownReportWriter();
 
-        Assert.Throws<ArgumentException>(() =>
-            writer.Write(
-                "",
-                Array.Empty<DiscoveredSolution>(),
-                Array.Empty<DiscoveredProject>(),
-                Array.Empty<WcfEndpoint>(),
-                Array.Empty<WcfServiceContract>(),
-                Array.Empty<ModernisationHint>(),
-                Array.Empty<DiscoveredConfigFile>()));
+        var act = () => writer.Write(
+            "",
+            Array.Empty<DiscoveredSolution>(),
+            Array.Empty<DiscoveredProject>(),
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+            Array.Empty<ModernisationHint>(),
+            Array.Empty<DiscoveredConfigFile>());
+
+        act.Should().Throw<ArgumentException>()
+            .WithMessage("Output path cannot be empty.*");
     }
 
     [Fact]
     public void Write_ThrowsArgumentNullException_WhenSolutionsIsNull()
     {
-        var writer = new MarkdownReportWriter();
+        var rootPath = CreateTemporaryDirectory();
 
-        Assert.Throws<ArgumentNullException>(() =>
-            writer.Write(
-                "report.md",
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+            var writer = new MarkdownReportWriter();
+
+            var act = () => writer.Write(
+                outputPath,
                 null!,
                 Array.Empty<DiscoveredProject>(),
                 Array.Empty<WcfEndpoint>(),
                 Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
                 Array.Empty<ModernisationHint>(),
-                Array.Empty<DiscoveredConfigFile>()));
+                Array.Empty<DiscoveredConfigFile>());
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
     }
 
     [Fact]
     public void Write_ThrowsArgumentNullException_WhenProjectsIsNull()
     {
-        var writer = new MarkdownReportWriter();
+        var rootPath = CreateTemporaryDirectory();
 
-        Assert.Throws<ArgumentNullException>(() =>
-            writer.Write(
-                "report.md",
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+            var writer = new MarkdownReportWriter();
+
+            var act = () => writer.Write(
+                outputPath,
                 Array.Empty<DiscoveredSolution>(),
                 null!,
                 Array.Empty<WcfEndpoint>(),
                 Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
                 Array.Empty<ModernisationHint>(),
-                Array.Empty<DiscoveredConfigFile>()));
+                Array.Empty<DiscoveredConfigFile>());
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
     }
 
     [Fact]
     public void Write_ThrowsArgumentNullException_WhenWcfEndpointsIsNull()
     {
-        var writer = new MarkdownReportWriter();
+        var rootPath = CreateTemporaryDirectory();
 
-        Assert.Throws<ArgumentNullException>(() =>
-            writer.Write(
-                "report.md",
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+            var writer = new MarkdownReportWriter();
+
+            var act = () => writer.Write(
+                outputPath,
                 Array.Empty<DiscoveredSolution>(),
                 Array.Empty<DiscoveredProject>(),
                 null!,
                 Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
                 Array.Empty<ModernisationHint>(),
-                Array.Empty<DiscoveredConfigFile>()));
+                Array.Empty<DiscoveredConfigFile>());
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
     }
 
     [Fact]
     public void Write_ThrowsArgumentNullException_WhenWcfServiceContractsIsNull()
     {
-        var writer = new MarkdownReportWriter();
+        var rootPath = CreateTemporaryDirectory();
 
-        Assert.Throws<ArgumentNullException>(() =>
-            writer.Write(
-                "report.md",
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+            var writer = new MarkdownReportWriter();
+
+            var act = () => writer.Write(
+                outputPath,
                 Array.Empty<DiscoveredSolution>(),
                 Array.Empty<DiscoveredProject>(),
                 Array.Empty<WcfEndpoint>(),
                 null!,
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
                 Array.Empty<ModernisationHint>(),
-                Array.Empty<DiscoveredConfigFile>()));
+                Array.Empty<DiscoveredConfigFile>());
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_ThrowsArgumentNullException_WhenLegacyAspNetArtifactsIsNull()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+            var writer = new MarkdownReportWriter();
+
+            var act = () => writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                null!,
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
     }
 
     [Fact]
     public void Write_ThrowsArgumentNullException_WhenModernisationHintsIsNull()
     {
-        var writer = new MarkdownReportWriter();
+        var rootPath = CreateTemporaryDirectory();
 
-        Assert.Throws<ArgumentNullException>(() =>
-            writer.Write(
-                "report.md",
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+            var writer = new MarkdownReportWriter();
+
+            var act = () => writer.Write(
+                outputPath,
                 Array.Empty<DiscoveredSolution>(),
                 Array.Empty<DiscoveredProject>(),
                 Array.Empty<WcfEndpoint>(),
                 Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
                 null!,
-                Array.Empty<DiscoveredConfigFile>()));
+                Array.Empty<DiscoveredConfigFile>());
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
     }
 
     [Fact]
     public void Write_ThrowsArgumentNullException_WhenConfigFilesIsNull()
     {
-        var writer = new MarkdownReportWriter();
+        var rootPath = CreateTemporaryDirectory();
 
-        Assert.Throws<ArgumentNullException>(() =>
-            writer.Write(
-                "report.md",
+        try
+        {
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+            var writer = new MarkdownReportWriter();
+
+            var act = () => writer.Write(
+                outputPath,
                 Array.Empty<DiscoveredSolution>(),
                 Array.Empty<DiscoveredProject>(),
                 Array.Empty<WcfEndpoint>(),
                 Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
                 Array.Empty<ModernisationHint>(),
-                null!));
-    }
+                null!);
 
-    private static string WriteReport(
-        IReadOnlyList<DiscoveredSolution>? solutions = null,
-        IReadOnlyList<DiscoveredProject>? projects = null,
-        IReadOnlyList<WcfEndpoint>? wcfEndpoints = null,
-        IReadOnlyList<WcfServiceContract>? wcfServiceContracts = null,
-        IReadOnlyList<ModernisationHint>? modernisationHints = null,
-        IReadOnlyList<DiscoveredConfigFile>? configFiles = null)
-    {
-        var rootDirectory = CreateTemporaryDirectory();
-        var outputPath = Path.Combine(rootDirectory, "discovery-report.md");
-
-        try
-        {
-            var writer = new MarkdownReportWriter();
-
-            writer.Write(
-                outputPath,
-                solutions ?? Array.Empty<DiscoveredSolution>(),
-                projects ?? Array.Empty<DiscoveredProject>(),
-                wcfEndpoints ?? Array.Empty<WcfEndpoint>(),
-                wcfServiceContracts ?? Array.Empty<WcfServiceContract>(),
-                modernisationHints ?? Array.Empty<ModernisationHint>(),
-                configFiles ?? Array.Empty<DiscoveredConfigFile>());
-
-            return File.ReadAllText(outputPath);
+            act.Should().Throw<ArgumentNullException>();
         }
         finally
         {
-            DeleteDirectory(rootDirectory);
+            DeleteDirectory(rootPath);
         }
     }
 
     private static string CreateTemporaryDirectory()
     {
-        var directory = Path.Combine(
+        var path = Path.Combine(
             Path.GetTempPath(),
-            "LegacyLens.Reporting.Tests",
+            "LegacyLensReportingTests",
             Guid.NewGuid().ToString("N"));
 
-        Directory.CreateDirectory(directory);
+        Directory.CreateDirectory(path);
 
-        return directory;
+        return path;
     }
 
-    private static void DeleteDirectory(string directory)
+    private static void DeleteDirectory(string path)
     {
-        if (Directory.Exists(directory))
+        if (Directory.Exists(path))
         {
-            Directory.Delete(directory, recursive: true);
+            Directory.Delete(path, recursive: true);
         }
     }
 }

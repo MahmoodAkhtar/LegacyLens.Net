@@ -1,8 +1,9 @@
 ﻿using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
-using LegacyLens.Reporting.Markdown;
+using LegacyLens.Core.LegacyAspNet;
 using LegacyLens.Core.Wcf;
+using LegacyLens.Reporting.Markdown;
 
 var path = args.Length > 0 ? args[0] : Directory.GetCurrentDirectory();
 
@@ -32,7 +33,7 @@ foreach (var project in projects)
     {
         Console.WriteLine($"  Assembly reference: {assemblyReference}");
     }
-    
+
     foreach (var package in project.PackageReferences)
     {
         Console.WriteLine($"  Package reference: {package}");
@@ -103,12 +104,32 @@ else
     }
 }
 
+var legacyAspNetArtifactScanner = new LegacyAspNetArtifactScanner();
+var legacyAspNetArtifacts = legacyAspNetArtifactScanner.Scan(path);
+
+Console.WriteLine();
+Console.WriteLine("Legacy ASP.NET artifacts discovered:");
+
+if (legacyAspNetArtifacts.Count == 0)
+{
+    Console.WriteLine("- None");
+}
+else
+{
+    foreach (var artifact in legacyAspNetArtifacts)
+    {
+        Console.WriteLine($"- {artifact.Kind}: {artifact.Name ?? Path.GetFileName(artifact.FilePath)}");
+        Console.WriteLine($"  File: {artifact.FilePath}");
+    }
+}
+
 var modernisationHintAnalyzer = new ModernisationHintAnalyzer();
 
 var modernisationHints = modernisationHintAnalyzer.Analyze(
     projects,
     wcfEndpoints,
     wcfServiceContracts,
+    legacyAspNetArtifacts,
     configFiles);
 
 Console.WriteLine();
@@ -129,6 +150,7 @@ else
 var solutionDiscoveryService = new SolutionDiscoveryService();
 var solutions = solutionDiscoveryService.DiscoverSolutions(path);
 
+Console.WriteLine();
 Console.WriteLine("Solutions discovered:");
 
 if (solutions.Count == 0)
@@ -155,14 +177,14 @@ var outputPath = Path.Combine(
 var reportWriter = new MarkdownReportWriter();
 
 reportWriter.Write(
-    outputPath, 
+    outputPath,
     solutions,
-    projects, 
-    wcfEndpoints, 
-    wcfServiceContracts, 
+    projects,
+    wcfEndpoints,
+    wcfServiceContracts,
+    legacyAspNetArtifacts,
     modernisationHints,
     configFiles);
 
 Console.WriteLine();
 Console.WriteLine($"Markdown report generated: {outputPath}");
-

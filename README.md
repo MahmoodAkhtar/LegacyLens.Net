@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, and configuration files, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, and reader quota details, WCF service contracts, service-related configuration, general configuration file usage, and basic modernisation hints.
+It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, configuration files, and selected legacy ASP.NET artifacts, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, and reader quota details, WCF service contracts, service-related configuration, legacy ASP.NET artifact usage, general configuration file usage, and basic modernisation hints.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -12,6 +12,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - Which framework assembly references are used by each project?
 - Which NuGet packages are referenced?
 - Are there signs of legacy technologies such as WCF?
+- Are there signs of classic ASP.NET artifacts such as WebForms pages, ASMX web services, HTTP handlers, or `Global.asax`?
 - Which WCF endpoints are configured?
 - Which WCF binding configurations, security modes, timeout settings, message size limits, buffer limits, transfer modes, or reader quotas are configured?
 - Which WCF service contracts and operations are defined in the source code?
@@ -47,7 +48,14 @@ The current implementation can scan a folder containing .NET solutions and proje
 - custom configuration section counts from `configSections`
 - WCF service contracts from C# source files
 - WCF operations marked with `[OperationContract]`, scoped to the containing `[ServiceContract]` interface
-- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
+- legacy ASP.NET artifacts from files such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`
+- WebForms pages
+- WebForms user controls
+- WebForms master pages
+- ASMX web services
+- ASP.NET HTTP handlers
+- `Global.asax` application files
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
@@ -59,7 +67,7 @@ output/discovery-report.md
 
 The generated report currently includes:
 
-- a summary of discovered solutions, projects, project references, assembly references, package references, WCF endpoints, and WCF service contracts
+- a summary of discovered solutions, projects, project references, assembly references, package references, WCF endpoints, WCF service contracts, and legacy ASP.NET artifacts
 - a solution table
 - a project table
 - a target framework summary showing how many projects use each discovered target framework
@@ -72,8 +80,9 @@ The generated report currently includes:
 - WCF binding detail information, including timeout settings, message size limits, buffer limits, and transfer mode
 - WCF reader quota information, including max depth, max string content length, max array length, max bytes per read, and max name table character count
 - WCF service contract and operation information
+- legacy ASP.NET artifact information, including artifact kind, name, and file path
 - configuration file information, including `appSettings`, `connectionStrings`, and custom configuration section counts
-- modernisation hints with severity, area, finding, and reason, including Legacy ASP.NET hints when `System.Web` assembly references are found
+- modernisation hints with severity, area, finding, and reason, including Legacy ASP.NET hints when `System.Web` assembly references or legacy ASP.NET artifacts are found
 
 Example console output:
 
@@ -119,6 +128,20 @@ Configuration files discovered:
   Connection strings: 0
   Custom sections: 0
 
+Legacy ASP.NET artifacts discovered:
+- WebFormsPage: Default.aspx
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Default.aspx
+- WebFormsUserControl: CustomerSummary.ascx
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerSummary.ascx
+- MasterPage: Site.master
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Site.master
+- AsmxWebService: CustomerService.asmx
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerService.asmx
+- HttpHandler: Download.ashx
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Download.ashx
+- GlobalAsax: Global.asax
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax
+
 Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
 - [Risk] Target Framework: SampleLegacyApp.Data targets net48
@@ -132,6 +155,12 @@ Modernisation hints discovered:
 - [Risk] WCF: 1 WCF service contract(s) discovered
 - [Risk] Legacy ASP.NET: SampleLegacyApp.Web references System.Web
 - [Warning] Legacy ASP.NET: SampleLegacyApp.Web references System.Web.Mvc
+- [Risk] Legacy ASP.NET: Default.aspx is a WebForms page
+- [Warning] Legacy ASP.NET: CustomerSummary.ascx is a WebForms user control
+- [Warning] Legacy ASP.NET: Site.master is a WebForms master page
+- [Risk] Legacy ASP.NET: CustomerService.asmx is an ASMX web service
+- [Warning] Legacy ASP.NET: Download.ashx is an ASP.NET HTTP handler
+- [Info] Legacy ASP.NET: Global.asax is a Global.asax application file
 
 Solutions discovered:
 - SampleLegacyApp
@@ -141,7 +170,7 @@ Solutions discovered:
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
 
-If no solutions, WCF endpoints, WCF service contracts, configuration files, or modernisation hints are found, the console output shows:
+If no solutions, WCF endpoints, WCF service contracts, configuration files, legacy ASP.NET artifacts, or modernisation hints are found, the console output shows:
 
 ```text
 WCF endpoints discovered:
@@ -151,6 +180,9 @@ WCF service contracts discovered:
 - None
 
 Configuration files discovered:
+- None
+
+Legacy ASP.NET artifacts discovered:
 - None
 
 Modernisation hints discovered:
@@ -196,6 +228,12 @@ Even if the solution does not build, it can still discover useful information fr
 - `connectionStrings` entries
 - custom configuration sections
 - C# source files
+- `.aspx` WebForms pages
+- `.ascx` WebForms user controls
+- `.master` WebForms master pages
+- `.asmx` ASMX web services
+- `.ashx` ASP.NET HTTP handlers
+- `Global.asax` application files
 - WCF configuration files
 - WCF endpoint binding configuration names
 - WCF endpoint security modes and credential types
@@ -219,6 +257,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: configuration file discovery currently supports `app.config` and `web.config` files. Invalid or unreadable configuration files are ignored so discovery can continue.
 
 > Note: WCF endpoint discovery currently reads configured service endpoints from `app.config` and `web.config` files. Where endpoints reference named binding configurations, LegacyLens.NET also attempts to resolve related security mode, transport credential type, message credential type, timeout, message size, buffer, transfer mode, and reader quota details from the matching binding configuration.
+
+> Note: legacy ASP.NET artifact discovery currently detects file-based classic ASP.NET artifacts such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`. These are static discovery signals and do not require the application to build or run.
 
 > Note: solution discovery currently supports `.sln` files and extracts referenced C# project paths from project entries. Non-C# project entries and solution folders are ignored.
 
@@ -369,6 +409,54 @@ This helps identify applications where important runtime behaviour or migration 
 
 ---
 
+## Legacy ASP.NET Artifact Discovery
+
+LegacyLens.NET can detect selected classic ASP.NET artifacts from source folders without building or running the application.
+
+This is useful for older .NET Framework web applications where important migration work may be hidden in WebForms pages, user controls, master pages, ASMX services, custom handlers, or application lifecycle files.
+
+Current legacy ASP.NET artifact discovery supports:
+
+- `.aspx` WebForms pages
+- `.ascx` WebForms user controls
+- `.master` WebForms master pages
+- `.asmx` ASMX web services
+- `.ashx` ASP.NET HTTP handlers
+- `Global.asax` application files
+
+Example files:
+
+```text
+SampleLegacyApp.Web/
+├── Default.aspx
+├── CustomerSummary.ascx
+├── Site.master
+├── CustomerService.asmx
+├── Download.ashx
+└── Global.asax
+```
+
+These are reported in the generated Markdown report:
+
+```markdown
+## Legacy ASP.NET Artifacts
+
+| Kind | Name | File |
+|---|---|---|
+| WebFormsPage | Default.aspx | `...\SampleLegacyApp.Web\Default.aspx` |
+| WebFormsUserControl | CustomerSummary.ascx | `...\SampleLegacyApp.Web\CustomerSummary.ascx` |
+| MasterPage | Site.master | `...\SampleLegacyApp.Web\Site.master` |
+| AsmxWebService | CustomerService.asmx | `...\SampleLegacyApp.Web\CustomerService.asmx` |
+| HttpHandler | Download.ashx | `...\SampleLegacyApp.Web\Download.ashx` |
+| GlobalAsax | Global.asax | `...\SampleLegacyApp.Web\Global.asax` |
+```
+
+These artifacts are also used as modernisation hint inputs. For example, WebForms pages and ASMX web services are treated as higher-risk migration indicators because they usually need redesign, replacement, or compatibility planning when moving to modern ASP.NET.
+
+Current legacy ASP.NET artifact discovery is intentionally file-based. It does not require the target solution to build or run.
+
+---
+
 ## Repository Structure
 
 ```text
@@ -411,6 +499,7 @@ LegacyLens.Core/
 ├── Configuration/
 ├── Dependencies/
 ├── Discovery/
+├── LegacyAspNet/
 ├── Models/
 └── Wcf/
 ```
@@ -439,6 +528,10 @@ Current analysis work includes:
 - identifying `Newtonsoft.Json` usage as an informational review item
 - identifying legacy ASP.NET indicators from `System.Web` assembly references
 - identifying `System.Web.*` assembly references as legacy ASP.NET review items
+- identifying WebForms pages as legacy ASP.NET migration risk indicators
+- identifying ASMX web services as legacy ASP.NET migration risk indicators
+- identifying WebForms user controls, master pages, and HTTP handlers as legacy ASP.NET review items
+- identifying `Global.asax` application files as ASP.NET lifecycle and startup review items
 - highlighting projects with several direct project references
 - highlighting discovered WCF endpoints
 - highlighting selected WCF binding types such as `basicHttpBinding`, `netTcpBinding`, `wsHttpBinding`, and `netMsmqBinding`
@@ -483,6 +576,18 @@ Current discovery work includes:
 - package reference discovery from `<PackageReference />` entries
 - package reference discovery from legacy `packages.config` files
 - assembly reference discovery from `<Reference />` entries
+
+### LegacyAspNet
+
+Responsible for detecting selected classic ASP.NET artifacts from the source tree.
+
+Current legacy ASP.NET artifact discovery work includes:
+
+- modelling discovered legacy ASP.NET artifacts
+- classifying artifact kinds such as WebForms pages, WebForms user controls, master pages, ASMX web services, HTTP handlers, and `Global.asax`
+- scanning files such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`
+- reporting discovered legacy ASP.NET artifacts in the Markdown discovery report
+- feeding discovered legacy ASP.NET artifacts into modernisation hint analysis
 
 ### Dependencies
 
@@ -562,6 +667,7 @@ The Markdown report currently includes:
 - WCF reader quota details
 - WCF service contract details
 - WCF operation names
+- legacy ASP.NET artifact details, including artifact kind, name, and file path
 - configuration file details
 - `appSettings`, `connectionStrings`, and custom configuration section counts
 - modernisation hints
@@ -608,7 +714,7 @@ Example:
 PS C:\Users\YourName\RiderProjects\LegacyLens.Net> dotnet run --project src/LegacyLens.Cli -- .\samples\SampleLegacyApp\
 ```
 
-This scans the sample application, prints discovered solution, project, assembly reference, WCF, configuration file, and modernisation hint information to the console, and generates a Markdown report at:
+This scans the sample application, prints discovered solution, project, assembly reference, WCF, configuration file, legacy ASP.NET artifact, and modernisation hint information to the console, and generates a Markdown report at:
 
 ```text
 output/discovery-report.md
@@ -666,6 +772,20 @@ Configuration files discovered:
   Connection strings: 0
   Custom sections: 0
 
+Legacy ASP.NET artifacts discovered:
+- WebFormsPage: Default.aspx
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Default.aspx
+- WebFormsUserControl: CustomerSummary.ascx
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerSummary.ascx
+- MasterPage: Site.master
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Site.master
+- AsmxWebService: CustomerService.asmx
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerService.asmx
+- HttpHandler: Download.ashx
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Download.ashx
+- GlobalAsax: Global.asax
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax
+
 Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
 - [Risk] Target Framework: SampleLegacyApp.Data targets net48
@@ -679,6 +799,12 @@ Modernisation hints discovered:
 - [Risk] WCF: 1 WCF service contract(s) discovered
 - [Risk] Legacy ASP.NET: SampleLegacyApp.Web references System.Web
 - [Warning] Legacy ASP.NET: SampleLegacyApp.Web references System.Web.Mvc
+- [Risk] Legacy ASP.NET: Default.aspx is a WebForms page
+- [Warning] Legacy ASP.NET: CustomerSummary.ascx is a WebForms user control
+- [Warning] Legacy ASP.NET: Site.master is a WebForms master page
+- [Risk] Legacy ASP.NET: CustomerService.asmx is an ASMX web service
+- [Warning] Legacy ASP.NET: Download.ashx is an ASP.NET HTTP handler
+- [Info] Legacy ASP.NET: Global.asax is a Global.asax application file
 
 Solutions discovered:
 - SampleLegacyApp
@@ -713,6 +839,7 @@ The current report sections are:
 - WCF Binding Details
 - WCF Reader Quotas
 - WCF Service Contracts
+- Legacy ASP.NET Artifacts
 - Configuration Files
 - Modernisation Hints
 
@@ -729,6 +856,7 @@ The report currently includes sections such as:
 - Package references discovered: 4
 - WCF endpoints discovered: 1
 - WCF service contracts discovered: 1
+- Legacy ASP.NET artifacts discovered: 6
 - Assembly references discovered: 2
 
 ## Solutions
@@ -808,6 +936,17 @@ graph TD
 |---|---|---|
 | ICustomerService | GetCustomer | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs` |
 
+## Legacy ASP.NET Artifacts
+
+| Kind | Name | File |
+|---|---|---|
+| WebFormsPage | Default.aspx | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Default.aspx` |
+| WebFormsUserControl | CustomerSummary.ascx | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerSummary.ascx` |
+| MasterPage | Site.master | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Site.master` |
+| AsmxWebService | CustomerService.asmx | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerService.asmx` |
+| HttpHandler | Download.ashx | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Download.ashx` |
+| GlobalAsax | Global.asax | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax` |
+
 ## Configuration Files
 
 | Config File | App Settings | Connection Strings | Custom Sections |
@@ -823,7 +962,13 @@ graph TD
 | Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
 | Risk | WCF | 1 WCF service contract(s) discovered | WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning. |
 | Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core. |
+| Risk | Legacy ASP.NET | Default.aspx is a WebForms page | WebForms pages indicate classic ASP.NET UI that does not directly migrate to ASP.NET Core and usually needs redesign or replacement planning. |
+| Risk | Legacy ASP.NET | CustomerService.asmx is an ASMX web service | ASMX web services are legacy SOAP-style ASP.NET endpoints that usually need replacement or compatibility planning during modernisation. |
 | Warning | Legacy ASP.NET | SampleLegacyApp.Web references System.Web.Mvc | System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment. |
+| Warning | Legacy ASP.NET | CustomerSummary.ascx is a WebForms user control | WebForms user controls may contain reusable UI and page lifecycle behaviour that needs review during ASP.NET Core migration planning. |
+| Warning | Legacy ASP.NET | Site.master is a WebForms master page | Master pages usually indicate shared WebForms layout structure that may need redesign when moving to modern ASP.NET. |
+| Warning | Legacy ASP.NET | Download.ashx is an ASP.NET HTTP handler | HTTP handlers may contain custom request processing behaviour that needs mapping to modern ASP.NET middleware, endpoints, or controllers. |
+| Info | Legacy ASP.NET | Global.asax is a Global.asax application file | Global.asax may contain application startup, routing, error handling, or lifecycle code that should be reviewed when migrating to modern ASP.NET hosting. |
 | Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
 | Warning | WCF Binding | basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService | basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning. |
 | Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses WCF security mode Transport | WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints. |
@@ -1033,6 +1178,7 @@ Current hint areas include:
 - project dependency review
 - package review
 - legacy ASP.NET / `System.Web` review
+- legacy ASP.NET artifact review
 - WCF endpoint review
 - WCF binding review
 - WCF endpoint configuration review
@@ -1091,6 +1237,12 @@ Current legacy ASP.NET hints include:
 |---|---|---|
 | `System.Web` assembly reference | `Risk` | Usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core |
 | `System.Web.*` assembly reference | `Warning` | Indicates legacy ASP.NET-related functionality that may need separate migration assessment |
+| `.aspx` WebForms page | `Risk` | WebForms UI usually needs redesign or replacement planning when moving to modern ASP.NET |
+| `.asmx` ASMX web service | `Risk` | ASMX web services are legacy SOAP-style ASP.NET endpoints that usually need replacement or compatibility planning |
+| `.ascx` WebForms user control | `Warning` | User controls may contain reusable UI and page lifecycle behaviour that needs review |
+| `.master` WebForms master page | `Warning` | Master pages usually indicate shared WebForms layout structure that may need redesign |
+| `.ashx` HTTP handler | `Warning` | HTTP handlers may contain custom request processing that needs mapping to middleware, endpoints, or controllers |
+| `Global.asax` application file | `Info` | May contain startup, routing, error handling, or application lifecycle code that should be reviewed |
 
 Current configuration hints include:
 
@@ -1119,7 +1271,13 @@ Example report output:
 | Warning | WCF Reader Quotas | SampleLegacyApp.Services.CustomerService has explicit WCF reader quota settings | Configured WCF reader quotas may affect XML payload compatibility, maximum object graph depth, string sizes, array sizes, and generated SOAP client behaviour during migration. |
 | Info | WCF Metadata | SampleLegacyApp.Services.CustomerService exposes a metadata exchange endpoint | Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies. |
 | Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core. |
+| Risk | Legacy ASP.NET | Default.aspx is a WebForms page | WebForms pages indicate classic ASP.NET UI that does not directly migrate to ASP.NET Core and usually needs redesign or replacement planning. |
+| Risk | Legacy ASP.NET | CustomerService.asmx is an ASMX web service | ASMX web services are legacy SOAP-style ASP.NET endpoints that usually need replacement or compatibility planning during modernisation. |
 | Warning | Legacy ASP.NET | SampleLegacyApp.Web references System.Web.Mvc | System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment. |
+| Warning | Legacy ASP.NET | CustomerSummary.ascx is a WebForms user control | WebForms user controls may contain reusable UI and page lifecycle behaviour that needs review during ASP.NET Core migration planning. |
+| Warning | Legacy ASP.NET | Site.master is a WebForms master page | Master pages usually indicate shared WebForms layout structure that may need redesign when moving to modern ASP.NET. |
+| Warning | Legacy ASP.NET | Download.ashx is an ASP.NET HTTP handler | HTTP handlers may contain custom request processing behaviour that needs mapping to modern ASP.NET middleware, endpoints, or controllers. |
+| Info | Legacy ASP.NET | Global.asax is a Global.asax application file | Global.asax may contain application startup, routing, error handling, or lifecycle code that should be reviewed when migrating to modern ASP.NET hosting. |
 | Info | Configuration | Web.config contains 1 connection string(s) | Connection strings identify external data dependencies that should be reviewed during migration planning. |
 ```
 
@@ -1161,6 +1319,14 @@ Current MVP functionality includes:
 - WCF operation discovery from `[OperationContract]` methods
 - WCF operation discovery scoped to the containing service contract interface
 - WCF service contract reporting
+- legacy ASP.NET artifact discovery from `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax` files
+- WebForms page discovery
+- WebForms user control discovery
+- WebForms master page discovery
+- ASMX web service discovery
+- ASP.NET HTTP handler discovery
+- `Global.asax` discovery
+- legacy ASP.NET artifact reporting in the generated Markdown report
 - configuration file discovery from `app.config` and `web.config`
 - `appSettings`, `connectionStrings`, and custom configuration section counting
 - configuration file reporting in the generated Markdown report
@@ -1168,7 +1334,7 @@ Current MVP functionality includes:
 - modernisation hints for old .NET Framework target frameworks
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
-- modernisation hints for legacy ASP.NET and `System.Web` assembly references
+- modernisation hints for legacy ASP.NET, `System.Web` assembly references, and discovered legacy ASP.NET artifacts
 - modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, timeout settings, message size and buffer limits, transfer modes, reader quotas, metadata exchange endpoints, and service contracts
 - modernisation hints for configuration-heavy applications
 - modernisation hint reporting in the generated Markdown report
@@ -1177,7 +1343,7 @@ Current MVP functionality includes:
 Planned MVP features include:
 
 - further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
-- additional legacy ASP.NET indicators beyond the current `System.Web` and `System.Web.*` assembly reference hints
+- additional legacy ASP.NET source-level indicators beyond the currently detected file-based artifacts, such as MVC controllers and route configuration
 - improved severity classification as more discovery signals are added
 
 ---
@@ -1274,6 +1440,10 @@ Implemented:
 - Highlight WCF metadata exchange endpoints
 - Highlight discovered WCF service contracts
 - Identify legacy ASP.NET indicators from `System.Web` and `System.Web.*` assembly references
+- Identify WebForms pages as legacy ASP.NET migration risk indicators
+- Identify ASMX web services as legacy ASP.NET migration risk indicators
+- Identify WebForms user controls, master pages, and HTTP handlers as legacy ASP.NET review items
+- Identify `Global.asax` application files as ASP.NET lifecycle and startup review items
 - Identify configuration-heavy application indicators from `app.config` and `web.config`
 - Identify large `appSettings` usage
 - Identify connection strings as external data dependency indicators
@@ -1282,9 +1452,32 @@ Implemented:
 
 Remaining work:
 
-- Add more legacy ASP.NET indicators beyond the current `System.Web` and `System.Web.*` assembly reference hints
+- Add more source-level legacy ASP.NET indicators beyond the current file-based artifact detection, such as MVC controllers and route configuration
 - Add richer WCF endpoint risk analysis beyond the current binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
 - Improve severity classification as more discovery signals are added
+
+---
+
+### Step 6: Legacy ASP.NET artifact discovery
+
+Status: Partially implemented
+
+Implemented:
+
+- Detect `.aspx` WebForms pages
+- Detect `.ascx` WebForms user controls
+- Detect `.master` WebForms master pages
+- Detect `.asmx` ASMX web services
+- Detect `.ashx` ASP.NET HTTP handlers
+- Detect `Global.asax` application files
+- Report discovered legacy ASP.NET artifacts in the generated Markdown report
+- Include discovered legacy ASP.NET artifacts in modernisation hint analysis
+
+Remaining work:
+
+- Detect MVC controllers from C# source files
+- Detect route configuration files such as `RouteConfig.cs`
+- Improve legacy ASP.NET source-level analysis beyond file-based artifact discovery
 
 ---
 
@@ -1303,6 +1496,8 @@ LegacyLens.NET can be used when:
 - you need to identify legacy WCF configuration and integration points
 - you need to identify WCF binding configuration, security, credential, timeout, message size, buffer, transfer mode, reader quota, or metadata exchange usage before planning endpoint migration
 - you need to identify WCF service contracts and operations defined in source code
+- you need to identify classic ASP.NET artifacts such as WebForms pages, ASMX services, HTTP handlers, or `Global.asax`
+- you need to understand whether a legacy web application contains UI, service, handler, or startup/lifecycle artifacts that may affect ASP.NET Core migration planning
 - you need to identify configuration-heavy applications, connection strings, or custom configuration sections
 - you want an initial list of modernisation review areas
 - you need to identify likely migration risks before deeper analysis
