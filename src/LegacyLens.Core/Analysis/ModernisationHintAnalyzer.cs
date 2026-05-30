@@ -518,6 +518,28 @@ public sealed class ModernisationHintAnalyzer
                             "Global.asax may contain application startup, routing, error handling, or lifecycle code that should be reviewed when migrating to modern ASP.NET hosting."
                     });
                     break;
+
+                case LegacyAspNetArtifactKind.MvcController:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is an ASP.NET MVC controller",
+                        Reason =
+                            "ASP.NET MVC controllers may contain routing, action filters, model binding, authentication, or System.Web-specific behaviour that needs review when moving to ASP.NET Core."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.RouteConfig:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is an ASP.NET route configuration file",
+                        Reason =
+                            "Route configuration may define URL patterns, defaults, constraints, or ignored routes that should be reviewed when migrating to endpoint routing in ASP.NET Core."
+                    });
+                    break;
             }
         }
     }

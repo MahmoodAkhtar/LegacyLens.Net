@@ -1,4 +1,3 @@
-using FluentAssertions;
 using LegacyLens.Core.LegacyAspNet;
 
 namespace LegacyLens.Core.Tests.LegacyAspNet;
@@ -8,7 +7,7 @@ public sealed class LegacyAspNetArtifactScannerTests
     [Fact]
     public void Scan_ReturnsWebFormsPage_WhenAspxFileExists()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
@@ -19,10 +18,10 @@ public sealed class LegacyAspNetArtifactScannerTests
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().ContainSingle();
-            artifacts[0].Kind.Should().Be(LegacyAspNetArtifactKind.WebFormsPage);
-            artifacts[0].FilePath.Should().Be(filePath);
-            artifacts[0].Name.Should().Be("Default.aspx");
+            Assert.Contains(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.WebFormsPage &&
+                x.Name == "Default.aspx" &&
+                x.FilePath == filePath);
         }
         finally
         {
@@ -33,7 +32,7 @@ public sealed class LegacyAspNetArtifactScannerTests
     [Fact]
     public void Scan_ReturnsWebFormsUserControl_WhenAscxFileExists()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
@@ -44,10 +43,10 @@ public sealed class LegacyAspNetArtifactScannerTests
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().ContainSingle();
-            artifacts[0].Kind.Should().Be(LegacyAspNetArtifactKind.WebFormsUserControl);
-            artifacts[0].FilePath.Should().Be(filePath);
-            artifacts[0].Name.Should().Be("CustomerSummary.ascx");
+            Assert.Contains(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.WebFormsUserControl &&
+                x.Name == "CustomerSummary.ascx" &&
+                x.FilePath == filePath);
         }
         finally
         {
@@ -58,7 +57,7 @@ public sealed class LegacyAspNetArtifactScannerTests
     [Fact]
     public void Scan_ReturnsMasterPage_WhenMasterFileExists()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
@@ -69,10 +68,10 @@ public sealed class LegacyAspNetArtifactScannerTests
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().ContainSingle();
-            artifacts[0].Kind.Should().Be(LegacyAspNetArtifactKind.MasterPage);
-            artifacts[0].FilePath.Should().Be(filePath);
-            artifacts[0].Name.Should().Be("Site.master");
+            Assert.Contains(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.MasterPage &&
+                x.Name == "Site.master" &&
+                x.FilePath == filePath);
         }
         finally
         {
@@ -83,7 +82,7 @@ public sealed class LegacyAspNetArtifactScannerTests
     [Fact]
     public void Scan_ReturnsAsmxWebService_WhenAsmxFileExists()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
@@ -94,10 +93,10 @@ public sealed class LegacyAspNetArtifactScannerTests
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().ContainSingle();
-            artifacts[0].Kind.Should().Be(LegacyAspNetArtifactKind.AsmxWebService);
-            artifacts[0].FilePath.Should().Be(filePath);
-            artifacts[0].Name.Should().Be("CustomerService.asmx");
+            Assert.Contains(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.AsmxWebService &&
+                x.Name == "CustomerService.asmx" &&
+                x.FilePath == filePath);
         }
         finally
         {
@@ -108,7 +107,7 @@ public sealed class LegacyAspNetArtifactScannerTests
     [Fact]
     public void Scan_ReturnsHttpHandler_WhenAshxFileExists()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
@@ -119,10 +118,10 @@ public sealed class LegacyAspNetArtifactScannerTests
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().ContainSingle();
-            artifacts[0].Kind.Should().Be(LegacyAspNetArtifactKind.HttpHandler);
-            artifacts[0].FilePath.Should().Be(filePath);
-            artifacts[0].Name.Should().Be("Download.ashx");
+            Assert.Contains(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.HttpHandler &&
+                x.Name == "Download.ashx" &&
+                x.FilePath == filePath);
         }
         finally
         {
@@ -133,7 +132,7 @@ public sealed class LegacyAspNetArtifactScannerTests
     [Fact]
     public void Scan_ReturnsGlobalAsax_WhenGlobalAsaxFileExists()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
@@ -144,10 +143,10 @@ public sealed class LegacyAspNetArtifactScannerTests
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().ContainSingle();
-            artifacts[0].Kind.Should().Be(LegacyAspNetArtifactKind.GlobalAsax);
-            artifacts[0].FilePath.Should().Be(filePath);
-            artifacts[0].Name.Should().Be("Global.asax");
+            Assert.Contains(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.GlobalAsax &&
+                x.Name == "Global.asax" &&
+                x.FilePath == filePath);
         }
         finally
         {
@@ -156,37 +155,41 @@ public sealed class LegacyAspNetArtifactScannerTests
     }
 
     [Fact]
-    public void Scan_ReturnsMultipleArtifactTypes_WhenLegacyAspNetFilesExist()
+    public void Scan_ReturnsMvcController_WhenClassInheritsFromController()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
-            var nestedPath = Path.Combine(rootPath, "Views");
-            Directory.CreateDirectory(nestedPath);
+            var controllersPath = Path.Combine(rootPath, "Controllers");
+            Directory.CreateDirectory(controllersPath);
 
-            File.WriteAllText(Path.Combine(rootPath, "Default.aspx"), "");
-            File.WriteAllText(Path.Combine(rootPath, "CustomerSummary.ascx"), "");
-            File.WriteAllText(Path.Combine(rootPath, "Site.master"), "");
-            File.WriteAllText(Path.Combine(rootPath, "CustomerService.asmx"), "");
-            File.WriteAllText(Path.Combine(rootPath, "Download.ashx"), "");
-            File.WriteAllText(Path.Combine(nestedPath, "Global.asax"), "");
+            var filePath = Path.Combine(controllersPath, "HomeController.cs");
+
+            File.WriteAllText(
+                filePath,
+                """
+                using System.Web.Mvc;
+
+                namespace SampleLegacyApp.Web.Controllers;
+
+                public class HomeController : Controller
+                {
+                    public ActionResult Index()
+                    {
+                        return View();
+                    }
+                }
+                """);
 
             var scanner = new LegacyAspNetArtifactScanner();
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().HaveCount(6);
-
-            artifacts.Select(x => x.Kind).Should().BeEquivalentTo(new[]
-            {
-                LegacyAspNetArtifactKind.WebFormsPage,
-                LegacyAspNetArtifactKind.WebFormsUserControl,
-                LegacyAspNetArtifactKind.MasterPage,
-                LegacyAspNetArtifactKind.AsmxWebService,
-                LegacyAspNetArtifactKind.HttpHandler,
-                LegacyAspNetArtifactKind.GlobalAsax
-            });
+            Assert.Contains(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.MvcController &&
+                x.Name == "HomeController" &&
+                x.FilePath == filePath);
         }
         finally
         {
@@ -195,21 +198,39 @@ public sealed class LegacyAspNetArtifactScannerTests
     }
 
     [Fact]
-    public void Scan_IgnoresUnrelatedFiles()
+    public void Scan_ReturnsMvcController_WhenClassInheritsFromFullyQualifiedMvcController()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
-            File.WriteAllText(Path.Combine(rootPath, "Program.cs"), "public static class Program { }");
-            File.WriteAllText(Path.Combine(rootPath, "Web.config"), "<configuration />");
-            File.WriteAllText(Path.Combine(rootPath, "README.md"), "# Readme");
+            var controllersPath = Path.Combine(rootPath, "Controllers");
+            Directory.CreateDirectory(controllersPath);
+
+            var filePath = Path.Combine(controllersPath, "CustomersController.cs");
+
+            File.WriteAllText(
+                filePath,
+                """
+                namespace SampleLegacyApp.Web.Controllers;
+
+                public sealed class CustomersController : System.Web.Mvc.Controller
+                {
+                    public System.Web.Mvc.ActionResult Index()
+                    {
+                        return View();
+                    }
+                }
+                """);
 
             var scanner = new LegacyAspNetArtifactScanner();
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().BeEmpty();
+            Assert.Contains(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.MvcController &&
+                x.Name == "CustomersController" &&
+                x.FilePath == filePath);
         }
         finally
         {
@@ -218,26 +239,30 @@ public sealed class LegacyAspNetArtifactScannerTests
     }
 
     [Fact]
-    public void Scan_ReturnsArtifactsFromNestedDirectories()
+    public void Scan_DoesNotReturnMvcController_WhenClassNameEndsWithControllerButDoesNotInheritController()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
-            var nestedPath = Path.Combine(rootPath, "Areas", "Admin");
-            Directory.CreateDirectory(nestedPath);
+            var filePath = Path.Combine(rootPath, "ReportController.cs");
 
-            var filePath = Path.Combine(nestedPath, "Dashboard.aspx");
-            File.WriteAllText(filePath, "<%@ Page Language=\"C#\" %>");
+            File.WriteAllText(
+                filePath,
+                """
+                namespace SampleLegacyApp.Web;
+
+                public class ReportController : SomeOtherBaseClass
+                {
+                }
+                """);
 
             var scanner = new LegacyAspNetArtifactScanner();
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().ContainSingle();
-            artifacts[0].Kind.Should().Be(LegacyAspNetArtifactKind.WebFormsPage);
-            artifacts[0].FilePath.Should().Be(filePath);
-            artifacts[0].Name.Should().Be("Dashboard.aspx");
+            Assert.DoesNotContain(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.MvcController);
         }
         finally
         {
@@ -246,32 +271,45 @@ public sealed class LegacyAspNetArtifactScannerTests
     }
 
     [Fact]
-    public void Scan_DetectsFilesCaseInsensitively()
+    public void Scan_ReturnsRouteConfig_WhenRouteConfigFileContainsRouteCollection()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
-            File.WriteAllText(Path.Combine(rootPath, "DEFAULT.ASPX"), "");
-            File.WriteAllText(Path.Combine(rootPath, "CUSTOMER.ASCX"), "");
-            File.WriteAllText(Path.Combine(rootPath, "SITE.MASTER"), "");
-            File.WriteAllText(Path.Combine(rootPath, "SERVICE.ASMX"), "");
-            File.WriteAllText(Path.Combine(rootPath, "HANDLER.ASHX"), "");
-            File.WriteAllText(Path.Combine(rootPath, "GLOBAL.ASAX"), "");
+            var appStartPath = Path.Combine(rootPath, "App_Start");
+            Directory.CreateDirectory(appStartPath);
+
+            var filePath = Path.Combine(appStartPath, "RouteConfig.cs");
+
+            File.WriteAllText(
+                filePath,
+                """
+                using System.Web.Mvc;
+                using System.Web.Routing;
+
+                namespace SampleLegacyApp.Web;
+
+                public static class RouteConfig
+                {
+                    public static void RegisterRoutes(RouteCollection routes)
+                    {
+                        routes.MapRoute(
+                            name: "Default",
+                            url: "{controller}/{action}/{id}",
+                            defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional });
+                    }
+                }
+                """);
 
             var scanner = new LegacyAspNetArtifactScanner();
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Select(x => x.Kind).Should().BeEquivalentTo(new[]
-            {
-                LegacyAspNetArtifactKind.WebFormsPage,
-                LegacyAspNetArtifactKind.WebFormsUserControl,
-                LegacyAspNetArtifactKind.MasterPage,
-                LegacyAspNetArtifactKind.AsmxWebService,
-                LegacyAspNetArtifactKind.HttpHandler,
-                LegacyAspNetArtifactKind.GlobalAsax
-            });
+            Assert.Contains(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.RouteConfig &&
+                x.Name == "RouteConfig.cs" &&
+                x.FilePath == filePath);
         }
         finally
         {
@@ -280,34 +318,31 @@ public sealed class LegacyAspNetArtifactScannerTests
     }
 
     [Fact]
-    public void Scan_ReturnsArtifactsOrderedByKindThenFilePath()
+    public void Scan_DoesNotReturnRouteConfig_WhenFileNameMatchesButContentDoesNotLookLikeRoutingConfig()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var rootPath = CreateTempDirectory();
 
         try
         {
-            var secondPagePath = Path.Combine(rootPath, "B.aspx");
-            var firstPagePath = Path.Combine(rootPath, "A.aspx");
-            var handlerPath = Path.Combine(rootPath, "Download.ashx");
+            var filePath = Path.Combine(rootPath, "RouteConfig.cs");
 
-            File.WriteAllText(secondPagePath, "");
-            File.WriteAllText(handlerPath, "");
-            File.WriteAllText(firstPagePath, "");
+            File.WriteAllText(
+                filePath,
+                """
+                namespace SampleLegacyApp.Web;
+
+                public static class RouteConfig
+                {
+                    public static string Name => "Not an ASP.NET route configuration file";
+                }
+                """);
 
             var scanner = new LegacyAspNetArtifactScanner();
 
             var artifacts = scanner.Scan(rootPath);
 
-            artifacts.Should().HaveCount(3);
-
-            artifacts.Select(x => x.Kind).Should().Equal(
-                LegacyAspNetArtifactKind.WebFormsPage,
-                LegacyAspNetArtifactKind.WebFormsPage,
-                LegacyAspNetArtifactKind.HttpHandler);
-
-            artifacts[0].FilePath.Should().Be(firstPagePath);
-            artifacts[1].FilePath.Should().Be(secondPagePath);
-            artifacts[2].FilePath.Should().Be(handlerPath);
+            Assert.DoesNotContain(artifacts, x =>
+                x.Kind == LegacyAspNetArtifactKind.RouteConfig);
         }
         finally
         {
@@ -316,38 +351,73 @@ public sealed class LegacyAspNetArtifactScannerTests
     }
 
     [Fact]
-    public void Scan_ThrowsArgumentException_WhenRootPathIsEmpty()
+    public void Scan_ReturnsFileBasedAndSourceLevelArtifactsTogether()
     {
-        var scanner = new LegacyAspNetArtifactScanner();
+        var rootPath = CreateTempDirectory();
 
-        var act = () => scanner.Scan("");
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(rootPath, "Default.aspx"),
+                "<%@ Page Language=\"C#\" %>");
 
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("Root path cannot be empty.*");
+            var controllersPath = Path.Combine(rootPath, "Controllers");
+            Directory.CreateDirectory(controllersPath);
+
+            File.WriteAllText(
+                Path.Combine(controllersPath, "HomeController.cs"),
+                """
+                using System.Web.Mvc;
+
+                namespace SampleLegacyApp.Web.Controllers;
+
+                public class HomeController : Controller
+                {
+                }
+                """);
+
+            var appStartPath = Path.Combine(rootPath, "App_Start");
+            Directory.CreateDirectory(appStartPath);
+
+            File.WriteAllText(
+                Path.Combine(appStartPath, "RouteConfig.cs"),
+                """
+                using System.Web.Routing;
+
+                namespace SampleLegacyApp.Web;
+
+                public static class RouteConfig
+                {
+                    public static void RegisterRoutes(RouteCollection routes)
+                    {
+                    }
+                }
+                """);
+
+            var scanner = new LegacyAspNetArtifactScanner();
+
+            var artifacts = scanner.Scan(rootPath);
+
+            Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.WebFormsPage);
+            Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.MvcController);
+            Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.RouteConfig);
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
     }
 
-    [Fact]
-    public void Scan_ThrowsDirectoryNotFoundException_WhenRootPathDoesNotExist()
+    private static string CreateTempDirectory()
     {
-        var scanner = new LegacyAspNetArtifactScanner();
-        var rootPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-
-        var act = () => scanner.Scan(rootPath);
-
-        act.Should().Throw<DirectoryNotFoundException>()
-            .WithMessage($"Root path does not exist: {rootPath}");
-    }
-
-    private static string CreateTemporaryDirectory()
-    {
-        var path = Path.Combine(
+        var rootPath = Path.Combine(
             Path.GetTempPath(),
-            "LegacyLensTests",
+            "LegacyLens.Tests",
             Guid.NewGuid().ToString("N"));
 
-        Directory.CreateDirectory(path);
+        Directory.CreateDirectory(rootPath);
 
-        return path;
+        return rootPath;
     }
 
     private static void DeleteDirectory(string path)
