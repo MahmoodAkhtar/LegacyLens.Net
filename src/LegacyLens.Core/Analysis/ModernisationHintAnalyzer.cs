@@ -540,6 +540,17 @@ public sealed class ModernisationHintAnalyzer
                             "Route configuration may define URL patterns, defaults, constraints, or ignored routes that should be reviewed when migrating to endpoint routing in ASP.NET Core."
                     });
                     break;
+
+                case LegacyAspNetArtifactKind.AreaRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is an ASP.NET MVC area registration",
+                        Reason =
+                            "ASP.NET MVC area registrations may define area-specific routes and feature boundaries that should be reviewed when migrating to ASP.NET Core endpoint routing."
+                    });
+                    break;
             }
         }
     }

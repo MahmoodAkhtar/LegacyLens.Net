@@ -9,288 +9,248 @@ namespace LegacyLens.Core.Tests.Analysis;
 public sealed class ModernisationHintAnalyzerLegacyAspNetTests
 {
     [Fact]
-    public void Analyze_WhenSystemWebAssemblyReferenceExists_AddsLegacyAspNetRiskHint()
+    public void Analyze_WhenProjectReferencesSystemWeb_AddsLegacyAspNetRiskHint()
     {
-        var projects = new[]
-        {
-            new DiscoveredProject
+        var project = CreateProject(
+            "SampleLegacyApp.Web",
+            assemblyReferences: new List<string>
             {
-                Name = "SampleLegacyApp.Web",
-                ProjectFilePath = @"C:\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                AssemblyReferences = new List<string>
-                {
-                    "System.Web"
-                }
-            }
-        };
+                "System.Web"
+            });
 
-        var analyzer = new ModernisationHintAnalyzer();
+        var hints = Analyze(projects: new List<DiscoveredProject> { project });
 
-        var hints = analyzer.Analyze(
-            projects,
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Risk &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "SampleLegacyApp.Web references System.Web");
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Risk &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "SampleLegacyApp.Web references System.Web" &&
+                hint.Reason == "System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core.");
     }
 
     [Fact]
-    public void Analyze_WhenSystemWebMvcAssemblyReferenceExists_AddsLegacyAspNetWarningHint()
+    public void Analyze_WhenProjectReferencesSystemWebMvc_AddsLegacyAspNetWarningHint()
     {
-        var projects = new[]
-        {
-            new DiscoveredProject
+        var project = CreateProject(
+            "SampleLegacyApp.Web",
+            assemblyReferences: new List<string>
             {
-                Name = "SampleLegacyApp.Web",
-                ProjectFilePath = @"C:\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
-                AssemblyReferences = new List<string>
-                {
-                    "System.Web.Mvc"
-                }
-            }
-        };
+                "System.Web.Mvc"
+            });
 
-        var analyzer = new ModernisationHintAnalyzer();
+        var hints = Analyze(projects: new List<DiscoveredProject> { project });
 
-        var hints = analyzer.Analyze(
-            projects,
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Warning &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "SampleLegacyApp.Web references System.Web.Mvc");
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Warning &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "SampleLegacyApp.Web references System.Web.Mvc" &&
+                hint.Reason == "System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment.");
     }
 
     [Fact]
-    public void Analyze_WhenWebFormsPageDiscovered_AddsLegacyAspNetRiskHint()
+    public void Analyze_WhenWebFormsPageArtifactExists_AddsLegacyAspNetRiskHint()
     {
-        var artifacts = new[]
-        {
-            new DiscoveredLegacyAspNetArtifact
-            {
-                Kind = LegacyAspNetArtifactKind.WebFormsPage,
-                FilePath = @"C:\SampleLegacyApp.Web\Default.aspx",
-                Name = "Default.aspx"
-            }
-        };
+        var artifact = CreateArtifact(
+            LegacyAspNetArtifactKind.WebFormsPage,
+            "Default.aspx");
 
-        var analyzer = new ModernisationHintAnalyzer();
+        var hints = Analyze(legacyAspNetArtifacts: new List<DiscoveredLegacyAspNetArtifact> { artifact });
 
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            artifacts,
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Risk &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "Default.aspx is a WebForms page");
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Risk &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "Default.aspx is a WebForms page" &&
+                hint.Reason == "WebForms pages indicate classic ASP.NET UI that does not directly migrate to ASP.NET Core and usually needs redesign or replacement planning.");
     }
 
     [Fact]
-    public void Analyze_WhenWebFormsUserControlDiscovered_AddsLegacyAspNetWarningHint()
+    public void Analyze_WhenWebFormsUserControlArtifactExists_AddsLegacyAspNetWarningHint()
     {
-        var artifacts = new[]
-        {
-            new DiscoveredLegacyAspNetArtifact
-            {
-                Kind = LegacyAspNetArtifactKind.WebFormsUserControl,
-                FilePath = @"C:\SampleLegacyApp.Web\CustomerSummary.ascx",
-                Name = "CustomerSummary.ascx"
-            }
-        };
+        var artifact = CreateArtifact(
+            LegacyAspNetArtifactKind.WebFormsUserControl,
+            "CustomerSummary.ascx");
 
-        var analyzer = new ModernisationHintAnalyzer();
+        var hints = Analyze(legacyAspNetArtifacts: new List<DiscoveredLegacyAspNetArtifact> { artifact });
 
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            artifacts,
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Warning &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "CustomerSummary.ascx is a WebForms user control");
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Warning &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "CustomerSummary.ascx is a WebForms user control" &&
+                hint.Reason == "WebForms user controls may contain reusable UI and page lifecycle behaviour that needs review during ASP.NET Core migration planning.");
     }
 
     [Fact]
-    public void Analyze_WhenMasterPageDiscovered_AddsLegacyAspNetWarningHint()
+    public void Analyze_WhenMasterPageArtifactExists_AddsLegacyAspNetWarningHint()
     {
-        var artifacts = new[]
-        {
-            new DiscoveredLegacyAspNetArtifact
-            {
-                Kind = LegacyAspNetArtifactKind.MasterPage,
-                FilePath = @"C:\SampleLegacyApp.Web\Site.master",
-                Name = "Site.master"
-            }
-        };
+        var artifact = CreateArtifact(
+            LegacyAspNetArtifactKind.MasterPage,
+            "Site.master");
 
-        var analyzer = new ModernisationHintAnalyzer();
+        var hints = Analyze(legacyAspNetArtifacts: new List<DiscoveredLegacyAspNetArtifact> { artifact });
 
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            artifacts,
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Warning &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "Site.master is a WebForms master page");
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Warning &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "Site.master is a WebForms master page" &&
+                hint.Reason == "Master pages usually indicate shared WebForms layout structure that may need redesign when moving to modern ASP.NET.");
     }
 
     [Fact]
-    public void Analyze_WhenAsmxWebServiceDiscovered_AddsLegacyAspNetRiskHint()
+    public void Analyze_WhenAsmxWebServiceArtifactExists_AddsLegacyAspNetRiskHint()
     {
-        var artifacts = new[]
-        {
-            new DiscoveredLegacyAspNetArtifact
-            {
-                Kind = LegacyAspNetArtifactKind.AsmxWebService,
-                FilePath = @"C:\SampleLegacyApp.Web\CustomerService.asmx",
-                Name = "CustomerService.asmx"
-            }
-        };
+        var artifact = CreateArtifact(
+            LegacyAspNetArtifactKind.AsmxWebService,
+            "CustomerService.asmx");
 
-        var analyzer = new ModernisationHintAnalyzer();
+        var hints = Analyze(legacyAspNetArtifacts: new List<DiscoveredLegacyAspNetArtifact> { artifact });
 
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            artifacts,
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Risk &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "CustomerService.asmx is an ASMX web service");
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Risk &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "CustomerService.asmx is an ASMX web service" &&
+                hint.Reason == "ASMX web services are legacy SOAP-style ASP.NET endpoints that usually need replacement or compatibility planning during modernisation.");
     }
 
     [Fact]
-    public void Analyze_WhenHttpHandlerDiscovered_AddsLegacyAspNetWarningHint()
+    public void Analyze_WhenHttpHandlerArtifactExists_AddsLegacyAspNetWarningHint()
     {
-        var artifacts = new[]
-        {
-            new DiscoveredLegacyAspNetArtifact
-            {
-                Kind = LegacyAspNetArtifactKind.HttpHandler,
-                FilePath = @"C:\SampleLegacyApp.Web\Download.ashx",
-                Name = "Download.ashx"
-            }
-        };
+        var artifact = CreateArtifact(
+            LegacyAspNetArtifactKind.HttpHandler,
+            "Download.ashx");
 
-        var analyzer = new ModernisationHintAnalyzer();
+        var hints = Analyze(legacyAspNetArtifacts: new List<DiscoveredLegacyAspNetArtifact> { artifact });
 
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            artifacts,
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Warning &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "Download.ashx is an ASP.NET HTTP handler");
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Warning &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "Download.ashx is an ASP.NET HTTP handler" &&
+                hint.Reason == "HTTP handlers may contain custom request processing behaviour that needs mapping to modern ASP.NET middleware, endpoints, or controllers.");
     }
 
     [Fact]
-    public void Analyze_WhenGlobalAsaxDiscovered_AddsLegacyAspNetInfoHint()
+    public void Analyze_WhenGlobalAsaxArtifactExists_AddsLegacyAspNetInfoHint()
     {
-        var artifacts = new[]
-        {
-            new DiscoveredLegacyAspNetArtifact
-            {
-                Kind = LegacyAspNetArtifactKind.GlobalAsax,
-                FilePath = @"C:\SampleLegacyApp.Web\Global.asax",
-                Name = "Global.asax"
-            }
-        };
+        var artifact = CreateArtifact(
+            LegacyAspNetArtifactKind.GlobalAsax,
+            "Global.asax");
 
-        var analyzer = new ModernisationHintAnalyzer();
+        var hints = Analyze(legacyAspNetArtifacts: new List<DiscoveredLegacyAspNetArtifact> { artifact });
 
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            artifacts,
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Info &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "Global.asax is a Global.asax application file");
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Info &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "Global.asax is a Global.asax application file" &&
+                hint.Reason == "Global.asax may contain application startup, routing, error handling, or lifecycle code that should be reviewed when migrating to modern ASP.NET hosting.");
     }
 
     [Fact]
-    public void Analyze_WhenMvcControllerDiscovered_AddsLegacyAspNetWarningHint()
+    public void Analyze_WhenMvcControllerArtifactExists_AddsLegacyAspNetWarningHint()
     {
-        var artifacts = new[]
-        {
-            new DiscoveredLegacyAspNetArtifact
-            {
-                Kind = LegacyAspNetArtifactKind.MvcController,
-                FilePath = @"C:\SampleLegacyApp.Web\Controllers\HomeController.cs",
-                Name = "HomeController"
-            }
-        };
+        var artifact = CreateArtifact(
+            LegacyAspNetArtifactKind.MvcController,
+            "HomeController");
 
-        var analyzer = new ModernisationHintAnalyzer();
+        var hints = Analyze(legacyAspNetArtifacts: new List<DiscoveredLegacyAspNetArtifact> { artifact });
 
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            artifacts,
-            Array.Empty<DiscoveredConfigFile>());
-
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Warning &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "HomeController is an ASP.NET MVC controller");
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Warning &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "HomeController is an ASP.NET MVC controller" &&
+                hint.Reason == "ASP.NET MVC controllers may contain routing, action filters, model binding, authentication, or System.Web-specific behaviour that needs review when moving to ASP.NET Core.");
     }
 
     [Fact]
-    public void Analyze_WhenRouteConfigDiscovered_AddsLegacyAspNetInfoHint()
+    public void Analyze_WhenRouteConfigArtifactExists_AddsLegacyAspNetInfoHint()
     {
-        var artifacts = new[]
-        {
-            new DiscoveredLegacyAspNetArtifact
-            {
-                Kind = LegacyAspNetArtifactKind.RouteConfig,
-                FilePath = @"C:\SampleLegacyApp.Web\App_Start\RouteConfig.cs",
-                Name = "RouteConfig.cs"
-            }
-        };
+        var artifact = CreateArtifact(
+            LegacyAspNetArtifactKind.RouteConfig,
+            "RouteConfig.cs");
 
+        var hints = Analyze(legacyAspNetArtifacts: new List<DiscoveredLegacyAspNetArtifact> { artifact });
+
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Info &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "RouteConfig.cs is an ASP.NET route configuration file" &&
+                hint.Reason == "Route configuration may define URL patterns, defaults, constraints, or ignored routes that should be reviewed when migrating to endpoint routing in ASP.NET Core.");
+    }
+
+    [Fact]
+    public void Analyze_WhenAreaRegistrationArtifactExists_AddsLegacyAspNetInfoHint()
+    {
+        var artifact = CreateArtifact(
+            LegacyAspNetArtifactKind.AreaRegistration,
+            "AdminAreaRegistration");
+
+        var hints = Analyze(legacyAspNetArtifacts: new List<DiscoveredLegacyAspNetArtifact> { artifact });
+
+        Assert.Contains(
+            hints,
+            hint =>
+                hint.Severity == ModernisationHintSeverity.Info &&
+                hint.Area == "Legacy ASP.NET" &&
+                hint.Finding == "AdminAreaRegistration is an ASP.NET MVC area registration" &&
+                hint.Reason == "ASP.NET MVC area registrations may define area-specific routes and feature boundaries that should be reviewed when migrating to ASP.NET Core endpoint routing.");
+    }
+
+    private static IReadOnlyList<ModernisationHint> Analyze(
+        IReadOnlyList<DiscoveredProject>? projects = null,
+        IReadOnlyList<WcfEndpoint>? wcfEndpoints = null,
+        IReadOnlyList<WcfServiceContract>? wcfServiceContracts = null,
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact>? legacyAspNetArtifacts = null,
+        IReadOnlyList<DiscoveredConfigFile>? configFiles = null)
+    {
         var analyzer = new ModernisationHintAnalyzer();
 
-        var hints = analyzer.Analyze(
-            Array.Empty<DiscoveredProject>(),
-            Array.Empty<WcfEndpoint>(),
-            Array.Empty<WcfServiceContract>(),
-            artifacts,
-            Array.Empty<DiscoveredConfigFile>());
+        return analyzer.Analyze(
+            projects ?? Array.Empty<DiscoveredProject>(),
+            wcfEndpoints ?? Array.Empty<WcfEndpoint>(),
+            wcfServiceContracts ?? Array.Empty<WcfServiceContract>(),
+            legacyAspNetArtifacts ?? Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+            configFiles ?? Array.Empty<DiscoveredConfigFile>());
+    }
 
-        Assert.Contains(hints, x =>
-            x.Severity == ModernisationHintSeverity.Info &&
-            x.Area == "Legacy ASP.NET" &&
-            x.Finding == "RouteConfig.cs is an ASP.NET route configuration file");
+    private static DiscoveredProject CreateProject(
+        string name,
+        List<string>? assemblyReferences = null)
+    {
+        return new DiscoveredProject
+        {
+            Name = name,
+            ProjectFilePath = $@"C:\Code\{name}\{name}.csproj",
+            TargetFramework = "net48",
+            AssemblyReferences = assemblyReferences ?? new List<string>()
+        };
+    }
+
+    private static DiscoveredLegacyAspNetArtifact CreateArtifact(
+        LegacyAspNetArtifactKind kind,
+        string name)
+    {
+        return new DiscoveredLegacyAspNetArtifact
+        {
+            Kind = kind,
+            Name = name,
+            FilePath = $@"C:\Code\SampleLegacyApp.Web\{name}"
+        };
     }
 }

@@ -12,7 +12,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - Which framework assembly references are used by each project?
 - Which NuGet packages are referenced?
 - Are there signs of legacy technologies such as WCF?
-- Are there signs of classic ASP.NET artifacts such as WebForms pages, ASMX web services, HTTP handlers, MVC controllers, route configuration, or `Global.asax`?
+- Are there signs of classic ASP.NET artifacts such as WebForms pages, ASMX web services, HTTP handlers, MVC controllers, MVC area registrations, route configuration, or `Global.asax`?
 - Which WCF endpoints are configured?
 - Which WCF binding configurations, security modes, timeout settings, message size limits, buffer limits, transfer modes, or reader quotas are configured?
 - Which WCF service contracts and operations are defined in the source code?
@@ -56,8 +56,9 @@ The current implementation can scan a folder containing .NET solutions and proje
 - ASP.NET HTTP handlers
 - `Global.asax` application files
 - ASP.NET MVC controllers from C# source files
+- ASP.NET MVC area registration classes from C# source files
 - ASP.NET route configuration files such as `RouteConfig.cs`
-- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET route configuration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC area registrations, ASP.NET route configuration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
@@ -82,7 +83,7 @@ The generated report currently includes:
 - WCF binding detail information, including timeout settings, message size limits, buffer limits, and transfer mode
 - WCF reader quota information, including max depth, max string content length, max array length, max bytes per read, and max name table character count
 - WCF service contract and operation information
-- legacy ASP.NET artifact information, including file-based artifacts, MVC controllers, route configuration, artifact kind, name, and file path
+- legacy ASP.NET artifact information, including file-based artifacts, MVC controllers, MVC area registrations, route configuration, artifact kind, name, and file path
 - configuration file information, including `appSettings`, `connectionStrings`, and custom configuration section counts
 - modernisation hints with severity, area, finding, and reason, including Legacy ASP.NET hints when `System.Web` assembly references or legacy ASP.NET artifacts are found
 
@@ -147,6 +148,8 @@ Legacy ASP.NET artifacts discovered:
   File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
 - RouteConfig: RouteConfig.cs
   File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\RouteConfig.cs
+- AreaRegistration: AdminAreaRegistration
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Areas\Admin\AdminAreaRegistration.cs
 
 Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
@@ -169,6 +172,7 @@ Modernisation hints discovered:
 - [Info] Legacy ASP.NET: Global.asax is a Global.asax application file
 - [Warning] Legacy ASP.NET: HomeController is an ASP.NET MVC controller
 - [Info] Legacy ASP.NET: RouteConfig.cs is an ASP.NET route configuration file
+- [Info] Legacy ASP.NET: AdminAreaRegistration is an ASP.NET MVC area registration
 
 Solutions discovered:
 - SampleLegacyApp
@@ -243,6 +247,7 @@ Even if the solution does not build, it can still discover useful information fr
 - `.ashx` ASP.NET HTTP handlers
 - `Global.asax` application files
 - ASP.NET MVC controller classes inheriting from `Controller` or `System.Web.Mvc.Controller`
+- ASP.NET MVC area registration classes inheriting from `AreaRegistration` or `System.Web.Mvc.AreaRegistration`
 - ASP.NET route configuration files such as `RouteConfig.cs`
 - WCF configuration files
 - WCF endpoint binding configuration names
@@ -268,7 +273,7 @@ This makes it useful for old or broken solutions where restoring packages, insta
 
 > Note: WCF endpoint discovery currently reads configured service endpoints from `app.config` and `web.config` files. Where endpoints reference named binding configurations, LegacyLens.NET also attempts to resolve related security mode, transport credential type, message credential type, timeout, message size, buffer, transfer mode, and reader quota details from the matching binding configuration.
 
-> Note: legacy ASP.NET artifact discovery currently detects file-based classic ASP.NET artifacts such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`, as well as selected source-level ASP.NET MVC indicators such as MVC controllers and `RouteConfig.cs`. These are static discovery signals and do not require the application to build or run.
+> Note: legacy ASP.NET artifact discovery currently detects file-based classic ASP.NET artifacts such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`, as well as selected source-level ASP.NET MVC indicators such as MVC controllers, MVC area registrations, and `RouteConfig.cs`. These are static discovery signals and do not require the application to build or run.
 
 > Note: solution discovery currently supports `.sln` files and extracts referenced C# project paths from project entries. Non-C# project entries and solution folders are ignored.
 
@@ -423,7 +428,7 @@ This helps identify applications where important runtime behaviour or migration 
 
 LegacyLens.NET can detect selected classic ASP.NET artifacts from source folders without building or running the application.
 
-This is useful for older .NET Framework web applications where important migration work may be hidden in WebForms pages, user controls, master pages, ASMX services, custom handlers, MVC controllers, route configuration, or application lifecycle files.
+This is useful for older .NET Framework web applications where important migration work may be hidden in WebForms pages, user controls, master pages, ASMX services, custom handlers, MVC controllers, MVC area registrations, route configuration, or application lifecycle files.
 
 Current legacy ASP.NET artifact discovery supports:
 
@@ -434,6 +439,7 @@ Current legacy ASP.NET artifact discovery supports:
 - `.ashx` ASP.NET HTTP handlers
 - `Global.asax` application files
 - ASP.NET MVC controllers from C# source files
+- ASP.NET MVC area registration classes from C# source files
 - ASP.NET route configuration files such as `RouteConfig.cs`
 
 Example files:
@@ -442,6 +448,9 @@ Example files:
 SampleLegacyApp.Web/
 ├── App_Start/
 │   └── RouteConfig.cs
+├── Areas/
+│   └── Admin/
+│       └── AdminAreaRegistration.cs
 ├── Controllers/
 │   └── HomeController.cs
 ├── Default.aspx
@@ -464,6 +473,31 @@ public class HomeController : Controller
     public ActionResult Index()
     {
         return View();
+    }
+}
+```
+
+Example MVC area registration:
+
+```csharp
+using System.Web.Mvc;
+
+namespace SampleLegacyApp.Web.Areas.Admin;
+
+public class AdminAreaRegistration : AreaRegistration
+{
+    public override string AreaName => "Admin";
+
+    public override void RegisterArea(AreaRegistrationContext context)
+    {
+        context.MapRoute(
+            name: "Admin_default",
+            url: "Admin/{controller}/{action}/{id}",
+            defaults: new
+            {
+                action = "Index",
+                id = UrlParameter.Optional
+            });
     }
 }
 ```
@@ -510,9 +544,10 @@ These are reported in the generated Markdown report:
 | GlobalAsax | Global.asax | `...\SampleLegacyApp.Web\Global.asax` |
 | MvcController | HomeController | `...\SampleLegacyApp.Web\Controllers\HomeController.cs` |
 | RouteConfig | RouteConfig.cs | `...\SampleLegacyApp.Web\App_Start\RouteConfig.cs` |
+| AreaRegistration | AdminAreaRegistration | `...\SampleLegacyApp.Web\Areas\Admin\AdminAreaRegistration.cs` |
 ```
 
-These artifacts are also used as modernisation hint inputs. For example, WebForms pages and ASMX web services are treated as higher-risk migration indicators because they usually need redesign, replacement, or compatibility planning when moving to modern ASP.NET. MVC controllers are treated as warning-level review items because they may contain routing, action filters, model binding, authentication, or `System.Web`-specific behaviour. Route configuration files are treated as informational review items because they may define URL patterns, defaults, constraints, or ignored routes that need mapping to ASP.NET Core endpoint routing.
+These artifacts are also used as modernisation hint inputs. For example, WebForms pages and ASMX web services are treated as higher-risk migration indicators because they usually need redesign, replacement, or compatibility planning when moving to modern ASP.NET. MVC controllers are treated as warning-level review items because they may contain routing, action filters, model binding, authentication, or `System.Web`-specific behaviour. MVC area registrations and route configuration files are treated as informational review items because they may define area-specific routes, URL patterns, defaults, constraints, ignored routes, or feature boundaries that need mapping to ASP.NET Core endpoint routing.
 
 Current legacy ASP.NET artifact discovery is intentionally static and lightweight. It combines file-based discovery with selected source-level ASP.NET MVC signals and does not require the target solution to build or run.
 
@@ -594,6 +629,7 @@ Current analysis work includes:
 - identifying WebForms user controls, master pages, and HTTP handlers as legacy ASP.NET review items
 - identifying `Global.asax` application files as ASP.NET lifecycle and startup review items
 - identifying ASP.NET MVC controllers as legacy ASP.NET review items
+- identifying ASP.NET MVC area registration classes as ASP.NET routing and feature-boundary review items
 - identifying ASP.NET route configuration files as ASP.NET routing migration review items
 - highlighting projects with several direct project references
 - highlighting discovered WCF endpoints
@@ -647,9 +683,10 @@ Responsible for detecting selected classic ASP.NET artifacts from the source tre
 Current legacy ASP.NET artifact discovery work includes:
 
 - modelling discovered legacy ASP.NET artifacts
-- classifying artifact kinds such as WebForms pages, WebForms user controls, master pages, ASMX web services, HTTP handlers, `Global.asax`, MVC controllers, and route configuration
+- classifying artifact kinds such as WebForms pages, WebForms user controls, master pages, ASMX web services, HTTP handlers, `Global.asax`, MVC controllers, MVC area registrations, and route configuration
 - scanning files such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`
 - scanning C# source files for ASP.NET MVC controller classes inheriting from `Controller` or `System.Web.Mvc.Controller`
+- scanning C# source files for ASP.NET MVC area registration classes inheriting from `AreaRegistration` or `System.Web.Mvc.AreaRegistration`
 - detecting ASP.NET route configuration files such as `RouteConfig.cs`
 - reporting discovered legacy ASP.NET artifacts in the Markdown discovery report
 - feeding discovered legacy ASP.NET artifacts into modernisation hint analysis
@@ -732,7 +769,7 @@ The Markdown report currently includes:
 - WCF reader quota details
 - WCF service contract details
 - WCF operation names
-- legacy ASP.NET artifact details, including file-based artifacts, MVC controllers, route configuration, artifact kind, name, and file path
+- legacy ASP.NET artifact details, including file-based artifacts, MVC controllers, MVC area registrations, route configuration, artifact kind, name, and file path
 - configuration file details
 - `appSettings`, `connectionStrings`, and custom configuration section counts
 - modernisation hints
@@ -854,6 +891,8 @@ Legacy ASP.NET artifacts discovered:
   File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
 - RouteConfig: RouteConfig.cs
   File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\RouteConfig.cs
+- AreaRegistration: AdminAreaRegistration
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Areas\Admin\AdminAreaRegistration.cs
 
 Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
@@ -876,6 +915,7 @@ Modernisation hints discovered:
 - [Info] Legacy ASP.NET: Global.asax is a Global.asax application file
 - [Warning] Legacy ASP.NET: HomeController is an ASP.NET MVC controller
 - [Info] Legacy ASP.NET: RouteConfig.cs is an ASP.NET route configuration file
+- [Info] Legacy ASP.NET: AdminAreaRegistration is an ASP.NET MVC area registration
 
 Solutions discovered:
 - SampleLegacyApp
@@ -927,7 +967,7 @@ The report currently includes sections such as:
 - Package references discovered: 4
 - WCF endpoints discovered: 1
 - WCF service contracts discovered: 1
-- Legacy ASP.NET artifacts discovered: 8
+- Legacy ASP.NET artifacts discovered: 9
 - Assembly references discovered: 2
 
 ## Solutions
@@ -1019,6 +1059,7 @@ graph TD
 | GlobalAsax | Global.asax | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax` |
 | MvcController | HomeController | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs` |
 | RouteConfig | RouteConfig.cs | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\RouteConfig.cs` |
+| AreaRegistration | AdminAreaRegistration | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Areas\Admin\AdminAreaRegistration.cs` |
 
 ## Configuration Files
 
@@ -1044,6 +1085,7 @@ graph TD
 | Info | Legacy ASP.NET | Global.asax is a Global.asax application file | Global.asax may contain application startup, routing, error handling, or lifecycle code that should be reviewed when migrating to modern ASP.NET hosting. |
 | Warning | Legacy ASP.NET | HomeController is an ASP.NET MVC controller | ASP.NET MVC controllers may contain routing, action filters, model binding, authentication, or System.Web-specific behaviour that needs review when moving to ASP.NET Core. |
 | Info | Legacy ASP.NET | RouteConfig.cs is an ASP.NET route configuration file | Route configuration may define URL patterns, defaults, constraints, or ignored routes that should be reviewed when migrating to endpoint routing in ASP.NET Core. |
+| Info | Legacy ASP.NET | AdminAreaRegistration is an ASP.NET MVC area registration | ASP.NET MVC area registrations may define area-specific routes and feature boundaries that should be reviewed when migrating to ASP.NET Core endpoint routing. |
 | Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
 | Warning | WCF Binding | basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService | basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning. |
 | Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses WCF security mode Transport | WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints. |
@@ -1254,6 +1296,7 @@ Current hint areas include:
 - package review
 - legacy ASP.NET / `System.Web` review
 - legacy ASP.NET artifact review
+- ASP.NET MVC area registration review
 - WCF endpoint review
 - WCF binding review
 - WCF endpoint configuration review
@@ -1319,6 +1362,7 @@ Current legacy ASP.NET hints include:
 | `.ashx` HTTP handler | `Warning` | HTTP handlers may contain custom request processing that needs mapping to middleware, endpoints, or controllers |
 | `Global.asax` application file | `Info` | May contain startup, routing, error handling, or application lifecycle code that should be reviewed |
 | ASP.NET MVC controller | `Warning` | MVC controllers may contain routing, action filters, model binding, authentication, or `System.Web`-specific behaviour that needs review when moving to ASP.NET Core |
+| ASP.NET MVC area registration | `Info` | Area registrations may define area-specific routes and feature boundaries that should be reviewed when migrating to ASP.NET Core endpoint routing |
 | `RouteConfig.cs` route configuration | `Info` | Route configuration may define URL patterns, defaults, constraints, or ignored routes that should be reviewed when migrating to endpoint routing in ASP.NET Core |
 
 Current configuration hints include:
@@ -1357,6 +1401,7 @@ Example report output:
 | Info | Legacy ASP.NET | Global.asax is a Global.asax application file | Global.asax may contain application startup, routing, error handling, or lifecycle code that should be reviewed when migrating to modern ASP.NET hosting. |
 | Warning | Legacy ASP.NET | HomeController is an ASP.NET MVC controller | ASP.NET MVC controllers may contain routing, action filters, model binding, authentication, or System.Web-specific behaviour that needs review when moving to ASP.NET Core. |
 | Info | Legacy ASP.NET | RouteConfig.cs is an ASP.NET route configuration file | Route configuration may define URL patterns, defaults, constraints, or ignored routes that should be reviewed when migrating to endpoint routing in ASP.NET Core. |
+| Info | Legacy ASP.NET | AdminAreaRegistration is an ASP.NET MVC area registration | ASP.NET MVC area registrations may define area-specific routes and feature boundaries that should be reviewed when migrating to ASP.NET Core endpoint routing. |
 | Info | Configuration | Web.config contains 1 connection string(s) | Connection strings identify external data dependencies that should be reviewed during migration planning. |
 ```
 
@@ -1406,6 +1451,7 @@ Current MVP functionality includes:
 - ASP.NET HTTP handler discovery
 - `Global.asax` discovery
 - ASP.NET MVC controller discovery from C# source files
+- ASP.NET MVC area registration discovery from C# source files
 - ASP.NET route configuration discovery from `RouteConfig.cs`
 - legacy ASP.NET artifact reporting in the generated Markdown report
 - configuration file discovery from `app.config` and `web.config`
@@ -1415,7 +1461,7 @@ Current MVP functionality includes:
 - modernisation hints for old .NET Framework target frameworks
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
-- modernisation hints for legacy ASP.NET, `System.Web` assembly references, and discovered legacy ASP.NET artifacts
+- modernisation hints for legacy ASP.NET, `System.Web` assembly references, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC area registrations, and ASP.NET route configuration
 - modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, timeout settings, message size and buffer limits, transfer modes, reader quotas, metadata exchange endpoints, and service contracts
 - modernisation hints for configuration-heavy applications
 - modernisation hint reporting in the generated Markdown report
@@ -1424,7 +1470,7 @@ Current MVP functionality includes:
 Planned MVP features include:
 
 - further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
-- additional legacy ASP.NET source-level indicators beyond the currently detected MVC controller and route configuration signals
+- additional legacy ASP.NET source-level indicators beyond the currently detected MVC controller, MVC area registration, and route configuration signals
 - improved severity classification as more discovery signals are added
 
 ---
@@ -1526,6 +1572,7 @@ Implemented:
 - Identify WebForms user controls, master pages, and HTTP handlers as legacy ASP.NET review items
 - Identify `Global.asax` application files as ASP.NET lifecycle and startup review items
 - Identify ASP.NET MVC controllers as legacy ASP.NET review items
+- Identify ASP.NET MVC area registration classes as ASP.NET routing and feature-boundary review items
 - Identify ASP.NET route configuration files as ASP.NET routing migration review items
 - Identify configuration-heavy application indicators from `app.config` and `web.config`
 - Identify large `appSettings` usage
@@ -1535,7 +1582,7 @@ Implemented:
 
 Remaining work:
 
-- Add more source-level legacy ASP.NET indicators beyond the current MVC controller and route configuration signals
+- Add more source-level legacy ASP.NET indicators beyond the current MVC controller, MVC area registration, and route configuration signals
 - Add richer WCF endpoint risk analysis beyond the current binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
 - Improve severity classification as more discovery signals are added
 
@@ -1554,14 +1601,15 @@ Implemented:
 - Detect `.ashx` ASP.NET HTTP handlers
 - Detect `Global.asax` application files
 - Detect MVC controllers from C# source files
+- Detect MVC area registration classes from C# source files
 - Detect route configuration files such as `RouteConfig.cs`
 - Report discovered legacy ASP.NET artifacts in the generated Markdown report
 - Include discovered legacy ASP.NET artifacts in modernisation hint analysis
 
 Remaining work:
 
-- Improve legacy ASP.NET source-level analysis beyond the currently detected MVC controller and route configuration signals
-- Consider detecting additional ASP.NET MVC indicators such as area registrations, controller action methods, route attributes, filters, and application startup registration points
+- Improve legacy ASP.NET source-level analysis beyond the currently detected MVC controller, MVC area registration, and route configuration signals
+- Consider detecting additional ASP.NET MVC indicators such as controller action methods, route attributes, filters, and application startup registration points
 
 ---
 
@@ -1580,8 +1628,8 @@ LegacyLens.NET can be used when:
 - you need to identify legacy WCF configuration and integration points
 - you need to identify WCF binding configuration, security, credential, timeout, message size, buffer, transfer mode, reader quota, or metadata exchange usage before planning endpoint migration
 - you need to identify WCF service contracts and operations defined in source code
-- you need to identify classic ASP.NET artifacts such as WebForms pages, ASMX services, HTTP handlers, MVC controllers, route configuration, or `Global.asax`
-- you need to understand whether a legacy web application contains UI, service, handler, MVC, routing, or startup/lifecycle artifacts that may affect ASP.NET Core migration planning
+- you need to identify classic ASP.NET artifacts such as WebForms pages, ASMX services, HTTP handlers, MVC controllers, MVC area registrations, route configuration, or `Global.asax`
+- you need to understand whether a legacy web application contains UI, service, handler, MVC, area routing, routing, or startup/lifecycle artifacts that may affect ASP.NET Core migration planning
 - you need to identify configuration-heavy applications, connection strings, or custom configuration sections
 - you want an initial list of modernisation review areas
 - you need to identify likely migration risks before deeper analysis

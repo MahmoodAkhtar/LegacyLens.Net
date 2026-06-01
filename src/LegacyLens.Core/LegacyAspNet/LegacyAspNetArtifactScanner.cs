@@ -8,6 +8,10 @@ public sealed class LegacyAspNetArtifactScanner
         @"\bclass\s+(?<name>[A-Za-z_][A-Za-z0-9_]*Controller)\s*:\s*(?<baseTypes>[^{]+)\{",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
+    private static readonly Regex ClassWithBaseTypesRegex = new(
+        @"\bclass\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*(?<baseTypes>[^{]+)\{",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
     public IReadOnlyList<DiscoveredLegacyAspNetArtifact> Scan(string rootPath)
     {
         if (string.IsNullOrWhiteSpace(rootPath))
@@ -113,6 +117,7 @@ public sealed class LegacyAspNetArtifactScanner
 
             AddMvcControllerArtifacts(sourceFilePath, source, artifacts);
             AddRouteConfigArtifact(sourceFilePath, source, artifacts);
+            AddAreaRegistrationArtifacts(sourceFilePath, source, artifacts);
         }
     }
 
@@ -160,11 +165,47 @@ public sealed class LegacyAspNetArtifactScanner
             sourceFilePath));
     }
 
+    private static void AddAreaRegistrationArtifacts(
+        string sourceFilePath,
+        string source,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        foreach (Match match in ClassWithBaseTypesRegex.Matches(source))
+        {
+            var className = match.Groups["name"].Value;
+            var baseTypes = match.Groups["baseTypes"].Value;
+
+            if (!InheritsFromAreaRegistration(baseTypes))
+            {
+                continue;
+            }
+
+            if (!LooksLikeAspNetMvcAreaRegistration(source))
+            {
+                continue;
+            }
+
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.AreaRegistration,
+                FilePath = sourceFilePath,
+                Name = className
+            });
+        }
+    }
+
     private static bool InheritsFromMvcController(string baseTypes)
     {
         return baseTypes
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Any(IsMvcControllerBaseType);
+    }
+
+    private static bool InheritsFromAreaRegistration(string baseTypes)
+    {
+        return baseTypes
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Any(IsAreaRegistrationBaseType);
     }
 
     private static bool IsMvcControllerBaseType(string baseType)
@@ -173,11 +214,25 @@ public sealed class LegacyAspNetArtifactScanner
                baseType.Equals("System.Web.Mvc.Controller", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsAreaRegistrationBaseType(string baseType)
+    {
+        return baseType.Equals("AreaRegistration", StringComparison.OrdinalIgnoreCase) ||
+               baseType.Equals("System.Web.Mvc.AreaRegistration", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool LooksLikeAspNetRouteConfig(string source)
     {
         return source.Contains("RouteCollection", StringComparison.OrdinalIgnoreCase) ||
                source.Contains("routes.MapRoute", StringComparison.OrdinalIgnoreCase) ||
                source.Contains("System.Web.Routing", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeAspNetMvcAreaRegistration(string source)
+    {
+        return source.Contains("AreaName", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("RegisterArea", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("AreaRegistrationContext", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("context.MapRoute", StringComparison.OrdinalIgnoreCase);
     }
 
     private static DiscoveredLegacyAspNetArtifact CreateArtifact(

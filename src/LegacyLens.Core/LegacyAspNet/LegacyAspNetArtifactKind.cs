@@ -9,5 +9,6 @@ public enum LegacyAspNetArtifactKind
     HttpHandler,
     GlobalAsax,
     MvcController,
-    RouteConfig
+    RouteConfig,
+    AreaRegistration
 }
