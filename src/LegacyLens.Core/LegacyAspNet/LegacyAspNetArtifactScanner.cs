@@ -20,6 +20,26 @@ public sealed class LegacyAspNetArtifactScanner
         @"\[\s*(?<name>[A-Za-z_][A-Za-z0-9_\.]*)(?:Attribute)?(?:\s*\(|\s*\])",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
+    private static readonly Regex ApplicationStartRegex = new(
+        @"\bApplication_Start\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex AreaRegistrationCallRegex = new(
+        @"\bAreaRegistration\s*\.\s*RegisterAllAreas\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex RouteRegistrationCallRegex = new(
+        @"\bRouteConfig\s*\.\s*RegisterRoutes\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex BundleRegistrationCallRegex = new(
+        @"\bBundleConfig\s*\.\s*RegisterBundles\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex FilterRegistrationCallRegex = new(
+        @"\bFilterConfig\s*\.\s*RegisterGlobalFilters\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
     private static readonly HashSet<string> MvcActionReturnTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "ActionResult",
@@ -181,6 +201,9 @@ public sealed class LegacyAspNetArtifactScanner
             AddMvcControllerArtifacts(sourceFilePath, source, artifacts);
             AddRouteConfigArtifact(sourceFilePath, source, artifacts);
             AddAreaRegistrationArtifacts(sourceFilePath, source, artifacts);
+            AddMvcApplicationStartupArtifacts(sourceFilePath, source, artifacts);
+            AddMvcBundleConfigArtifact(sourceFilePath, source, artifacts);
+            AddMvcFilterConfigArtifact(sourceFilePath, source, artifacts);
         }
     }
 
@@ -364,6 +387,103 @@ public sealed class LegacyAspNetArtifactScanner
         }
     }
 
+    private static void AddMvcApplicationStartupArtifacts(
+        string sourceFilePath,
+        string source,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        if (ApplicationStartRegex.IsMatch(source) &&
+            LooksLikeAspNetApplicationStartup(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcApplicationStartup,
+                FilePath = sourceFilePath,
+                Name = $"{Path.GetFileName(sourceFilePath)} Application_Start"
+            });
+        }
+
+        if (AreaRegistrationCallRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcAreaRegistrationCall,
+                FilePath = sourceFilePath,
+                Name = "AreaRegistration.RegisterAllAreas"
+            });
+        }
+
+        if (RouteRegistrationCallRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcRouteRegistrationCall,
+                FilePath = sourceFilePath,
+                Name = "RouteConfig.RegisterRoutes"
+            });
+        }
+
+        if (BundleRegistrationCallRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcBundleRegistrationCall,
+                FilePath = sourceFilePath,
+                Name = "BundleConfig.RegisterBundles"
+            });
+        }
+
+        if (FilterRegistrationCallRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcFilterRegistrationCall,
+                FilePath = sourceFilePath,
+                Name = "FilterConfig.RegisterGlobalFilters"
+            });
+        }
+    }
+
+    private static void AddMvcBundleConfigArtifact(
+        string sourceFilePath,
+        string source,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        if (!Path.GetFileName(sourceFilePath).Equals("BundleConfig.cs", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!LooksLikeAspNetMvcBundleConfig(source))
+        {
+            return;
+        }
+
+        artifacts.Add(CreateArtifact(
+            LegacyAspNetArtifactKind.MvcBundleConfig,
+            sourceFilePath));
+    }
+
+    private static void AddMvcFilterConfigArtifact(
+        string sourceFilePath,
+        string source,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        if (!Path.GetFileName(sourceFilePath).Equals("FilterConfig.cs", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!LooksLikeAspNetMvcFilterConfig(source))
+        {
+            return;
+        }
+
+        artifacts.Add(CreateArtifact(
+            LegacyAspNetArtifactKind.MvcFilterConfig,
+            sourceFilePath));
+    }
+
     private static string GetClassBody(string source, Match classMatch)
     {
         var openingBraceIndex = source.IndexOf('{', classMatch.Index);
@@ -527,6 +647,32 @@ public sealed class LegacyAspNetArtifactScanner
                source.Contains("RegisterArea", StringComparison.OrdinalIgnoreCase) ||
                source.Contains("AreaRegistrationContext", StringComparison.OrdinalIgnoreCase) ||
                source.Contains("context.MapRoute", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeAspNetApplicationStartup(string source)
+    {
+        return source.Contains("HttpApplication", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("MvcApplication", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("AreaRegistration.RegisterAllAreas", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("RouteConfig.RegisterRoutes", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("BundleConfig.RegisterBundles", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("FilterConfig.RegisterGlobalFilters", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeAspNetMvcBundleConfig(string source)
+    {
+        return source.Contains("RegisterBundles", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("BundleCollection", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("bundles.Add", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("System.Web.Optimization", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeAspNetMvcFilterConfig(string source)
+    {
+        return source.Contains("RegisterGlobalFilters", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("GlobalFilterCollection", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("filters.Add", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("System.Web.Mvc", StringComparison.OrdinalIgnoreCase);
     }
 
     private static DiscoveredLegacyAspNetArtifact CreateArtifact(

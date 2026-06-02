@@ -584,6 +584,83 @@ public sealed class ModernisationHintAnalyzer
                             "MVC action attributes such as HTTP verb, authorization, anonymous access, anti-forgery, and output caching attributes may affect behaviour during ASP.NET Core migration."
                     });
                     break;
+
+                case LegacyAspNetArtifactKind.MvcApplicationStartup:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET Startup",
+                        Finding = $"{name} contains ASP.NET application startup code",
+                        Reason =
+                            "Application_Start may contain route, filter, bundle, dependency injection, error handling, or application lifecycle registration that needs mapping to ASP.NET Core hosting."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcAreaRegistrationCall:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET Startup",
+                        Finding = $"{name} registers ASP.NET MVC areas",
+                        Reason =
+                            "Area registration calls identify MVC area routing setup that should be reviewed during ASP.NET Core endpoint routing migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcRouteRegistrationCall:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET Routing",
+                        Finding = $"{name} registers ASP.NET routes",
+                        Reason =
+                            "Route registration calls identify conventional route setup that should be mapped carefully to ASP.NET Core endpoint routing."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcBundleConfig:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Bundling",
+                        Finding = $"{name} is an ASP.NET MVC bundle configuration file",
+                        Reason =
+                            "ASP.NET MVC bundling and minification usually need replacement with a modern static asset, build, or bundling strategy."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcBundleRegistrationCall:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Bundling",
+                        Finding = $"{name} registers ASP.NET MVC bundles",
+                        Reason =
+                            "Bundle registration calls may affect CSS and JavaScript delivery and should be reviewed when moving to modern ASP.NET hosting."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcFilterConfig:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Filters",
+                        Finding = $"{name} is an ASP.NET MVC filter configuration file",
+                        Reason =
+                            "Global filters can affect authorization, error handling, caching, model binding, or other cross-cutting request behaviour during migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcFilterRegistrationCall:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Filters",
+                        Finding = $"{name} registers ASP.NET MVC global filters",
+                        Reason =
+                            "Global filter registration should be reviewed because equivalent ASP.NET Core filters, middleware, or endpoint conventions may need to be configured explicitly."
+                    });
+                    break;
             }
         }
     }

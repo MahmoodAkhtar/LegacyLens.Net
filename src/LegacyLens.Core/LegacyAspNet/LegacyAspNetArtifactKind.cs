@@ -13,5 +13,12 @@ public enum LegacyAspNetArtifactKind
     AreaRegistration,
     MvcAction,
     MvcRouteAttribute,
-    MvcActionAttribute
+    MvcActionAttribute,
+    MvcApplicationStartup,
+    MvcAreaRegistrationCall,
+    MvcRouteRegistrationCall,
+    MvcBundleConfig,
+    MvcBundleRegistrationCall,
+    MvcFilterConfig,
+    MvcFilterRegistrationCall
 }
