@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, configuration files, and selected legacy ASP.NET artifacts, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, and reader quota details, WCF service contracts, service-related configuration, legacy ASP.NET artifact and source-level ASP.NET MVC usage, ASP.NET MVC startup registration usage, general configuration file usage, and basic modernisation hints.
+It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, configuration files, and selected legacy ASP.NET artifacts, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, and reader quota details, WCF service contracts, service-related configuration, legacy ASP.NET artifact and source-level ASP.NET MVC usage, ASP.NET Web API usage, ASP.NET MVC and Web API startup registration usage, general configuration file usage, and basic modernisation hints.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -12,7 +12,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - Which framework assembly references are used by each project?
 - Which NuGet packages are referenced?
 - Are there signs of legacy technologies such as WCF?
-- Are there signs of classic ASP.NET artifacts such as WebForms pages, ASMX web services, HTTP handlers, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, route configuration, MVC startup registration, bundle configuration, filter configuration, or `Global.asax`?
+- Are there signs of classic ASP.NET artifacts such as WebForms pages, ASMX web services, HTTP handlers, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API routes, route configuration, MVC or Web API startup registration, bundle configuration, filter configuration, or `Global.asax`?
 - Which WCF endpoints are configured?
 - Which WCF binding configurations, security modes, timeout settings, message size limits, buffer limits, transfer modes, or reader quotas are configured?
 - Which WCF service contracts and operations are defined in the source code?
@@ -59,13 +59,20 @@ The current implementation can scan a folder containing .NET solutions and proje
 - ASP.NET MVC action methods from C# source files
 - ASP.NET MVC route attributes such as `[Route]` and `[RoutePrefix]`
 - ASP.NET MVC action, filter, and security-related attributes such as `[HttpGet]`, `[HttpPost]`, `[Authorize]`, `[AllowAnonymous]`, `[ValidateAntiForgeryToken]`, and `[OutputCache]`
+- ASP.NET Web API controllers from C# source files
+- ASP.NET Web API action methods from C# source files
+- ASP.NET Web API route attributes such as `[Route]` and `[RoutePrefix]`
+- ASP.NET Web API action, filter, and security-related attributes such as `[HttpGet]`, `[HttpPost]`, `[HttpPut]`, `[HttpDelete]`, `[HttpPatch]`, `[AcceptVerbs]`, `[Authorize]`, and `[AllowAnonymous]`
 - ASP.NET MVC area registration classes from C# source files
 - ASP.NET route configuration files such as `RouteConfig.cs`
 - ASP.NET MVC application startup methods such as `Application_Start`
 - ASP.NET MVC startup registration calls such as `AreaRegistration.RegisterAllAreas()`, `RouteConfig.RegisterRoutes(...)`, `BundleConfig.RegisterBundles(...)`, and `FilterConfig.RegisterGlobalFilters(...)`
+- ASP.NET Web API configuration files such as `WebApiConfig.cs`
+- ASP.NET Web API route registration calls such as `MapHttpRoute(...)`
+- ASP.NET Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - ASP.NET MVC filter configuration files such as `FilterConfig.cs`
-- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC startup registration, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC startup registration, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, ASP.NET Web API startup registration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
@@ -90,7 +97,7 @@ The generated report currently includes:
 - WCF binding detail information, including timeout settings, message size limits, buffer limits, and transfer mode
 - WCF reader quota information, including max depth, max string content length, max array length, max bytes per read, and max name table character count
 - WCF service contract and operation information
-- legacy ASP.NET artifact information, including file-based artifacts, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, route configuration, MVC startup registration, bundle configuration, filter configuration, artifact kind, name, and file path
+- legacy ASP.NET artifact information, including file-based artifacts, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, Web API configuration, route configuration, MVC and Web API startup registration, bundle configuration, filter configuration, artifact kind, name, and file path
 - configuration file information, including `appSettings`, `connectionStrings`, and custom configuration section counts
 - modernisation hints with severity, area, finding, and reason, including Legacy ASP.NET hints when `System.Web` assembly references or legacy ASP.NET artifacts are found
 
@@ -193,6 +200,18 @@ Legacy ASP.NET artifacts discovered:
   File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\BundleConfig.cs
 - MvcFilterConfig: FilterConfig.cs
   File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\FilterConfig.cs
+- WebApiController: CustomersApiController
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs
+- WebApiAction: CustomersApiController.Get
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs
+- WebApiAction: CustomersApiController.Create
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs
+- WebApiConfig: WebApiConfig.cs
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\WebApiConfig.cs
+- WebApiRouteRegistrationCall: MapHttpRoute
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\WebApiConfig.cs
+- WebApiGlobalConfigurationCall: GlobalConfiguration.Configure
+  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
 
 Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
@@ -234,6 +253,17 @@ Modernisation hints discovered:
 - [Warning] Legacy ASP.NET Bundling: BundleConfig.RegisterBundles registers ASP.NET MVC bundles
 - [Warning] Legacy ASP.NET Filters: FilterConfig.cs is an ASP.NET MVC filter configuration file
 - [Warning] Legacy ASP.NET Filters: FilterConfig.RegisterGlobalFilters registers ASP.NET MVC global filters
+- [Warning] Legacy ASP.NET Web API: CustomersApiController is an ASP.NET Web API controller
+- [Info] Legacy ASP.NET Web API: CustomersApiController.Get is an ASP.NET Web API action
+- [Info] Legacy ASP.NET Web API: CustomersApiController.Create is an ASP.NET Web API action
+- [Info] Legacy ASP.NET Web API Routing: CustomersApiController [RoutePrefix] uses ASP.NET Web API attribute routing
+- [Info] Legacy ASP.NET Web API Routing: CustomersApiController.Get [Route] uses ASP.NET Web API attribute routing
+- [Info] Legacy ASP.NET Web API Routing: CustomersApiController.Create [Route] uses ASP.NET Web API attribute routing
+- [Warning] Legacy ASP.NET Web API Attributes: CustomersApiController.Get [HttpGet] uses an ASP.NET Web API action attribute
+- [Warning] Legacy ASP.NET Web API Attributes: CustomersApiController.Create [HttpPost] uses an ASP.NET Web API action attribute
+- [Info] Legacy ASP.NET Web API: WebApiConfig.cs is an ASP.NET Web API configuration file
+- [Info] Legacy ASP.NET Web API Routing: MapHttpRoute registers ASP.NET Web API routes
+- [Info] Legacy ASP.NET Web API Startup: GlobalConfiguration.Configure registers ASP.NET Web API startup configuration
 
 Solutions discovered:
 - SampleLegacyApp
@@ -311,10 +341,17 @@ Even if the solution does not build, it can still discover useful information fr
 - ASP.NET MVC action methods returning common MVC result types such as `ActionResult`, `ViewResult`, `JsonResult`, `PartialViewResult`, `RedirectResult`, `RedirectToRouteResult`, `FileResult`, `ContentResult`, and `HttpStatusCodeResult`
 - ASP.NET MVC route attributes such as `[Route]` and `[RoutePrefix]`
 - ASP.NET MVC action, filter, and security-related attributes such as `[HttpGet]`, `[HttpPost]`, `[HttpPut]`, `[HttpDelete]`, `[HttpPatch]`, `[AcceptVerbs]`, `[Authorize]`, `[AllowAnonymous]`, `[ValidateAntiForgeryToken]`, and `[OutputCache]`
+- ASP.NET Web API controller classes inheriting from `ApiController` or `System.Web.Http.ApiController`
+- ASP.NET Web API action methods returning common Web API result types such as `IHttpActionResult` and `HttpResponseMessage`
+- ASP.NET Web API route attributes such as `[Route]` and `[RoutePrefix]`
+- ASP.NET Web API action, filter, and security-related attributes such as `[HttpGet]`, `[HttpPost]`, `[HttpPut]`, `[HttpDelete]`, `[HttpPatch]`, `[AcceptVerbs]`, `[Authorize]`, and `[AllowAnonymous]`
 - ASP.NET MVC area registration classes inheriting from `AreaRegistration` or `System.Web.Mvc.AreaRegistration`
 - ASP.NET route configuration files such as `RouteConfig.cs`
 - ASP.NET MVC application startup methods such as `Application_Start`
 - ASP.NET MVC startup registration calls such as `AreaRegistration.RegisterAllAreas()`, `RouteConfig.RegisterRoutes(...)`, `BundleConfig.RegisterBundles(...)`, and `FilterConfig.RegisterGlobalFilters(...)`
+- ASP.NET Web API configuration files such as `WebApiConfig.cs`
+- ASP.NET Web API route registration calls such as `MapHttpRoute(...)`
+- ASP.NET Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - ASP.NET MVC filter configuration files such as `FilterConfig.cs`
 - WCF configuration files
@@ -341,7 +378,7 @@ This makes it useful for old or broken solutions where restoring packages, insta
 
 > Note: WCF endpoint discovery currently reads configured service endpoints from `app.config` and `web.config` files. Where endpoints reference named binding configurations, LegacyLens.NET also attempts to resolve related security mode, transport credential type, message credential type, timeout, message size, buffer, transfer mode, and reader quota details from the matching binding configuration.
 
-> Note: legacy ASP.NET artifact discovery currently detects file-based classic ASP.NET artifacts such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`, as well as selected source-level ASP.NET MVC indicators such as MVC controllers, MVC action methods, MVC route attributes, MVC action attributes, MVC area registrations, `RouteConfig.cs`, `Application_Start`, MVC startup registration calls, `BundleConfig.cs`, and `FilterConfig.cs`. These are static discovery signals and do not require the application to build or run.
+> Note: legacy ASP.NET artifact discovery currently detects file-based classic ASP.NET artifacts such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`, as well as selected source-level ASP.NET MVC and Web API indicators such as MVC controllers, MVC action methods, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API action methods, Web API route attributes, Web API action attributes, `RouteConfig.cs`, `WebApiConfig.cs`, `Application_Start`, MVC startup registration calls, Web API startup registration calls, `BundleConfig.cs`, and `FilterConfig.cs`. These are static discovery signals and do not require the application to build or run.
 
 > Note: solution discovery currently supports `.sln` files and extracts referenced C# project paths from project entries. Non-C# project entries and solution folders are ignored.
 
@@ -496,7 +533,7 @@ This helps identify applications where important runtime behaviour or migration 
 
 LegacyLens.NET can detect selected classic ASP.NET artifacts from source folders without building or running the application.
 
-This is useful for older .NET Framework web applications where important migration work may be hidden in WebForms pages, user controls, master pages, ASMX services, custom handlers, MVC controllers, MVC area registrations, route configuration, MVC startup registration, bundle configuration, filter configuration, or application lifecycle files.
+This is useful for older .NET Framework web applications where important migration work may be hidden in WebForms pages, user controls, master pages, ASMX services, custom handlers, MVC controllers, MVC area registrations, Web API controllers, route configuration, Web API configuration, MVC startup registration, Web API startup registration, bundle configuration, filter configuration, or application lifecycle files.
 
 Current legacy ASP.NET artifact discovery supports:
 
@@ -507,10 +544,17 @@ Current legacy ASP.NET artifact discovery supports:
 - `.ashx` ASP.NET HTTP handlers
 - `Global.asax` application files
 - ASP.NET MVC controllers from C# source files
+- ASP.NET Web API controllers from C# source files
+- ASP.NET Web API action methods from C# source files
+- ASP.NET Web API route attributes such as `[Route]` and `[RoutePrefix]`
+- ASP.NET Web API action, filter, and security-related attributes such as `[HttpGet]`, `[HttpPost]`, `[HttpPut]`, `[HttpDelete]`, `[HttpPatch]`, `[AcceptVerbs]`, `[Authorize]`, and `[AllowAnonymous]`
 - ASP.NET MVC area registration classes from C# source files
 - ASP.NET route configuration files such as `RouteConfig.cs`
 - ASP.NET MVC application startup methods such as `Application_Start`
 - ASP.NET MVC startup registration calls such as `AreaRegistration.RegisterAllAreas()`, `RouteConfig.RegisterRoutes(...)`, `BundleConfig.RegisterBundles(...)`, and `FilterConfig.RegisterGlobalFilters(...)`
+- ASP.NET Web API configuration files such as `WebApiConfig.cs`
+- ASP.NET Web API route registration calls such as `MapHttpRoute(...)`
+- ASP.NET Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - ASP.NET MVC filter configuration files such as `FilterConfig.cs`
 
@@ -521,12 +565,14 @@ SampleLegacyApp.Web/
 ├── App_Start/
 │   ├── BundleConfig.cs
 │   ├── FilterConfig.cs
-│   └── RouteConfig.cs
+│   ├── RouteConfig.cs
+│   └── WebApiConfig.cs
 ├── Areas/
 │   └── Admin/
 │       └── AdminAreaRegistration.cs
 ├── Controllers/
-│   └── HomeController.cs
+│   ├── HomeController.cs
+│   └── CustomersApiController.cs
 ├── Default.aspx
 ├── CustomerSummary.ascx
 ├── Site.master
@@ -572,6 +618,44 @@ public class HomeController : Controller
             },
             JsonRequestBehavior.AllowGet);
     }
+}
+```
+
+Example Web API controller:
+
+```csharp
+using System.Web.Http;
+
+namespace SampleLegacyApp.Web.Controllers;
+
+[RoutePrefix("api/customers")]
+public class CustomersApiController : ApiController
+{
+    [HttpGet]
+    [Route("{id}")]
+    public IHttpActionResult Get(int id)
+    {
+        return Ok(new
+        {
+            Id = id,
+            Name = "Sample customer"
+        });
+    }
+
+    [HttpPost]
+    [Route("")]
+    public IHttpActionResult Create(CustomerRequest request)
+    {
+        return Ok(new
+        {
+            request.Name
+        });
+    }
+}
+
+public sealed class CustomerRequest
+{
+    public string? Name { get; init; }
 }
 ```
 
@@ -627,10 +711,35 @@ public static class RouteConfig
 }
 ```
 
-Example MVC application startup:
+Example Web API configuration:
+
+```csharp
+using System.Web.Http;
+
+namespace SampleLegacyApp.Web;
+
+public static class WebApiConfig
+{
+    public static void Register(HttpConfiguration config)
+    {
+        config.MapHttpAttributeRoutes();
+
+        config.Routes.MapHttpRoute(
+            name: "DefaultApi",
+            routeTemplate: "api/{controller}/{id}",
+            defaults: new
+            {
+                id = RouteParameter.Optional
+            });
+    }
+}
+```
+
+Example MVC and Web API application startup:
 
 ```csharp
 using System.Web;
+using System.Web.Http;
 using System.Web.Mvc;
 using System.Web.Routing;
 
@@ -641,6 +750,7 @@ public class MvcApplication : HttpApplication
     protected void Application_Start()
     {
         AreaRegistration.RegisterAllAreas();
+        GlobalConfiguration.Configure(WebApiConfig.Register);
         FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
         RouteConfig.RegisterRoutes(RouteTable.Routes);
         BundleConfig.RegisterBundles(null);
@@ -702,7 +812,18 @@ These are reported in the generated Markdown report:
 | MvcActionAttribute | HomeController.Save [HttpPost] | `...\SampleLegacyApp.Web\Controllers\HomeController.cs` |
 | MvcActionAttribute | HomeController.Save [ValidateAntiForgeryToken] | `...\SampleLegacyApp.Web\Controllers\HomeController.cs` |
 | MvcActionAttribute | HomeController.Summary [AllowAnonymous] | `...\SampleLegacyApp.Web\Controllers\HomeController.cs` |
+| WebApiController | CustomersApiController | `...\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiAction | CustomersApiController.Get | `...\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiAction | CustomersApiController.Create | `...\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiRouteAttribute | CustomersApiController [RoutePrefix] | `...\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiRouteAttribute | CustomersApiController.Get [Route] | `...\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiRouteAttribute | CustomersApiController.Create [Route] | `...\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiActionAttribute | CustomersApiController.Get [HttpGet] | `...\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiActionAttribute | CustomersApiController.Create [HttpPost] | `...\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
 | RouteConfig | RouteConfig.cs | `...\SampleLegacyApp.Web\App_Start\RouteConfig.cs` |
+| WebApiConfig | WebApiConfig.cs | `...\SampleLegacyApp.Web\App_Start\WebApiConfig.cs` |
+| WebApiRouteRegistrationCall | MapHttpRoute | `...\SampleLegacyApp.Web\App_Start\WebApiConfig.cs` |
+| WebApiGlobalConfigurationCall | GlobalConfiguration.Configure | `...\SampleLegacyApp.Web\Global.asax.cs` |
 | AreaRegistration | AdminAreaRegistration | `...\SampleLegacyApp.Web\Areas\Admin\AdminAreaRegistration.cs` |
 | MvcApplicationStartup | Global.asax.cs Application_Start | `...\SampleLegacyApp.Web\Global.asax.cs` |
 | MvcAreaRegistrationCall | AreaRegistration.RegisterAllAreas | `...\SampleLegacyApp.Web\Global.asax.cs` |
@@ -713,9 +834,9 @@ These are reported in the generated Markdown report:
 | MvcFilterConfig | FilterConfig.cs | `...\SampleLegacyApp.Web\App_Start\FilterConfig.cs` |
 ```
 
-These artifacts are also used as modernisation hint inputs. For example, WebForms pages and ASMX web services are treated as higher-risk migration indicators because they usually need redesign, replacement, or compatibility planning when moving to modern ASP.NET. MVC controllers are treated as warning-level review items because they may contain routing, action filters, model binding, authentication, or `System.Web`-specific behaviour. MVC action methods are treated as informational review items because they identify request-handling behaviour that may need controller, endpoint, result-shape, model-binding, or filter review during migration. MVC route attributes are treated as informational routing review items because they may define URL patterns that need mapping to ASP.NET Core endpoint routing. MVC action attributes are treated as warning-level review items because HTTP verb, authorization, anonymous access, anti-forgery, output caching, and related attributes can materially affect migrated endpoint behaviour. MVC area registrations and route configuration files are treated as informational review items because they may define area-specific routes, URL patterns, defaults, constraints, ignored routes, or feature boundaries that need mapping to ASP.NET Core endpoint routing. MVC application startup methods and startup registration calls are treated as informational review items because they show where classic ASP.NET MVC routing, areas, filters, bundles, dependency injection, error handling, or lifecycle behaviour may be wired into the application. Bundle configuration and bundle registration are treated as warning-level review items because ASP.NET MVC bundling and minification usually need replacement with a modern static asset, build, or bundling strategy. Filter configuration and global filter registration are treated as warning-level review items because global filters can affect authorization, error handling, caching, model binding, and other cross-cutting request behaviour.
+These artifacts are also used as modernisation hint inputs. For example, WebForms pages and ASMX web services are treated as higher-risk migration indicators because they usually need redesign, replacement, or compatibility planning when moving to modern ASP.NET. MVC controllers are treated as warning-level review items because they may contain routing, action filters, model binding, authentication, or `System.Web`-specific behaviour. MVC action methods are treated as informational review items because they identify request-handling behaviour that may need controller, endpoint, result-shape, model-binding, or filter review during migration. MVC route attributes are treated as informational routing review items because they may define URL patterns that need mapping to ASP.NET Core endpoint routing. MVC action attributes are treated as warning-level review items because HTTP verb, authorization, anonymous access, anti-forgery, output caching, and related attributes can materially affect migrated endpoint behaviour. MVC area registrations and route configuration files are treated as informational review items because they may define area-specific routes, URL patterns, defaults, constraints, ignored routes, or feature boundaries that need mapping to ASP.NET Core endpoint routing. MVC application startup methods and startup registration calls are treated as informational review items because they show where classic ASP.NET MVC routing, areas, filters, bundles, dependency injection, error handling, or lifecycle behaviour may be wired into the application. Bundle configuration and bundle registration are treated as warning-level review items because ASP.NET MVC bundling and minification usually need replacement with a modern static asset, build, or bundling strategy. Filter configuration and global filter registration are treated as warning-level review items because global filters can affect authorization, error handling, caching, model binding, and other cross-cutting request behaviour. ASP.NET Web API controllers are treated as warning-level review items because they may contain HTTP API routing, model binding, filters, authentication, serialization, or `System.Web` hosting assumptions. Web API actions and route attributes are treated as informational endpoint review items because they identify HTTP API behaviour and URL patterns that may need mapping to ASP.NET Core controllers, minimal APIs, or endpoint routing. Web API action attributes are treated as warning-level review items because HTTP verb, authorization, anonymous access, and accept verbs attributes can materially affect migrated API behaviour. `WebApiConfig.cs`, `MapHttpRoute(...)`, and `GlobalConfiguration.Configure(...)` are treated as informational startup and routing review items because they may define conventional API routes, attribute routing, formatters, filters, dependency resolution, or other Web API configuration that needs explicit ASP.NET Core equivalents.
 
-Current legacy ASP.NET artifact discovery is intentionally static and lightweight. It combines file-based discovery with selected source-level ASP.NET MVC signals and does not require the target solution to build or run.
+Current legacy ASP.NET artifact discovery is intentionally static and lightweight. It combines file-based discovery with selected source-level ASP.NET MVC and Web API signals and does not require the target solution to build or run.
 
 ---
 
@@ -804,6 +925,13 @@ Current analysis work includes:
 - identifying ASP.NET MVC startup registration calls such as area, route, bundle, and filter registration
 - identifying ASP.NET MVC bundle configuration and bundle registration as static asset migration review items
 - identifying ASP.NET MVC filter configuration and global filter registration as cross-cutting request behaviour review items
+- identifying ASP.NET Web API controllers as HTTP API migration review items
+- identifying ASP.NET Web API actions as endpoint behaviour review items
+- identifying ASP.NET Web API route attributes as endpoint routing review items
+- identifying ASP.NET Web API action, filter, and security-related attributes as behaviour migration review items
+- identifying ASP.NET Web API configuration files as API startup and routing review items
+- identifying ASP.NET Web API route registration calls as conventional API routing review items
+- identifying ASP.NET Web API startup registration calls as API startup and hosting review items
 - highlighting projects with several direct project references
 - highlighting discovered WCF endpoints
 - highlighting selected WCF binding types such as `basicHttpBinding`, `netTcpBinding`, `wsHttpBinding`, and `netMsmqBinding`
@@ -856,16 +984,23 @@ Responsible for detecting selected classic ASP.NET artifacts from the source tre
 Current legacy ASP.NET artifact discovery work includes:
 
 - modelling discovered legacy ASP.NET artifacts
-- classifying artifact kinds such as WebForms pages, WebForms user controls, master pages, ASMX web services, HTTP handlers, `Global.asax`, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, route configuration, MVC application startup, MVC startup registration calls, MVC bundle configuration, and MVC filter configuration
+- classifying artifact kinds such as WebForms pages, WebForms user controls, master pages, ASMX web services, HTTP handlers, `Global.asax`, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, Web API configuration, route configuration, MVC application startup, MVC startup registration calls, Web API startup registration calls, MVC bundle configuration, and MVC filter configuration
 - scanning files such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`
 - scanning C# source files for ASP.NET MVC controller classes inheriting from `Controller` or `System.Web.Mvc.Controller`
 - scanning C# source files for ASP.NET MVC action methods returning common MVC result types
 - scanning C# source files for ASP.NET MVC route attributes such as `[Route]` and `[RoutePrefix]`
 - scanning C# source files for ASP.NET MVC action, filter, and security-related attributes such as `[HttpGet]`, `[HttpPost]`, `[Authorize]`, `[AllowAnonymous]`, `[ValidateAntiForgeryToken]`, and `[OutputCache]`
+- scanning C# source files for ASP.NET Web API controller classes inheriting from `ApiController` or `System.Web.Http.ApiController`
+- scanning C# source files for ASP.NET Web API action methods returning common Web API result types such as `IHttpActionResult` and `HttpResponseMessage`
+- scanning C# source files for ASP.NET Web API route attributes such as `[Route]` and `[RoutePrefix]`
+- scanning C# source files for ASP.NET Web API action, filter, and security-related attributes such as `[HttpGet]`, `[HttpPost]`, `[Authorize]`, and `[AllowAnonymous]`
 - scanning C# source files for ASP.NET MVC area registration classes inheriting from `AreaRegistration` or `System.Web.Mvc.AreaRegistration`
 - detecting ASP.NET route configuration files such as `RouteConfig.cs`
 - detecting ASP.NET MVC application startup methods such as `Application_Start`
 - detecting ASP.NET MVC startup registration calls such as `AreaRegistration.RegisterAllAreas()`, `RouteConfig.RegisterRoutes(...)`, `BundleConfig.RegisterBundles(...)`, and `FilterConfig.RegisterGlobalFilters(...)`
+- detecting ASP.NET Web API configuration files such as `WebApiConfig.cs`
+- detecting ASP.NET Web API route registration calls such as `MapHttpRoute(...)`
+- detecting ASP.NET Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - detecting ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - detecting ASP.NET MVC filter configuration files such as `FilterConfig.cs`
 - reporting discovered legacy ASP.NET artifacts in the Markdown discovery report
@@ -949,7 +1084,7 @@ The Markdown report currently includes:
 - WCF reader quota details
 - WCF service contract details
 - WCF operation names
-- legacy ASP.NET artifact details, including file-based artifacts, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, route configuration, artifact kind, name, and file path
+- legacy ASP.NET artifact details, including file-based artifacts, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, Web API configuration, route configuration, startup registration, artifact kind, name, and file path
 - configuration file details
 - `appSettings`, `connectionStrings`, and custom configuration section counts
 - modernisation hints
@@ -1201,7 +1336,7 @@ The report currently includes sections such as:
 - Package references discovered: 4
 - WCF endpoints discovered: 1
 - WCF service contracts discovered: 1
-- Legacy ASP.NET artifacts discovered: 27
+- Legacy ASP.NET artifacts discovered: 38
 - Assembly references discovered: 2
 
 ## Solutions
@@ -1303,7 +1438,18 @@ graph TD
 | MvcActionAttribute | HomeController.Save [HttpPost] | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs` |
 | MvcActionAttribute | HomeController.Save [ValidateAntiForgeryToken] | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs` |
 | MvcActionAttribute | HomeController.Summary [AllowAnonymous] | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs` |
+| WebApiController | CustomersApiController | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiAction | CustomersApiController.Get | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiAction | CustomersApiController.Create | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiRouteAttribute | CustomersApiController [RoutePrefix] | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiRouteAttribute | CustomersApiController.Get [Route] | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiRouteAttribute | CustomersApiController.Create [Route] | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiActionAttribute | CustomersApiController.Get [HttpGet] | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
+| WebApiActionAttribute | CustomersApiController.Create [HttpPost] | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs` |
 | RouteConfig | RouteConfig.cs | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\RouteConfig.cs` |
+| WebApiConfig | WebApiConfig.cs | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\WebApiConfig.cs` |
+| WebApiRouteRegistrationCall | MapHttpRoute | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\WebApiConfig.cs` |
+| WebApiGlobalConfigurationCall | GlobalConfiguration.Configure | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs` |
 | AreaRegistration | AdminAreaRegistration | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Areas\Admin\AdminAreaRegistration.cs` |
 | MvcApplicationStartup | Global.asax.cs Application_Start | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs` |
 | MvcAreaRegistrationCall | AreaRegistration.RegisterAllAreas | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs` |
@@ -1356,6 +1502,17 @@ graph TD
 | Warning | Legacy ASP.NET Bundling | BundleConfig.RegisterBundles registers ASP.NET MVC bundles | Bundle registration calls may affect CSS and JavaScript delivery and should be reviewed when moving to modern ASP.NET hosting. |
 | Warning | Legacy ASP.NET Filters | FilterConfig.cs is an ASP.NET MVC filter configuration file | Global filters can affect authorization, error handling, caching, model binding, or other cross-cutting request behaviour during migration. |
 | Warning | Legacy ASP.NET Filters | FilterConfig.RegisterGlobalFilters registers ASP.NET MVC global filters | Global filter registration should be reviewed because equivalent ASP.NET Core filters, middleware, or endpoint conventions may need to be configured explicitly. |
+| Warning | Legacy ASP.NET Web API | CustomersApiController is an ASP.NET Web API controller | ASP.NET Web API controllers may contain HTTP API behaviour, routing, model binding, filters, authentication, or System.Web hosting assumptions that need review when moving to ASP.NET Core. |
+| Info | Legacy ASP.NET Web API | CustomersApiController.Get is an ASP.NET Web API action | Web API actions identify HTTP endpoint behaviour that should be reviewed for routing, request and response shape, model binding, filters, and ASP.NET Core API migration. |
+| Info | Legacy ASP.NET Web API | CustomersApiController.Create is an ASP.NET Web API action | Web API actions identify HTTP endpoint behaviour that should be reviewed for routing, request and response shape, model binding, filters, and ASP.NET Core API migration. |
+| Info | Legacy ASP.NET Web API Routing | CustomersApiController [RoutePrefix] uses ASP.NET Web API attribute routing | Web API attribute routes should be mapped carefully to ASP.NET Core endpoint routing to preserve URL patterns, defaults, constraints, and client compatibility. |
+| Info | Legacy ASP.NET Web API Routing | CustomersApiController.Get [Route] uses ASP.NET Web API attribute routing | Web API attribute routes should be mapped carefully to ASP.NET Core endpoint routing to preserve URL patterns, defaults, constraints, and client compatibility. |
+| Info | Legacy ASP.NET Web API Routing | CustomersApiController.Create [Route] uses ASP.NET Web API attribute routing | Web API attribute routes should be mapped carefully to ASP.NET Core endpoint routing to preserve URL patterns, defaults, constraints, and client compatibility. |
+| Warning | Legacy ASP.NET Web API Attributes | CustomersApiController.Get [HttpGet] uses an ASP.NET Web API action attribute | Web API action attributes such as HTTP verb, authorization, anonymous access, and accept verbs attributes may affect endpoint behaviour during ASP.NET Core migration. |
+| Warning | Legacy ASP.NET Web API Attributes | CustomersApiController.Create [HttpPost] uses an ASP.NET Web API action attribute | Web API action attributes such as HTTP verb, authorization, anonymous access, and accept verbs attributes may affect endpoint behaviour during ASP.NET Core migration. |
+| Info | Legacy ASP.NET Web API | WebApiConfig.cs is an ASP.NET Web API configuration file | WebApiConfig may define HTTP API routing, formatters, filters, services, or other Web API configuration that should be mapped during ASP.NET Core migration. |
+| Info | Legacy ASP.NET Web API Routing | MapHttpRoute registers ASP.NET Web API routes | Web API route registration calls identify conventional HTTP API route setup that should be mapped carefully to ASP.NET Core endpoint routing. |
+| Info | Legacy ASP.NET Web API Startup | GlobalConfiguration.Configure registers ASP.NET Web API startup configuration | Web API startup registration should be reviewed because routing, formatters, filters, dependency resolution, or other API configuration may need explicit ASP.NET Core equivalents. |
 | Warning | Packages | SampleLegacyApp.Data references EntityFramework | Classic Entity Framework may require assessment before migration to EF Core or modern .NET. |
 | Warning | WCF Binding | basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService | basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning. |
 | Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses WCF security mode Transport | WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints. |
@@ -1570,6 +1727,13 @@ Current hint areas include:
 - ASP.NET MVC startup registration review
 - ASP.NET MVC bundle configuration review
 - ASP.NET MVC filter configuration review
+- ASP.NET Web API controller review
+- ASP.NET Web API action review
+- ASP.NET Web API route attribute review
+- ASP.NET Web API action attribute review
+- ASP.NET Web API configuration review
+- ASP.NET Web API startup registration review
+- ASP.NET Web API route registration review
 - WCF endpoint review
 - WCF binding review
 - WCF endpoint configuration review
@@ -1645,6 +1809,13 @@ Current legacy ASP.NET hints include:
 | ASP.NET MVC route registration call | `Info` | `RouteConfig.RegisterRoutes(...)` identifies conventional route setup that should be mapped carefully to ASP.NET Core endpoint routing |
 | ASP.NET MVC bundle configuration or registration | `Warning` | ASP.NET MVC bundling and minification usually need replacement with a modern static asset, build, or bundling strategy |
 | ASP.NET MVC filter configuration or registration | `Warning` | Global filters can affect authorization, error handling, caching, model binding, or other cross-cutting request behaviour during migration |
+| ASP.NET Web API controller | `Warning` | Web API controllers may contain HTTP API behaviour, routing, model binding, filters, authentication, serialization, or `System.Web` hosting assumptions that need review |
+| ASP.NET Web API action | `Info` | Web API actions identify HTTP endpoint behaviour that should be reviewed for routing, request and response shape, model binding, filters, and ASP.NET Core API migration |
+| ASP.NET Web API route attribute | `Info` | Web API attribute routes should be mapped carefully to ASP.NET Core endpoint routing to preserve URL patterns, defaults, constraints, and client compatibility |
+| ASP.NET Web API action attribute | `Warning` | Web API action attributes such as HTTP verb, authorization, anonymous access, and accept verbs attributes may affect endpoint behaviour during migration |
+| `WebApiConfig.cs` Web API configuration | `Info` | Web API configuration may define routing, formatters, filters, services, dependency resolution, or other API behaviour that should be mapped during ASP.NET Core migration |
+| ASP.NET Web API route registration call | `Info` | `MapHttpRoute(...)` identifies conventional Web API route setup that should be mapped carefully to ASP.NET Core endpoint routing |
+| ASP.NET Web API startup registration call | `Info` | `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)` identify Web API startup configuration that may need explicit ASP.NET Core equivalents |
 
 Current configuration hints include:
 
@@ -1690,6 +1861,17 @@ Example report output:
 | Warning | Legacy ASP.NET Bundling | BundleConfig.RegisterBundles registers ASP.NET MVC bundles | Bundle registration calls may affect CSS and JavaScript delivery and should be reviewed when moving to modern ASP.NET hosting. |
 | Warning | Legacy ASP.NET Filters | FilterConfig.cs is an ASP.NET MVC filter configuration file | Global filters can affect authorization, error handling, caching, model binding, or other cross-cutting request behaviour during migration. |
 | Warning | Legacy ASP.NET Filters | FilterConfig.RegisterGlobalFilters registers ASP.NET MVC global filters | Global filter registration should be reviewed because equivalent ASP.NET Core filters, middleware, or endpoint conventions may need to be configured explicitly. |
+| Warning | Legacy ASP.NET Web API | CustomersApiController is an ASP.NET Web API controller | ASP.NET Web API controllers may contain HTTP API behaviour, routing, model binding, filters, authentication, or System.Web hosting assumptions that need review when moving to ASP.NET Core. |
+| Info | Legacy ASP.NET Web API | CustomersApiController.Get is an ASP.NET Web API action | Web API actions identify HTTP endpoint behaviour that should be reviewed for routing, request and response shape, model binding, filters, and ASP.NET Core API migration. |
+| Info | Legacy ASP.NET Web API | CustomersApiController.Create is an ASP.NET Web API action | Web API actions identify HTTP endpoint behaviour that should be reviewed for routing, request and response shape, model binding, filters, and ASP.NET Core API migration. |
+| Info | Legacy ASP.NET Web API Routing | CustomersApiController [RoutePrefix] uses ASP.NET Web API attribute routing | Web API attribute routes should be mapped carefully to ASP.NET Core endpoint routing to preserve URL patterns, defaults, constraints, and client compatibility. |
+| Info | Legacy ASP.NET Web API Routing | CustomersApiController.Get [Route] uses ASP.NET Web API attribute routing | Web API attribute routes should be mapped carefully to ASP.NET Core endpoint routing to preserve URL patterns, defaults, constraints, and client compatibility. |
+| Info | Legacy ASP.NET Web API Routing | CustomersApiController.Create [Route] uses ASP.NET Web API attribute routing | Web API attribute routes should be mapped carefully to ASP.NET Core endpoint routing to preserve URL patterns, defaults, constraints, and client compatibility. |
+| Warning | Legacy ASP.NET Web API Attributes | CustomersApiController.Get [HttpGet] uses an ASP.NET Web API action attribute | Web API action attributes such as HTTP verb, authorization, anonymous access, and accept verbs attributes may affect endpoint behaviour during ASP.NET Core migration. |
+| Warning | Legacy ASP.NET Web API Attributes | CustomersApiController.Create [HttpPost] uses an ASP.NET Web API action attribute | Web API action attributes such as HTTP verb, authorization, anonymous access, and accept verbs attributes may affect endpoint behaviour during ASP.NET Core migration. |
+| Info | Legacy ASP.NET Web API | WebApiConfig.cs is an ASP.NET Web API configuration file | WebApiConfig may define HTTP API routing, formatters, filters, services, or other Web API configuration that should be mapped during ASP.NET Core migration. |
+| Info | Legacy ASP.NET Web API Routing | MapHttpRoute registers ASP.NET Web API routes | Web API route registration calls identify conventional HTTP API route setup that should be mapped carefully to ASP.NET Core endpoint routing. |
+| Info | Legacy ASP.NET Web API Startup | GlobalConfiguration.Configure registers ASP.NET Web API startup configuration | Web API startup registration should be reviewed because routing, formatters, filters, dependency resolution, or other API configuration may need explicit ASP.NET Core equivalents. |
 | Info | Configuration | Web.config contains 1 connection string(s) | Connection strings identify external data dependencies that should be reviewed during migration planning. |
 ```
 
@@ -1742,10 +1924,17 @@ Current MVP functionality includes:
 - ASP.NET MVC action method discovery from C# source files
 - ASP.NET MVC route attribute discovery from C# source files
 - ASP.NET MVC action, filter, and security-related attribute discovery from C# source files
+- ASP.NET Web API controller discovery from C# source files
+- ASP.NET Web API action method discovery from C# source files
+- ASP.NET Web API route attribute discovery from C# source files
+- ASP.NET Web API action, filter, and security-related attribute discovery from C# source files
 - ASP.NET MVC area registration discovery from C# source files
 - ASP.NET route configuration discovery from `RouteConfig.cs`
 - ASP.NET MVC application startup discovery from `Application_Start`
 - ASP.NET MVC startup registration call discovery for `AreaRegistration.RegisterAllAreas()`, `RouteConfig.RegisterRoutes(...)`, `BundleConfig.RegisterBundles(...)`, and `FilterConfig.RegisterGlobalFilters(...)`
+- ASP.NET Web API configuration discovery from `WebApiConfig.cs`
+- ASP.NET Web API route registration call discovery for `MapHttpRoute(...)`
+- ASP.NET Web API startup registration call discovery for `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - ASP.NET MVC bundle configuration discovery from `BundleConfig.cs`
 - ASP.NET MVC filter configuration discovery from `FilterConfig.cs`
 - legacy ASP.NET artifact reporting in the generated Markdown report
@@ -1756,7 +1945,7 @@ Current MVP functionality includes:
 - modernisation hints for old .NET Framework target frameworks
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
-- modernisation hints for legacy ASP.NET, `System.Web` assembly references, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC application startup, ASP.NET MVC startup registration calls, ASP.NET MVC bundle configuration, and ASP.NET MVC filter configuration
+- modernisation hints for legacy ASP.NET, `System.Web` assembly references, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC application startup, ASP.NET MVC startup registration calls, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, and ASP.NET Web API startup registration
 - modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, timeout settings, message size and buffer limits, transfer modes, reader quotas, metadata exchange endpoints, and service contracts
 - modernisation hints for configuration-heavy applications
 - modernisation hint reporting in the generated Markdown report
@@ -1765,7 +1954,7 @@ Current MVP functionality includes:
 Planned MVP features include:
 
 - further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
-- additional legacy ASP.NET source-level indicators beyond the currently detected MVC controller, MVC action, MVC route attribute, MVC action attribute, MVC area registration, route configuration, MVC startup registration, bundle configuration, and filter configuration signals
+- additional legacy ASP.NET source-level indicators beyond the currently detected MVC controller, MVC action, MVC route attribute, MVC action attribute, MVC area registration, Web API controller, Web API action, Web API route attribute, Web API action attribute, route configuration, Web API configuration, MVC startup registration, Web API startup registration, bundle configuration, and filter configuration signals
 - improved severity classification as more discovery signals are added
 
 ---
@@ -1876,6 +2065,13 @@ Implemented:
 - Identify ASP.NET MVC startup registration calls for area, route, bundle, and filter registration
 - Identify ASP.NET MVC bundle configuration and bundle registration as static asset migration review items
 - Identify ASP.NET MVC filter configuration and global filter registration as cross-cutting request behaviour review items
+- Identify ASP.NET Web API controllers as HTTP API migration review items
+- Identify ASP.NET Web API actions as endpoint behaviour review items
+- Identify ASP.NET Web API route attributes as endpoint routing review items
+- Identify ASP.NET Web API action, filter, and security-related attributes as behaviour migration review items
+- Identify ASP.NET Web API configuration files as API startup and routing review items
+- Identify ASP.NET Web API route registration calls as conventional API routing review items
+- Identify ASP.NET Web API startup registration calls as API startup and hosting review items
 - Identify configuration-heavy application indicators from `app.config` and `web.config`
 - Identify large `appSettings` usage
 - Identify connection strings as external data dependency indicators
@@ -1884,7 +2080,7 @@ Implemented:
 
 Remaining work:
 
-- Add more source-level legacy ASP.NET indicators beyond the current MVC controller, MVC action, MVC route attribute, MVC action attribute, MVC area registration, route configuration, MVC startup registration, bundle configuration, and filter configuration signals
+- Add more source-level legacy ASP.NET indicators beyond the current MVC controller, MVC action, MVC route attribute, MVC action attribute, MVC area registration, Web API controller, Web API action, Web API route attribute, Web API action attribute, route configuration, Web API configuration, MVC startup registration, Web API startup registration, bundle configuration, and filter configuration signals
 - Add richer WCF endpoint risk analysis beyond the current binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
 - Improve severity classification as more discovery signals are added
 
@@ -1906,10 +2102,17 @@ Implemented:
 - Detect MVC action methods from C# source files
 - Detect MVC route attributes such as `[Route]` and `[RoutePrefix]`
 - Detect MVC action, filter, and security-related attributes such as `[HttpGet]`, `[HttpPost]`, `[Authorize]`, `[AllowAnonymous]`, `[ValidateAntiForgeryToken]`, and `[OutputCache]`
+- Detect Web API controllers from C# source files
+- Detect Web API action methods from C# source files
+- Detect Web API route attributes such as `[Route]` and `[RoutePrefix]`
+- Detect Web API action, filter, and security-related attributes such as `[HttpGet]`, `[HttpPost]`, `[Authorize]`, and `[AllowAnonymous]`
 - Detect MVC area registration classes from C# source files
 - Detect route configuration files such as `RouteConfig.cs`
 - Detect MVC application startup methods such as `Application_Start`
 - Detect MVC startup registration calls such as `AreaRegistration.RegisterAllAreas()`, `RouteConfig.RegisterRoutes(...)`, `BundleConfig.RegisterBundles(...)`, and `FilterConfig.RegisterGlobalFilters(...)`
+- Detect Web API configuration files such as `WebApiConfig.cs`
+- Detect Web API route registration calls such as `MapHttpRoute(...)`
+- Detect Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - Detect MVC bundle configuration files such as `BundleConfig.cs`
 - Detect MVC filter configuration files such as `FilterConfig.cs`
 - Report discovered legacy ASP.NET artifacts in the generated Markdown report
@@ -1917,8 +2120,8 @@ Implemented:
 
 Remaining work:
 
-- Improve legacy ASP.NET source-level analysis beyond the currently detected MVC controller, MVC action, MVC route attribute, MVC action attribute, MVC area registration, route configuration, MVC startup registration, bundle configuration, and filter configuration signals
-- Consider detecting additional ASP.NET MVC indicators such as `GlobalConfiguration.Configure(...)`, Web API route registration, dependency resolver setup, authentication startup, authorization filter setup, and other common application bootstrap patterns
+- Improve legacy ASP.NET source-level analysis beyond the currently detected MVC controller, MVC action, MVC route attribute, MVC action attribute, MVC area registration, Web API controller, Web API action, Web API route attribute, Web API action attribute, route configuration, Web API configuration, MVC startup registration, Web API startup registration, bundle configuration, and filter configuration signals
+- Consider detecting additional ASP.NET MVC and Web API indicators such as dependency resolver setup, authentication startup, authorization filter setup, formatter configuration, message handlers, and other common application bootstrap patterns
 
 ---
 
@@ -1937,8 +2140,8 @@ LegacyLens.NET can be used when:
 - you need to identify legacy WCF configuration and integration points
 - you need to identify WCF binding configuration, security, credential, timeout, message size, buffer, transfer mode, reader quota, or metadata exchange usage before planning endpoint migration
 - you need to identify WCF service contracts and operations defined in source code
-- you need to identify classic ASP.NET artifacts such as WebForms pages, ASMX services, HTTP handlers, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, route configuration, MVC startup registration, bundle configuration, filter configuration, or `Global.asax`
-- you need to understand whether a legacy web application contains UI, service, handler, MVC controller, MVC action, MVC attribute routing, MVC action attribute, area routing, conventional routing, startup registration, bundle configuration, filter configuration, or application lifecycle artifacts that may affect ASP.NET Core migration planning
+- you need to identify classic ASP.NET artifacts such as WebForms pages, ASMX services, HTTP handlers, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, route configuration, Web API configuration, MVC startup registration, Web API startup registration, bundle configuration, filter configuration, or `Global.asax`
+- you need to understand whether a legacy web application contains UI, service, handler, MVC controller, MVC action, Web API controller, Web API action, MVC or Web API attribute routing, MVC or Web API action attributes, area routing, conventional routing, startup registration, bundle configuration, filter configuration, or application lifecycle artifacts that may affect ASP.NET Core migration planning
 - you need to identify configuration-heavy applications, connection strings, or custom configuration sections
 - you want an initial list of modernisation review areas
 - you need to identify likely migration risks before deeper analysis

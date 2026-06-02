@@ -16,6 +16,10 @@ public sealed class LegacyAspNetArtifactScanner
         @"(?<attributes>(?:\s*\[[^\]]+\]\s*)*)\bpublic\s+(?:async\s+)?(?:virtual\s+|override\s+)?(?<returnType>[A-Za-z_][A-Za-z0-9_\.]*(?:<[^>]+>)?)\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
+    private static readonly Regex WebApiActionMethodRegex = new(
+        @"(?<attributes>(?:\s*\[[^\]]+\]\s*)*)\bpublic\s+(?:async\s+)?(?:virtual\s+|override\s+)?(?<returnType>[A-Za-z_][A-Za-z0-9_\.]*(?:<[^>]+>)?)\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
     private static readonly Regex AttributeNameRegex = new(
         @"\[\s*(?<name>[A-Za-z_][A-Za-z0-9_\.]*)(?:Attribute)?(?:\s*\(|\s*\])",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
@@ -40,6 +44,18 @@ public sealed class LegacyAspNetArtifactScanner
         @"\bFilterConfig\s*\.\s*RegisterGlobalFilters\s*\(",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
+    private static readonly Regex WebApiGlobalConfigurationCallRegex = new(
+        @"\bGlobalConfiguration\s*\.\s*Configure\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex WebApiConfigRegisterCallRegex = new(
+        @"\bWebApiConfig\s*\.\s*Register\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex WebApiRouteRegistrationCallRegex = new(
+        @"\bMapHttpRoute\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
     private static readonly HashSet<string> MvcActionReturnTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "ActionResult",
@@ -60,6 +76,18 @@ public sealed class LegacyAspNetArtifactScanner
         "System.Web.Mvc.ContentResult",
         "HttpStatusCodeResult",
         "System.Web.Mvc.HttpStatusCodeResult"
+    };
+
+    private static readonly HashSet<string> WebApiActionReturnTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "IHttpActionResult",
+        "System.Web.Http.IHttpActionResult",
+        "HttpResponseMessage",
+        "System.Net.Http.HttpResponseMessage",
+        "Task<IHttpActionResult>",
+        "Task<System.Web.Http.IHttpActionResult>",
+        "Task<HttpResponseMessage>",
+        "Task<System.Net.Http.HttpResponseMessage>"
     };
 
     private static readonly HashSet<string> MvcRouteAttributeNames = new(StringComparer.OrdinalIgnoreCase)
@@ -92,6 +120,34 @@ public sealed class LegacyAspNetArtifactScanner
         "ValidateAntiForgeryTokenAttribute",
         "OutputCache",
         "OutputCacheAttribute"
+    };
+
+    private static readonly HashSet<string> WebApiRouteAttributeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Route",
+        "RouteAttribute",
+        "RoutePrefix",
+        "RoutePrefixAttribute"
+    };
+
+    private static readonly HashSet<string> WebApiActionAttributeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "HttpGet",
+        "HttpGetAttribute",
+        "HttpPost",
+        "HttpPostAttribute",
+        "HttpPut",
+        "HttpPutAttribute",
+        "HttpDelete",
+        "HttpDeleteAttribute",
+        "HttpPatch",
+        "HttpPatchAttribute",
+        "AcceptVerbs",
+        "AcceptVerbsAttribute",
+        "Authorize",
+        "AuthorizeAttribute",
+        "AllowAnonymous",
+        "AllowAnonymousAttribute"
     };
 
     public IReadOnlyList<DiscoveredLegacyAspNetArtifact> Scan(string rootPath)
@@ -199,7 +255,9 @@ public sealed class LegacyAspNetArtifactScanner
             }
 
             AddMvcControllerArtifacts(sourceFilePath, source, artifacts);
+            AddWebApiControllerArtifacts(sourceFilePath, source, artifacts);
             AddRouteConfigArtifact(sourceFilePath, source, artifacts);
+            AddWebApiConfigArtifact(sourceFilePath, source, artifacts);
             AddAreaRegistrationArtifacts(sourceFilePath, source, artifacts);
             AddMvcApplicationStartupArtifacts(sourceFilePath, source, artifacts);
             AddMvcBundleConfigArtifact(sourceFilePath, source, artifacts);
@@ -234,6 +292,33 @@ public sealed class LegacyAspNetArtifactScanner
         }
     }
 
+    private static void AddWebApiControllerArtifacts(
+        string sourceFilePath,
+        string source,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        foreach (Match match in ClassWithBaseTypesRegex.Matches(source))
+        {
+            var controllerName = match.Groups["name"].Value;
+            var baseTypes = match.Groups["baseTypes"].Value;
+
+            if (!InheritsFromWebApiController(baseTypes))
+            {
+                continue;
+            }
+
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiController,
+                FilePath = sourceFilePath,
+                Name = controllerName
+            });
+
+            AddWebApiControllerAttributeArtifacts(sourceFilePath, controllerName, source, match, artifacts);
+            AddWebApiActionArtifacts(sourceFilePath, controllerName, source, match, artifacts);
+        }
+    }
+
     private static void AddMvcControllerAttributeArtifacts(
         string sourceFilePath,
         string controllerName,
@@ -245,7 +330,7 @@ public sealed class LegacyAspNetArtifactScanner
 
         foreach (var attributeName in GetAttributeNames(attributes))
         {
-            if (!MvcRouteAttributeNames.Contains(attributeName))
+            if (!IsMvcRouteAttribute(attributeName))
             {
                 continue;
             }
@@ -253,6 +338,31 @@ public sealed class LegacyAspNetArtifactScanner
             artifacts.Add(new DiscoveredLegacyAspNetArtifact
             {
                 Kind = LegacyAspNetArtifactKind.MvcRouteAttribute,
+                FilePath = sourceFilePath,
+                Name = $"{controllerName} [{NormalizeAttributeName(attributeName)}]"
+            });
+        }
+    }
+
+    private static void AddWebApiControllerAttributeArtifacts(
+        string sourceFilePath,
+        string controllerName,
+        string source,
+        Match controllerMatch,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        var attributes = GetAttributeBlockBefore(source, controllerMatch.Index);
+
+        foreach (var attributeName in GetAttributeNames(attributes))
+        {
+            if (!IsWebApiRouteAttribute(attributeName))
+            {
+                continue;
+            }
+
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiRouteAttribute,
                 FilePath = sourceFilePath,
                 Name = $"{controllerName} [{NormalizeAttributeName(attributeName)}]"
             });
@@ -284,7 +394,7 @@ public sealed class LegacyAspNetArtifactScanner
                 continue;
             }
 
-            if (IsIgnoredMvcMethod(actionName))
+            if (IsIgnoredControllerMethod(actionName))
             {
                 continue;
             }
@@ -306,6 +416,59 @@ public sealed class LegacyAspNetArtifactScanner
         }
     }
 
+    private static void AddWebApiActionArtifacts(
+        string sourceFilePath,
+        string controllerName,
+        string source,
+        Match controllerMatch,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        var classBody = GetClassBody(source, controllerMatch);
+
+        if (string.IsNullOrWhiteSpace(classBody))
+        {
+            return;
+        }
+
+        foreach (Match methodMatch in WebApiActionMethodRegex.Matches(classBody))
+        {
+            var actionName = methodMatch.Groups["name"].Value;
+            var returnType = methodMatch.Groups["returnType"].Value;
+            var attributes = methodMatch.Groups["attributes"].Value;
+
+            if (IsIgnoredControllerMethod(actionName))
+            {
+                continue;
+            }
+
+            if (HasNonActionAttribute(attributes))
+            {
+                continue;
+            }
+
+            if (!IsWebApiActionReturnType(returnType) &&
+                !HasWebApiActionOrRouteAttribute(attributes))
+            {
+                continue;
+            }
+
+            var actionQualifiedName = $"{controllerName}.{actionName}";
+
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiAction,
+                FilePath = sourceFilePath,
+                Name = actionQualifiedName
+            });
+
+            AddWebApiActionAttributeArtifacts(
+                sourceFilePath,
+                actionQualifiedName,
+                attributes,
+                artifacts);
+        }
+    }
+
     private static void AddMvcActionAttributeArtifacts(
         string sourceFilePath,
         string actionQualifiedName,
@@ -314,7 +477,7 @@ public sealed class LegacyAspNetArtifactScanner
     {
         foreach (var attributeName in GetAttributeNames(attributes))
         {
-            if (MvcRouteAttributeNames.Contains(attributeName))
+            if (IsMvcRouteAttribute(attributeName))
             {
                 artifacts.Add(new DiscoveredLegacyAspNetArtifact
                 {
@@ -326,11 +489,43 @@ public sealed class LegacyAspNetArtifactScanner
                 continue;
             }
 
-            if (MvcActionAttributeNames.Contains(attributeName))
+            if (IsMvcActionAttribute(attributeName))
             {
                 artifacts.Add(new DiscoveredLegacyAspNetArtifact
                 {
                     Kind = LegacyAspNetArtifactKind.MvcActionAttribute,
+                    FilePath = sourceFilePath,
+                    Name = $"{actionQualifiedName} [{NormalizeAttributeName(attributeName)}]"
+                });
+            }
+        }
+    }
+
+    private static void AddWebApiActionAttributeArtifacts(
+        string sourceFilePath,
+        string actionQualifiedName,
+        string attributes,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        foreach (var attributeName in GetAttributeNames(attributes))
+        {
+            if (IsWebApiRouteAttribute(attributeName))
+            {
+                artifacts.Add(new DiscoveredLegacyAspNetArtifact
+                {
+                    Kind = LegacyAspNetArtifactKind.WebApiRouteAttribute,
+                    FilePath = sourceFilePath,
+                    Name = $"{actionQualifiedName} [{NormalizeAttributeName(attributeName)}]"
+                });
+
+                continue;
+            }
+
+            if (IsWebApiActionAttribute(attributeName))
+            {
+                artifacts.Add(new DiscoveredLegacyAspNetArtifact
+                {
+                    Kind = LegacyAspNetArtifactKind.WebApiActionAttribute,
                     FilePath = sourceFilePath,
                     Name = $"{actionQualifiedName} [{NormalizeAttributeName(attributeName)}]"
                 });
@@ -356,6 +551,36 @@ public sealed class LegacyAspNetArtifactScanner
         artifacts.Add(CreateArtifact(
             LegacyAspNetArtifactKind.RouteConfig,
             sourceFilePath));
+    }
+
+    private static void AddWebApiConfigArtifact(
+        string sourceFilePath,
+        string source,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        if (!Path.GetFileName(sourceFilePath).Equals("WebApiConfig.cs", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        if (!LooksLikeAspNetWebApiConfig(source))
+        {
+            return;
+        }
+
+        artifacts.Add(CreateArtifact(
+            LegacyAspNetArtifactKind.WebApiConfig,
+            sourceFilePath));
+
+        if (WebApiRouteRegistrationCallRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiRouteRegistrationCall,
+                FilePath = sourceFilePath,
+                Name = "MapHttpRoute"
+            });
+        }
     }
 
     private static void AddAreaRegistrationArtifacts(
@@ -440,6 +665,26 @@ public sealed class LegacyAspNetArtifactScanner
                 Kind = LegacyAspNetArtifactKind.MvcFilterRegistrationCall,
                 FilePath = sourceFilePath,
                 Name = "FilterConfig.RegisterGlobalFilters"
+            });
+        }
+
+        if (WebApiGlobalConfigurationCallRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiGlobalConfigurationCall,
+                FilePath = sourceFilePath,
+                Name = "GlobalConfiguration.Configure"
+            });
+        }
+
+        if (WebApiConfigRegisterCallRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiGlobalConfigurationCall,
+                FilePath = sourceFilePath,
+                Name = "WebApiConfig.Register"
             });
         }
     }
@@ -587,7 +832,45 @@ public sealed class LegacyAspNetArtifactScanner
         return false;
     }
 
-    private static bool IsIgnoredMvcMethod(string methodName)
+    private static bool IsWebApiActionReturnType(string returnType)
+    {
+        if (WebApiActionReturnTypes.Contains(returnType))
+        {
+            return true;
+        }
+
+        if (returnType.StartsWith("Task<", StringComparison.OrdinalIgnoreCase) &&
+            returnType.EndsWith(">", StringComparison.Ordinal))
+        {
+            var innerReturnType = returnType[5..^1].Trim();
+
+            return WebApiActionReturnTypes.Contains(innerReturnType);
+        }
+
+        return false;
+    }
+
+    private static bool HasWebApiActionOrRouteAttribute(string attributes)
+    {
+        return GetAttributeNames(attributes)
+            .Any(attributeName =>
+                IsWebApiRouteAttribute(attributeName) ||
+                IsWebApiActionAttribute(attributeName));
+    }
+
+    private static bool HasNonActionAttribute(string attributes)
+    {
+        return GetAttributeNames(attributes)
+            .Any(attributeName =>
+            {
+                var simpleName = GetSimpleAttributeName(attributeName);
+
+                return simpleName.Equals("NonAction", StringComparison.OrdinalIgnoreCase) ||
+                       simpleName.Equals("NonActionAttribute", StringComparison.OrdinalIgnoreCase);
+            });
+    }
+
+    private static bool IsIgnoredControllerMethod(string methodName)
     {
         return methodName.Equals("Dispose", StringComparison.OrdinalIgnoreCase) ||
                methodName.Equals("Initialize", StringComparison.OrdinalIgnoreCase) ||
@@ -599,13 +882,49 @@ public sealed class LegacyAspNetArtifactScanner
                methodName.Equals("OnResultExecuted", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsMvcRouteAttribute(string attributeName)
+    {
+        return MvcRouteAttributeNames.Contains(GetSimpleAttributeName(attributeName));
+    }
+
+    private static bool IsMvcActionAttribute(string attributeName)
+    {
+        return MvcActionAttributeNames.Contains(GetSimpleAttributeName(attributeName));
+    }
+
+    private static bool IsWebApiRouteAttribute(string attributeName)
+    {
+        return WebApiRouteAttributeNames.Contains(GetSimpleAttributeName(attributeName));
+    }
+
+    private static bool IsWebApiActionAttribute(string attributeName)
+    {
+        return WebApiActionAttributeNames.Contains(GetSimpleAttributeName(attributeName));
+    }
+
     private static string NormalizeAttributeName(string attributeName)
     {
+        var simpleName = GetSimpleAttributeName(attributeName);
+
         const string attributeSuffix = "Attribute";
 
-        return attributeName.EndsWith(attributeSuffix, StringComparison.OrdinalIgnoreCase)
-            ? attributeName[..^attributeSuffix.Length]
-            : attributeName;
+        return simpleName.EndsWith(attributeSuffix, StringComparison.OrdinalIgnoreCase)
+            ? simpleName[..^attributeSuffix.Length]
+            : simpleName;
+    }
+
+    private static string GetSimpleAttributeName(string attributeName)
+    {
+        if (string.IsNullOrWhiteSpace(attributeName))
+        {
+            return attributeName;
+        }
+
+        var lastDotIndex = attributeName.LastIndexOf('.');
+
+        return lastDotIndex < 0
+            ? attributeName
+            : attributeName[(lastDotIndex + 1)..];
     }
 
     private static bool InheritsFromMvcController(string baseTypes)
@@ -613,6 +932,13 @@ public sealed class LegacyAspNetArtifactScanner
         return baseTypes
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Any(IsMvcControllerBaseType);
+    }
+
+    private static bool InheritsFromWebApiController(string baseTypes)
+    {
+        return baseTypes
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Any(IsWebApiControllerBaseType);
     }
 
     private static bool InheritsFromAreaRegistration(string baseTypes)
@@ -628,6 +954,12 @@ public sealed class LegacyAspNetArtifactScanner
                baseType.Equals("System.Web.Mvc.Controller", StringComparison.OrdinalIgnoreCase);
     }
 
+    private static bool IsWebApiControllerBaseType(string baseType)
+    {
+        return baseType.Equals("ApiController", StringComparison.OrdinalIgnoreCase) ||
+               baseType.Equals("System.Web.Http.ApiController", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsAreaRegistrationBaseType(string baseType)
     {
         return baseType.Equals("AreaRegistration", StringComparison.OrdinalIgnoreCase) ||
@@ -639,6 +971,13 @@ public sealed class LegacyAspNetArtifactScanner
         return source.Contains("RouteCollection", StringComparison.OrdinalIgnoreCase) ||
                source.Contains("routes.MapRoute", StringComparison.OrdinalIgnoreCase) ||
                source.Contains("System.Web.Routing", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeAspNetWebApiConfig(string source)
+    {
+        return source.Contains("HttpConfiguration", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("MapHttpRoute", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("System.Web.Http", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool LooksLikeAspNetMvcAreaRegistration(string source)
@@ -656,7 +995,9 @@ public sealed class LegacyAspNetArtifactScanner
                source.Contains("AreaRegistration.RegisterAllAreas", StringComparison.OrdinalIgnoreCase) ||
                source.Contains("RouteConfig.RegisterRoutes", StringComparison.OrdinalIgnoreCase) ||
                source.Contains("BundleConfig.RegisterBundles", StringComparison.OrdinalIgnoreCase) ||
-               source.Contains("FilterConfig.RegisterGlobalFilters", StringComparison.OrdinalIgnoreCase);
+               source.Contains("FilterConfig.RegisterGlobalFilters", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("GlobalConfiguration.Configure", StringComparison.OrdinalIgnoreCase) ||
+               source.Contains("WebApiConfig.Register", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool LooksLikeAspNetMvcBundleConfig(string source)

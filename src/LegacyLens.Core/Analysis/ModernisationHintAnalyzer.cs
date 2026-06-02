@@ -661,6 +661,83 @@ public sealed class ModernisationHintAnalyzer
                             "Global filter registration should be reviewed because equivalent ASP.NET Core filters, middleware, or endpoint conventions may need to be configured explicitly."
                     });
                     break;
+
+                case LegacyAspNetArtifactKind.WebApiController:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Web API",
+                        Finding = $"{name} is an ASP.NET Web API controller",
+                        Reason =
+                            "ASP.NET Web API controllers may contain HTTP API behaviour, routing, model binding, filters, authentication, or System.Web hosting assumptions that need review when moving to ASP.NET Core."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiAction:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET Web API",
+                        Finding = $"{name} is an ASP.NET Web API action",
+                        Reason =
+                            "Web API actions identify HTTP endpoint behaviour that should be reviewed for routing, request and response shape, model binding, filters, and ASP.NET Core API migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiRouteAttribute:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET Web API Routing",
+                        Finding = $"{name} uses ASP.NET Web API attribute routing",
+                        Reason =
+                            "Web API attribute routes should be mapped carefully to ASP.NET Core endpoint routing to preserve URL patterns, defaults, constraints, and client compatibility."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiActionAttribute:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Web API Attributes",
+                        Finding = $"{name} uses an ASP.NET Web API action attribute",
+                        Reason =
+                            "Web API action attributes such as HTTP verb, authorization, anonymous access, and accept verbs attributes may affect endpoint behaviour during ASP.NET Core migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiConfig:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET Web API",
+                        Finding = $"{name} is an ASP.NET Web API configuration file",
+                        Reason =
+                            "WebApiConfig may define HTTP API routing, formatters, filters, services, or other Web API configuration that should be mapped during ASP.NET Core migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiRouteRegistrationCall:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET Web API Routing",
+                        Finding = $"{name} registers ASP.NET Web API routes",
+                        Reason =
+                            "Web API route registration calls identify conventional HTTP API route setup that should be mapped carefully to ASP.NET Core endpoint routing."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiGlobalConfigurationCall:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET Web API Startup",
+                        Finding = $"{name} registers ASP.NET Web API startup configuration",
+                        Reason =
+                            "Web API startup registration should be reviewed because routing, formatters, filters, dependency resolution, or other API configuration may need explicit ASP.NET Core equivalents."
+                    });
+                    break;
             }
         }
     }
