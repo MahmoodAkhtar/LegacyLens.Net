@@ -10,5 +10,8 @@ public enum LegacyAspNetArtifactKind
     GlobalAsax,
     MvcController,
     RouteConfig,
-    AreaRegistration
+    AreaRegistration,
+    MvcAction,
+    MvcRouteAttribute,
+    MvcActionAttribute
 }

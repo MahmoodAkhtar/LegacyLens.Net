@@ -551,6 +551,39 @@ public sealed class ModernisationHintAnalyzer
                             "ASP.NET MVC area registrations may define area-specific routes and feature boundaries that should be reviewed when migrating to ASP.NET Core endpoint routing."
                     });
                     break;
+
+                case LegacyAspNetArtifactKind.MvcAction:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET",
+                        Finding = $"{name} is an ASP.NET MVC action",
+                        Reason =
+                            "MVC actions identify request-handling behaviour that should be reviewed for routing, model binding, result shape, filters, and ASP.NET Core controller migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcRouteAttribute:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Info,
+                        Area = "Legacy ASP.NET Routing",
+                        Finding = $"{name} uses ASP.NET MVC attribute routing",
+                        Reason =
+                            "Attribute routes should be mapped carefully to ASP.NET Core endpoint routing to preserve URL patterns, defaults, constraints, and client compatibility."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcActionAttribute:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET MVC Attributes",
+                        Finding = $"{name} uses an ASP.NET MVC action attribute",
+                        Reason =
+                            "MVC action attributes such as HTTP verb, authorization, anonymous access, anti-forgery, and output caching attributes may affect behaviour during ASP.NET Core migration."
+                    });
+                    break;
             }
         }
     }

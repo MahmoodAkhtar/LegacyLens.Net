@@ -12,6 +12,68 @@ public sealed class LegacyAspNetArtifactScanner
         @"\bclass\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*:\s*(?<baseTypes>[^{]+)\{",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
+    private static readonly Regex MvcActionMethodRegex = new(
+        @"(?<attributes>(?:\s*\[[^\]]+\]\s*)*)\bpublic\s+(?:async\s+)?(?:virtual\s+|override\s+)?(?<returnType>[A-Za-z_][A-Za-z0-9_\.]*(?:<[^>]+>)?)\s+(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex AttributeNameRegex = new(
+        @"\[\s*(?<name>[A-Za-z_][A-Za-z0-9_\.]*)(?:Attribute)?(?:\s*\(|\s*\])",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly HashSet<string> MvcActionReturnTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ActionResult",
+        "System.Web.Mvc.ActionResult",
+        "ViewResult",
+        "System.Web.Mvc.ViewResult",
+        "JsonResult",
+        "System.Web.Mvc.JsonResult",
+        "PartialViewResult",
+        "System.Web.Mvc.PartialViewResult",
+        "RedirectResult",
+        "System.Web.Mvc.RedirectResult",
+        "RedirectToRouteResult",
+        "System.Web.Mvc.RedirectToRouteResult",
+        "FileResult",
+        "System.Web.Mvc.FileResult",
+        "ContentResult",
+        "System.Web.Mvc.ContentResult",
+        "HttpStatusCodeResult",
+        "System.Web.Mvc.HttpStatusCodeResult"
+    };
+
+    private static readonly HashSet<string> MvcRouteAttributeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Route",
+        "RouteAttribute",
+        "RoutePrefix",
+        "RoutePrefixAttribute"
+    };
+
+    private static readonly HashSet<string> MvcActionAttributeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "HttpGet",
+        "HttpGetAttribute",
+        "HttpPost",
+        "HttpPostAttribute",
+        "HttpPut",
+        "HttpPutAttribute",
+        "HttpDelete",
+        "HttpDeleteAttribute",
+        "HttpPatch",
+        "HttpPatchAttribute",
+        "AcceptVerbs",
+        "AcceptVerbsAttribute",
+        "Authorize",
+        "AuthorizeAttribute",
+        "AllowAnonymous",
+        "AllowAnonymousAttribute",
+        "ValidateAntiForgeryToken",
+        "ValidateAntiForgeryTokenAttribute",
+        "OutputCache",
+        "OutputCacheAttribute"
+    };
+
     public IReadOnlyList<DiscoveredLegacyAspNetArtifact> Scan(string rootPath)
     {
         if (string.IsNullOrWhiteSpace(rootPath))
@@ -32,6 +94,7 @@ public sealed class LegacyAspNetArtifactScanner
         return artifacts
             .OrderBy(x => x.Kind)
             .ThenBy(x => x.FilePath)
+            .ThenBy(x => x.Name)
             .ToList();
     }
 
@@ -142,6 +205,113 @@ public sealed class LegacyAspNetArtifactScanner
                 FilePath = sourceFilePath,
                 Name = controllerName
             });
+
+            AddMvcControllerAttributeArtifacts(sourceFilePath, controllerName, source, match, artifacts);
+            AddMvcActionArtifacts(sourceFilePath, controllerName, source, match, artifacts);
+        }
+    }
+
+    private static void AddMvcControllerAttributeArtifacts(
+        string sourceFilePath,
+        string controllerName,
+        string source,
+        Match controllerMatch,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        var attributes = GetAttributeBlockBefore(source, controllerMatch.Index);
+
+        foreach (var attributeName in GetAttributeNames(attributes))
+        {
+            if (!MvcRouteAttributeNames.Contains(attributeName))
+            {
+                continue;
+            }
+
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcRouteAttribute,
+                FilePath = sourceFilePath,
+                Name = $"{controllerName} [{NormalizeAttributeName(attributeName)}]"
+            });
+        }
+    }
+
+    private static void AddMvcActionArtifacts(
+        string sourceFilePath,
+        string controllerName,
+        string source,
+        Match controllerMatch,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        var classBody = GetClassBody(source, controllerMatch);
+
+        if (string.IsNullOrWhiteSpace(classBody))
+        {
+            return;
+        }
+
+        foreach (Match methodMatch in MvcActionMethodRegex.Matches(classBody))
+        {
+            var actionName = methodMatch.Groups["name"].Value;
+            var returnType = methodMatch.Groups["returnType"].Value;
+            var attributes = methodMatch.Groups["attributes"].Value;
+
+            if (!IsMvcActionReturnType(returnType))
+            {
+                continue;
+            }
+
+            if (IsIgnoredMvcMethod(actionName))
+            {
+                continue;
+            }
+
+            var actionQualifiedName = $"{controllerName}.{actionName}";
+
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcAction,
+                FilePath = sourceFilePath,
+                Name = actionQualifiedName
+            });
+
+            AddMvcActionAttributeArtifacts(
+                sourceFilePath,
+                actionQualifiedName,
+                attributes,
+                artifacts);
+        }
+    }
+
+    private static void AddMvcActionAttributeArtifacts(
+        string sourceFilePath,
+        string actionQualifiedName,
+        string attributes,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        foreach (var attributeName in GetAttributeNames(attributes))
+        {
+            if (MvcRouteAttributeNames.Contains(attributeName))
+            {
+                artifacts.Add(new DiscoveredLegacyAspNetArtifact
+                {
+                    Kind = LegacyAspNetArtifactKind.MvcRouteAttribute,
+                    FilePath = sourceFilePath,
+                    Name = $"{actionQualifiedName} [{NormalizeAttributeName(attributeName)}]"
+                });
+
+                continue;
+            }
+
+            if (MvcActionAttributeNames.Contains(attributeName))
+            {
+                artifacts.Add(new DiscoveredLegacyAspNetArtifact
+                {
+                    Kind = LegacyAspNetArtifactKind.MvcActionAttribute,
+                    FilePath = sourceFilePath,
+                    Name = $"{actionQualifiedName} [{NormalizeAttributeName(attributeName)}]"
+                });
+            }
         }
     }
 
@@ -192,6 +362,130 @@ public sealed class LegacyAspNetArtifactScanner
                 Name = className
             });
         }
+    }
+
+    private static string GetClassBody(string source, Match classMatch)
+    {
+        var openingBraceIndex = source.IndexOf('{', classMatch.Index);
+
+        if (openingBraceIndex < 0)
+        {
+            return string.Empty;
+        }
+
+        var depth = 0;
+
+        for (var i = openingBraceIndex; i < source.Length; i++)
+        {
+            if (source[i] == '{')
+            {
+                depth++;
+                continue;
+            }
+
+            if (source[i] != '}')
+            {
+                continue;
+            }
+
+            depth--;
+
+            if (depth == 0)
+            {
+                return source.Substring(openingBraceIndex + 1, i - openingBraceIndex - 1);
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static string GetAttributeBlockBefore(string source, int declarationStartIndex)
+    {
+        var declarationLineStartIndex = source.LastIndexOf('\n', Math.Max(0, declarationStartIndex - 1));
+
+        declarationLineStartIndex = declarationLineStartIndex < 0
+            ? 0
+            : declarationLineStartIndex + 1;
+
+        var prefix = source[..declarationLineStartIndex];
+        var lines = prefix.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+        var attributeLines = new Stack<string>();
+
+        for (var i = lines.Length - 1; i >= 0; i--)
+        {
+            var trimmed = lines[i].Trim();
+
+            if (string.IsNullOrWhiteSpace(trimmed))
+            {
+                if (attributeLines.Count == 0)
+                {
+                    continue;
+                }
+
+                break;
+            }
+
+            if (!trimmed.StartsWith("[", StringComparison.Ordinal))
+            {
+                break;
+            }
+
+            attributeLines.Push(lines[i]);
+        }
+
+        return string.Join(Environment.NewLine, attributeLines);
+    }
+
+    private static IEnumerable<string> GetAttributeNames(string attributes)
+    {
+        foreach (Match match in AttributeNameRegex.Matches(attributes))
+        {
+            var name = match.Groups["name"].Value;
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                yield return name;
+            }
+        }
+    }
+
+    private static bool IsMvcActionReturnType(string returnType)
+    {
+        if (MvcActionReturnTypes.Contains(returnType))
+        {
+            return true;
+        }
+
+        if (returnType.StartsWith("Task<", StringComparison.OrdinalIgnoreCase) &&
+            returnType.EndsWith(">", StringComparison.Ordinal))
+        {
+            var innerReturnType = returnType[5..^1].Trim();
+
+            return MvcActionReturnTypes.Contains(innerReturnType);
+        }
+
+        return false;
+    }
+
+    private static bool IsIgnoredMvcMethod(string methodName)
+    {
+        return methodName.Equals("Dispose", StringComparison.OrdinalIgnoreCase) ||
+               methodName.Equals("Initialize", StringComparison.OrdinalIgnoreCase) ||
+               methodName.Equals("OnActionExecuting", StringComparison.OrdinalIgnoreCase) ||
+               methodName.Equals("OnActionExecuted", StringComparison.OrdinalIgnoreCase) ||
+               methodName.Equals("OnAuthorization", StringComparison.OrdinalIgnoreCase) ||
+               methodName.Equals("OnException", StringComparison.OrdinalIgnoreCase) ||
+               methodName.Equals("OnResultExecuting", StringComparison.OrdinalIgnoreCase) ||
+               methodName.Equals("OnResultExecuted", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeAttributeName(string attributeName)
+    {
+        const string attributeSuffix = "Attribute";
+
+        return attributeName.EndsWith(attributeSuffix, StringComparison.OrdinalIgnoreCase)
+            ? attributeName[..^attributeSuffix.Length]
+            : attributeName;
     }
 
     private static bool InheritsFromMvcController(string baseTypes)

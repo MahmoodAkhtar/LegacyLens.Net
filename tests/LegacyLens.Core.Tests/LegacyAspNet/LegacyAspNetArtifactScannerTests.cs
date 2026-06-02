@@ -131,10 +131,19 @@ public sealed class LegacyAspNetArtifactScannerTests : IDisposable
 
         var artifacts = Scan();
 
-        var artifact = Assert.Single(artifacts);
-        Assert.Equal(LegacyAspNetArtifactKind.MvcController, artifact.Kind);
-        Assert.Equal(filePath, artifact.FilePath);
-        Assert.Equal("HomeController", artifact.Name);
+        Assert.Contains(
+            artifacts,
+            artifact =>
+                artifact.Kind == LegacyAspNetArtifactKind.MvcController &&
+                artifact.FilePath == filePath &&
+                artifact.Name == "HomeController");
+
+        Assert.Contains(
+            artifacts,
+            artifact =>
+                artifact.Kind == LegacyAspNetArtifactKind.MvcAction &&
+                artifact.FilePath == filePath &&
+                artifact.Name == "HomeController.Index");
     }
 
     [Fact]
