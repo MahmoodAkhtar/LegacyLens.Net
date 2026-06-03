@@ -92,6 +92,7 @@ public sealed class MarkdownReportWriter
         AppendWcfServiceContracts(builder, wcfServiceContracts);
         AppendLegacyAspNetArtifacts(builder, legacyAspNetArtifacts);
         AppendConfigurationFiles(builder, configFiles);
+        AppendModernisationReviewSummary(builder, modernisationHints);
         AppendModernisationHints(builder, modernisationHints);
 
         return builder.ToString();
@@ -491,6 +492,38 @@ public sealed class MarkdownReportWriter
         builder.AppendLine();
     }
 
+    private static void AppendModernisationReviewSummary(
+        StringBuilder builder,
+        IReadOnlyList<ModernisationHint> hints)
+    {
+        builder.AppendLine("## Modernisation Review Summary");
+        builder.AppendLine();
+        builder.AppendLine("| Priority | Review Area | Highest Severity | Risks | Warnings | Info | Summary |");
+        builder.AppendLine("|---:|---|---|---:|---:|---:|---|");
+
+        var prioritiser = new ModernisationReviewPrioritiser();
+        var reviewAreas = prioritiser.Prioritise(hints);
+
+        if (reviewAreas.Count == 0)
+        {
+            builder.AppendLine("| 0 | None | None | 0 | 0 | 0 | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        var priority = 1;
+
+        foreach (var reviewArea in reviewAreas)
+        {
+            builder.AppendLine(
+                $"| {priority} | {Escape(reviewArea.Area)} | {reviewArea.HighestSeverity} | {reviewArea.RiskCount} | {reviewArea.WarningCount} | {reviewArea.InfoCount} | {Escape(reviewArea.Summary)} |");
+
+            priority++;
+        }
+
+        builder.AppendLine();
+    }
+    
     private static void AppendModernisationHints(
         StringBuilder builder,
         IReadOnlyList<ModernisationHint> hints)

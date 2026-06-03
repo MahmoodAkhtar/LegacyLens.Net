@@ -147,6 +147,33 @@ else
     }
 }
 
+var modernisationReviewPrioritiser = new ModernisationReviewPrioritiser();
+var modernisationReviewAreas = modernisationReviewPrioritiser.Prioritise(modernisationHints);
+
+Console.WriteLine();
+Console.WriteLine("Modernisation review summary:");
+
+if (modernisationReviewAreas.Count == 0)
+{
+    Console.WriteLine("- None");
+}
+else
+{
+    var priority = 1;
+
+    foreach (var reviewArea in modernisationReviewAreas)
+    {
+        Console.WriteLine($"- {priority}. {reviewArea.Area}");
+        Console.WriteLine($"  Highest severity: {reviewArea.HighestSeverity}");
+        Console.WriteLine($"  Risks: {reviewArea.RiskCount}");
+        Console.WriteLine($"  Warnings: {reviewArea.WarningCount}");
+        Console.WriteLine($"  Info: {reviewArea.InfoCount}");
+        Console.WriteLine($"  Summary: {reviewArea.Summary}");
+
+        priority++;
+    }
+}
+
 var solutionDiscoveryService = new SolutionDiscoveryService();
 var solutions = solutionDiscoveryService.DiscoverSolutions(path);
 

@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, configuration files, and selected legacy ASP.NET artifacts, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, and reader quota details, WCF service contracts, service-related configuration, legacy ASP.NET artifact and source-level ASP.NET MVC usage, ASP.NET Web API usage, ASP.NET MVC and Web API startup registration usage, general configuration file usage, and basic modernisation hints.
+It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, configuration files, and selected legacy ASP.NET artifacts, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, and reader quota details, WCF service contracts, service-related configuration, legacy ASP.NET artifact and source-level ASP.NET MVC usage, ASP.NET Web API usage, ASP.NET MVC and Web API startup registration usage, general configuration file usage, basic modernisation hints, and a prioritised modernisation review summary.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -18,6 +18,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - Which WCF service contracts and operations are defined in the source code?
 - What configuration files, settings, connection strings, or custom sections exist?
 - What modernisation risks or review areas should be looked at first?
+- Which modernisation review areas should be prioritised first based on severity and hint counts?
 - What diagrams or reports can help explain the system to others?
 
 LegacyLens.NET is designed to work through static analysis, meaning it can provide useful information even when the target solution cannot currently be built.
@@ -73,6 +74,7 @@ The current implementation can scan a folder containing .NET solutions and proje
 - ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - ASP.NET MVC filter configuration files such as `FilterConfig.cs`
 - basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC startup registration, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, ASP.NET Web API startup registration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
+- a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
@@ -99,6 +101,7 @@ The generated report currently includes:
 - WCF service contract and operation information
 - legacy ASP.NET artifact information, including file-based artifacts, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, Web API configuration, route configuration, MVC and Web API startup registration, bundle configuration, filter configuration, artifact kind, name, and file path
 - configuration file information, including `appSettings`, `connectionStrings`, and custom configuration section counts
+- a modernisation review summary that ranks higher-level review areas by highest severity and hint counts
 - modernisation hints with severity, area, finding, and reason, including Legacy ASP.NET hints when `System.Web` assembly references or legacy ASP.NET artifacts are found
 
 Example console output:
@@ -265,6 +268,20 @@ Modernisation hints discovered:
 - [Info] Legacy ASP.NET Web API Routing: MapHttpRoute registers ASP.NET Web API routes
 - [Info] Legacy ASP.NET Web API Startup: GlobalConfiguration.Configure registers ASP.NET Web API startup configuration
 
+Modernisation review summary:
+- 1. WCF migration
+  Highest severity: Risk
+  Risks: 2
+  Warnings: 4
+  Info: 5
+  Summary: 2 risk, 4 warning, 5 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach.
+- 2. Legacy ASP.NET migration
+  Highest severity: Risk
+  Risks: 3
+  Warnings: 6
+  Info: 6
+  Summary: 3 risk, 6 warning, 6 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration.
+
 Solutions discovered:
 - SampleLegacyApp
   Solution file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.sln
@@ -289,6 +306,9 @@ Legacy ASP.NET artifacts discovered:
 - None
 
 Modernisation hints discovered:
+- None
+
+Modernisation review summary:
 - None
 
 Solutions discovered:
@@ -367,6 +387,7 @@ Even if the solution does not build, it can still discover useful information fr
 - project references
 - assembly references
 - package references
+- prioritised modernisation review areas derived from discovered hints
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
@@ -379,6 +400,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: WCF endpoint discovery currently reads configured service endpoints from `app.config` and `web.config` files. Where endpoints reference named binding configurations, LegacyLens.NET also attempts to resolve related security mode, transport credential type, message credential type, timeout, message size, buffer, transfer mode, and reader quota details from the matching binding configuration.
 
 > Note: legacy ASP.NET artifact discovery currently detects file-based classic ASP.NET artifacts such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`, as well as selected source-level ASP.NET MVC and Web API indicators such as MVC controllers, MVC action methods, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API action methods, Web API route attributes, Web API action attributes, `RouteConfig.cs`, `WebApiConfig.cs`, `Application_Start`, MVC startup registration calls, Web API startup registration calls, `BundleConfig.cs`, and `FilterConfig.cs`. These are static discovery signals and do not require the application to build or run.
+
+> Note: modernisation review summary generation groups the detailed modernisation hints into higher-level review areas. This is intended to help developers quickly identify where to look first while still preserving the detailed hint table as supporting evidence.
 
 > Note: solution discovery currently supports `.sln` files and extracts referenced C# project paths from project entries. Non-C# project entries and solution folders are ignored.
 
@@ -904,6 +927,9 @@ Current analysis work includes:
 
 - modelling modernisation hints
 - classifying hints by severity: `Info`, `Warning`, and `Risk`
+- grouping detailed modernisation hints into prioritised review areas
+- ranking review areas by highest discovered severity and hint counts
+- summarising review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 - identifying old .NET Framework target frameworks such as `net48`
 - identifying missing target framework declarations
 - identifying WCF-related package usage such as `System.ServiceModel.*`
@@ -1087,6 +1113,7 @@ The Markdown report currently includes:
 - legacy ASP.NET artifact details, including file-based artifacts, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, Web API configuration, route configuration, startup registration, artifact kind, name, and file path
 - configuration file details
 - `appSettings`, `connectionStrings`, and custom configuration section counts
+- modernisation review summary
 - modernisation hints
 
 ### Mermaid
@@ -1131,7 +1158,7 @@ Example:
 PS C:\Users\YourName\RiderProjects\LegacyLens.Net> dotnet run --project src/LegacyLens.Cli -- .\samples\SampleLegacyApp\
 ```
 
-This scans the sample application, prints discovered solution, project, assembly reference, WCF, configuration file, legacy ASP.NET artifact, and modernisation hint information to the console, and generates a Markdown report at:
+This scans the sample application, prints discovered solution, project, assembly reference, WCF, configuration file, legacy ASP.NET artifact, modernisation hint, and modernisation review summary information to the console, and generates a Markdown report at:
 
 ```text
 output/discovery-report.md
@@ -1321,6 +1348,7 @@ The current report sections are:
 - WCF Service Contracts
 - Legacy ASP.NET Artifacts
 - Configuration Files
+- Modernisation Review Summary
 - Modernisation Hints
 
 The report currently includes sections such as:
@@ -1464,6 +1492,19 @@ graph TD
 | Config File | App Settings | Connection Strings | Custom Sections |
 |---|---:|---:|---:|
 | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config` | 0 | 0 | 0 |
+
+## Modernisation Review Summary
+
+| Priority | Review Area | Highest Severity | Risks | Warnings | Info | Summary |
+|---:|---|---|---:|---:|---:|---|
+| 1 | WCF migration | Risk | 2 | 4 | 5 | 2 risk, 4 warning, 5 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach. |
+| 2 | Legacy ASP.NET migration | Risk | 3 | 6 | 6 | 3 risk, 6 warning, 6 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration. |
+| 3 | Target framework review | Risk | 4 | 0 | 0 | 4 risk, 0 warning, 0 info hint(s). Review target frameworks to understand upgrade paths, .NET Framework dependencies, and modern .NET migration constraints. |
+| 4 | Startup and request pipeline review | Warning | 0 | 6 | 3 | 0 risk, 6 warning, 3 info hint(s). Review application startup, global filters, action attributes, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents. |
+| 5 | Routing review | Info | 0 | 0 | 8 | 0 risk, 0 warning, 8 info hint(s). Review conventional routes, attribute routes, area routes, and Web API route registrations to preserve URL and client compatibility. |
+| 6 | Dependency review | Warning | 0 | 1 | 1 | 0 risk, 1 warning, 1 info hint(s). Review package dependencies that may affect migration, replacement, compatibility, or framework upgrade planning. |
+
+The exact counts may vary as sample artifacts change, so this example should be treated as illustrative output.
 
 ## Modernisation Hints
 
@@ -1879,6 +1920,47 @@ These hints are intended to guide the first review of a codebase. They should be
 
 ---
 
+## Modernisation Review Summary
+
+LegacyLens.NET can group detailed modernisation hints into higher-level review areas.
+
+This provides a quick “where should I look first?” view while keeping the full `Modernisation Hints` table as supporting evidence.
+
+Current review summary areas include:
+
+- WCF migration
+- Legacy ASP.NET migration
+- Routing review
+- Startup and request pipeline review
+- Configuration review
+- Dependency review
+- Target framework review
+- Project dependency review
+- Other review
+
+Review areas are ranked by:
+
+- highest discovered severity
+- number of risk hints
+- number of warning hints
+- number of informational hints
+- review area name
+
+Example report output:
+
+```markdown
+## Modernisation Review Summary
+
+| Priority | Review Area | Highest Severity | Risks | Warnings | Info | Summary |
+|---:|---|---|---:|---:|---:|---|
+| 1 | WCF migration | Risk | 2 | 4 | 5 | 2 risk, 4 warning, 5 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach. |
+| 2 | Legacy ASP.NET migration | Risk | 3 | 6 | 6 | 3 risk, 6 warning, 6 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration. |
+```
+
+The review summary is intentionally lightweight. It does not replace the detailed hint table; it gives a prioritised overview so developers can decide which areas deserve attention first.
+
+---
+
 ## MVP Functionality
 
 Current MVP functionality includes:
@@ -1949,13 +2031,16 @@ Current MVP functionality includes:
 - modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, timeout settings, message size and buffer limits, transfer modes, reader quotas, metadata exchange endpoints, and service contracts
 - modernisation hints for configuration-heavy applications
 - modernisation hint reporting in the generated Markdown report
+- modernisation review summary generation from detailed modernisation hints
+- modernisation review area ranking by highest severity and hint counts
+- modernisation review summary reporting in the generated Markdown report
 - output file generation under the `output/` directory
 
 Planned MVP features include:
 
 - further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
 - additional legacy ASP.NET MVC and Web API bootstrap, request-pipeline, and behaviour indicators beyond the currently detected controller, action, routing, startup registration, bundle configuration, and filter configuration signals
-- improved severity classification as more discovery signals are added
+- further refinement of severity classification and review area grouping as more discovery signals are added
 
 ---
 
@@ -1994,6 +2079,7 @@ Status: Implemented
 - Include configuration file details
 - Include WCF binding detail sections
 - Include WCF reader quota sections
+- Include modernisation review summary
 
 ### Step 3: Dependency diagram generation
 
@@ -2079,12 +2165,15 @@ Implemented:
 - Identify connection strings as external data dependency indicators
 - Identify custom configuration sections
 - Include modernisation hints in the generated Markdown report
+- Group detailed modernisation hints into higher-level modernisation review areas
+- Rank modernisation review areas by highest severity and hint counts
+- Report prioritised modernisation review areas in the generated Markdown report
+- Print prioritised modernisation review areas in the CLI output
 
 Remaining work:
 
-- Add a higher-level prioritisation layer that groups discovered hints into top review areas, such as WCF migration, legacy ASP.NET migration, routing review, configuration review, and dependency review.
-- Improve severity classification as more discovery signals are added and as real-world scan examples reveal which findings are most useful to surface as `Info`, `Warning`, or `Risk`.
-- Consider adding confidence or evidence metadata to hints so reports can distinguish between file-based evidence, configuration-based evidence, and source-level pattern evidence.
+- Refine review area grouping and severity ranking as more discovery signals are added.
+- Add richer evidence or confidence metadata to modernisation hints so review summaries can explain which files, projects, packages, or configuration entries contributed to each priority area.
 
 ---
 
@@ -2145,7 +2234,7 @@ LegacyLens.NET can be used when:
 - you need to identify classic ASP.NET artifacts such as WebForms pages, ASMX services, HTTP handlers, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, route configuration, Web API configuration, MVC startup registration, Web API startup registration, bundle configuration, filter configuration, or `Global.asax`
 - you need to understand whether a legacy web application contains UI, service, handler, MVC controller, MVC action, Web API controller, Web API action, MVC or Web API attribute routing, MVC or Web API action attributes, area routing, conventional routing, startup registration, bundle configuration, filter configuration, or application lifecycle artifacts that may affect ASP.NET Core migration planning
 - you need to identify configuration-heavy applications, connection strings, or custom configuration sections
-- you want an initial list of modernisation review areas
+- you want a prioritised list of modernisation review areas showing where to look first
 - you need to identify likely migration risks before deeper analysis
 
 ---
