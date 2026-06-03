@@ -20,6 +20,29 @@ public sealed class MarkdownReportWriter
         IReadOnlyList<ModernisationHint> modernisationHints,
         IReadOnlyList<DiscoveredConfigFile> configFiles)
     {
+        Write(
+            outputPath,
+            solutions,
+            projects,
+            wcfEndpoints,
+            wcfServiceContracts,
+            Array.Empty<WcfBehaviour>(),
+            legacyAspNetArtifacts,
+            modernisationHints,
+            configFiles);
+    }
+    
+    public void Write(
+        string outputPath,
+        IReadOnlyList<DiscoveredSolution> solutions,
+        IReadOnlyList<DiscoveredProject> projects,
+        IReadOnlyList<WcfEndpoint> wcfEndpoints,
+        IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<WcfBehaviour> wcfBehaviours,
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts,
+        IReadOnlyList<ModernisationHint> modernisationHints,
+        IReadOnlyList<DiscoveredConfigFile> configFiles)
+    {
         if (string.IsNullOrWhiteSpace(outputPath))
         {
             throw new ArgumentException("Output path cannot be empty.", nameof(outputPath));
@@ -29,6 +52,7 @@ public sealed class MarkdownReportWriter
         ArgumentNullException.ThrowIfNull(projects);
         ArgumentNullException.ThrowIfNull(wcfEndpoints);
         ArgumentNullException.ThrowIfNull(wcfServiceContracts);
+        ArgumentNullException.ThrowIfNull(wcfBehaviours);
         ArgumentNullException.ThrowIfNull(legacyAspNetArtifacts);
         ArgumentNullException.ThrowIfNull(modernisationHints);
         ArgumentNullException.ThrowIfNull(configFiles);
@@ -45,6 +69,7 @@ public sealed class MarkdownReportWriter
             projects,
             wcfEndpoints,
             wcfServiceContracts,
+            wcfBehaviours,
             legacyAspNetArtifacts,
             modernisationHints,
             configFiles);
@@ -57,6 +82,7 @@ public sealed class MarkdownReportWriter
         IReadOnlyList<DiscoveredProject> projects,
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
         IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<WcfBehaviour> wcfBehaviours,
         IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts,
         IReadOnlyList<ModernisationHint> modernisationHints,
         IReadOnlyList<DiscoveredConfigFile> configFiles)
@@ -74,6 +100,7 @@ public sealed class MarkdownReportWriter
         builder.AppendLine($"- Package references discovered: {projects.Sum(x => x.PackageReferences.Count)}");
         builder.AppendLine($"- WCF endpoints discovered: {wcfEndpoints.Count}");
         builder.AppendLine($"- WCF service contracts discovered: {wcfServiceContracts.Count}");
+        builder.AppendLine($"- WCF behaviours discovered: {wcfBehaviours.Count}");
         builder.AppendLine($"- Legacy ASP.NET artifacts discovered: {legacyAspNetArtifacts.Count}");
         builder.AppendLine($"- Assembly references discovered: {projects.Sum(x => x.AssemblyReferences.Count)}");
         builder.AppendLine();
@@ -89,6 +116,7 @@ public sealed class MarkdownReportWriter
         AppendWcfEndpoints(builder, wcfEndpoints);
         AppendWcfBindingDetails(builder, wcfEndpoints);
         AppendWcfReaderQuotas(builder, wcfEndpoints);
+        AppendWcfBehaviours(builder, wcfBehaviours);
         AppendWcfServiceContracts(builder, wcfServiceContracts);
         AppendLegacyAspNetArtifacts(builder, legacyAspNetArtifacts);
         AppendConfigurationFiles(builder, configFiles);
@@ -98,6 +126,34 @@ public sealed class MarkdownReportWriter
         return builder.ToString();
     }
 
+    private static void AppendWcfBehaviours(
+        StringBuilder builder,
+        IReadOnlyList<WcfBehaviour> behaviours)
+    {
+        builder.AppendLine("## WCF Behaviours");
+        builder.AppendLine();
+        builder.AppendLine("| Kind | Name | Service Metadata | HTTP Metadata | HTTPS Metadata | Service Debug | Exception Detail In Faults | Service Throttling | Max Concurrent Calls | Max Concurrent Sessions | Max Concurrent Instances | Web HTTP | Config File |");
+        builder.AppendLine("|---|---|---|---|---|---|---|---|---:|---:|---:|---|---|");
+
+        if (behaviours.Count == 0)
+        {
+            builder.AppendLine("| None | None | None | None | None | None | None | None | None | None | None | None | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var behaviour in behaviours
+                     .OrderBy(x => x.Kind)
+                     .ThenBy(x => x.Name)
+                     .ThenBy(x => x.ConfigFilePath))
+        {
+            builder.AppendLine(
+                $"| {behaviour.Kind} | {Escape(behaviour.Name ?? "")} | {behaviour.HasServiceMetadata} | {Escape(behaviour.ServiceMetadataHttpGetEnabled ?? "")} | {Escape(behaviour.ServiceMetadataHttpsGetEnabled ?? "")} | {behaviour.HasServiceDebug} | {Escape(behaviour.IncludeExceptionDetailInFaults ?? "")} | {behaviour.HasServiceThrottling} | {Escape(behaviour.MaxConcurrentCalls ?? "")} | {Escape(behaviour.MaxConcurrentSessions ?? "")} | {Escape(behaviour.MaxConcurrentInstances ?? "")} | {behaviour.HasWebHttp} | `{behaviour.ConfigFilePath}` |");
+        }
+
+        builder.AppendLine();
+    }
+    
     private static void AppendSolutions(
         StringBuilder builder,
         IReadOnlyList<DiscoveredSolution> solutions)

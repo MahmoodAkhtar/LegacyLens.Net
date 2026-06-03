@@ -1,33 +1,18 @@
-﻿using System.Web.Http;
+﻿using System.Web;
+using System.Web.Http;
+using System.Web.Mvc;
+using System.Web.Routing;
 
-namespace SampleLegacyApp.Web.Controllers;
+namespace SampleLegacyApp.Web;
 
-[RoutePrefix("api/customers")]
-public class CustomersApiController : ApiController
+public class MvcApplication : HttpApplication
 {
-    [HttpGet]
-    [Route("{id}")]
-    public IHttpActionResult Get(int id)
+    protected void Application_Start()
     {
-        return Ok(new
-        {
-            Id = id,
-            Name = "Sample customer"
-        });
+        AreaRegistration.RegisterAllAreas();
+        GlobalConfiguration.Configure(WebApiConfig.Register);
+        FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
+        RouteConfig.RegisterRoutes(RouteTable.Routes);
+        BundleConfig.RegisterBundles(null);
     }
-
-    [HttpPost]
-    [Route("")]
-    public IHttpActionResult Create(CustomerRequest request)
-    {
-        return Ok(new
-        {
-            request.Name
-        });
-    }
-}
-
-public sealed class CustomerRequest
-{
-    public string? Name { get; init; }
 }

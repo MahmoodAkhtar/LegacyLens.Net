@@ -2,7 +2,7 @@
 
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
-It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, configuration files, and selected legacy ASP.NET artifacts, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, and reader quota details, WCF service contracts, service-related configuration, legacy ASP.NET artifact and source-level ASP.NET MVC usage, ASP.NET Web API usage, ASP.NET MVC and Web API startup registration usage, general configuration file usage, basic modernisation hints, and a prioritised modernisation review summary.
+It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, configuration files, and selected legacy ASP.NET artifacts, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, reader quota, service behaviour, endpoint behaviour, metadata publishing, debug, throttling, and REST-style `webHttp` behaviour details, WCF service contracts, service-related configuration, legacy ASP.NET artifact and source-level ASP.NET MVC usage, ASP.NET Web API usage, ASP.NET MVC and Web API startup registration usage, general configuration file usage, basic modernisation hints, and a prioritised modernisation review summary.
 
 The aim is to help a developer who is new to a codebase answer questions such as:
 
@@ -15,6 +15,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - Are there signs of classic ASP.NET artifacts such as WebForms pages, ASMX web services, HTTP handlers, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API routes, route configuration, MVC or Web API startup registration, bundle configuration, filter configuration, or `Global.asax`?
 - Which WCF endpoints are configured?
 - Which WCF binding configurations, security modes, timeout settings, message size limits, buffer limits, transfer modes, or reader quotas are configured?
+- Which WCF service behaviours or endpoint behaviours are configured?
 - Which WCF service contracts and operations are defined in the source code?
 - What configuration files, settings, connection strings, or custom sections exist?
 - What modernisation risks or review areas should be looked at first?
@@ -43,6 +44,12 @@ The current implementation can scan a folder containing .NET solutions and proje
 - NuGet package references from legacy `packages.config` files located alongside project files
 - WCF endpoints from `app.config` and `web.config` files
 - WCF endpoint binding configuration names, behaviour configuration names, security modes, transport credential types, message credential types, timeout settings, message size limits, buffer limits, transfer modes, reader quota settings, and metadata exchange endpoint indicators
+- WCF service behaviours from `app.config` and `web.config` files
+- WCF endpoint behaviours from `app.config` and `web.config` files
+- WCF service metadata settings such as `httpGetEnabled` and `httpsGetEnabled`
+- WCF service debug settings such as `includeExceptionDetailInFaults`
+- WCF service throttling settings such as `maxConcurrentCalls`, `maxConcurrentSessions`, and `maxConcurrentInstances`
+- WCF endpoint `webHttp` behaviour indicators
 - configuration files from `app.config` and `web.config`
 - `appSettings` entry counts
 - `connectionStrings` entry counts
@@ -73,7 +80,7 @@ The current implementation can scan a folder containing .NET solutions and proje
 - ASP.NET Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - ASP.NET MVC filter configuration files such as `FilterConfig.cs`
-- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC startup registration, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, ASP.NET Web API startup registration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, and configuration-heavy applications
+- basic modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC startup registration, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, ASP.NET Web API startup registration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, WCF service behaviours, WCF endpoint behaviours, WCF metadata publishing settings, WCF debug settings, WCF throttling settings, WCF REST-style `webHttp` endpoint behaviours, and configuration-heavy applications
 - a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
@@ -86,7 +93,7 @@ output/discovery-report.md
 
 The generated report currently includes:
 
-- a summary of discovered solutions, projects, project references, assembly references, package references, WCF endpoints, WCF service contracts, and legacy ASP.NET artifacts
+- a summary of discovered solutions, projects, project references, assembly references, package references, WCF endpoints, WCF service contracts, WCF behaviours, and legacy ASP.NET artifacts
 - a solution table
 - a project table
 - a target framework summary showing how many projects use each discovered target framework
@@ -98,6 +105,7 @@ The generated report currently includes:
 - WCF endpoint information, including binding configuration, security mode, transport credential type, message credential type, and metadata exchange indicators
 - WCF binding detail information, including timeout settings, message size limits, buffer limits, and transfer mode
 - WCF reader quota information, including max depth, max string content length, max array length, max bytes per read, and max name table character count
+- WCF behaviour information, including service behaviours, endpoint behaviours, metadata publishing flags, debug flags, throttling values, and `webHttp` endpoint behaviour indicators
 - WCF service contract and operation information
 - legacy ASP.NET artifact information, including file-based artifacts, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, Web API configuration, route configuration, MVC and Web API startup registration, bundle configuration, filter configuration, artifact kind, name, and file path
 - configuration file information, including `appSettings`, `connectionStrings`, and custom configuration section counts
@@ -141,6 +149,22 @@ WCF service contracts discovered:
 - ICustomerService
   Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
   Operation: GetCustomer
+
+WCF behaviours discovered:
+- ServiceBehaviour: CustomerServiceBehaviour
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+  Service metadata: True
+  HTTP metadata enabled: true
+  HTTPS metadata enabled: false
+  Service debug: True
+  Include exception detail in faults: true
+  Service throttling: True
+  Max concurrent calls: 100
+  Max concurrent sessions: 50
+  Max concurrent instances: 25
+- EndpointBehaviour: JsonEndpointBehaviour
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+  Web HTTP: True
 
 Configuration files discovered:
 - C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
@@ -290,13 +314,16 @@ Solutions discovered:
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 ```
 
-If no solutions, WCF endpoints, WCF service contracts, configuration files, legacy ASP.NET artifacts, or modernisation hints are found, the console output shows:
+If no solutions, WCF endpoints, WCF service contracts, WCF behaviours, configuration files, legacy ASP.NET artifacts, or modernisation hints are found, the console output shows:
 
 ```text
 WCF endpoints discovered:
 - None
 
 WCF service contracts discovered:
+- None
+
+WCF behaviours discovered:
 - None
 
 Configuration files discovered:
@@ -382,6 +409,12 @@ Even if the solution does not build, it can still discover useful information fr
 - WCF endpoint transfer modes
 - WCF endpoint reader quota settings
 - WCF metadata exchange endpoint indicators
+- WCF service behaviours from configuration files
+- WCF endpoint behaviours from configuration files
+- WCF service metadata settings from `<serviceMetadata>`
+- WCF service debug settings from `<serviceDebug>`
+- WCF service throttling settings from `<serviceThrottling>`
+- WCF endpoint `webHttp` behaviour indicators
 - WCF `[ServiceContract]` interfaces
 - WCF `[OperationContract]` methods scoped to their containing service contract interface
 - project references
@@ -398,6 +431,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: configuration file discovery currently supports `app.config` and `web.config` files. Invalid or unreadable configuration files are ignored so discovery can continue.
 
 > Note: WCF endpoint discovery currently reads configured service endpoints from `app.config` and `web.config` files. Where endpoints reference named binding configurations, LegacyLens.NET also attempts to resolve related security mode, transport credential type, message credential type, timeout, message size, buffer, transfer mode, and reader quota details from the matching binding configuration.
+
+> Note: WCF behaviour discovery currently reads selected service behaviour and endpoint behaviour settings from `app.config` and `web.config` files, including service metadata, service debug, service throttling, and endpoint `webHttp` behaviour indicators. The codebase uses the British spelling `Behaviour` for model and report names, while WCF XML uses the standard WCF element names `<behaviors>`, `<serviceBehaviors>`, `<endpointBehaviors>`, and `<behavior>`.
 
 > Note: legacy ASP.NET artifact discovery currently detects file-based classic ASP.NET artifacts such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`, as well as selected source-level ASP.NET MVC and Web API indicators such as MVC controllers, MVC action methods, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API action methods, Web API route attributes, Web API action attributes, `RouteConfig.cs`, `WebApiConfig.cs`, `Application_Start`, MVC startup registration calls, Web API startup registration calls, `BundleConfig.cs`, and `FilterConfig.cs`. These are static discovery signals and do not require the application to build or run.
 
@@ -971,6 +1006,12 @@ Current analysis work includes:
 - highlighting WCF reader quota settings
 - highlighting WCF metadata exchange endpoints
 - highlighting discovered WCF service contracts
+- highlighting discovered WCF service behaviours
+- highlighting discovered WCF endpoint behaviours
+- highlighting WCF service metadata publishing settings
+- highlighting WCF debug exception detail settings
+- highlighting WCF service throttling settings
+- highlighting WCF REST-style `webHttp` endpoint behaviours
 - identifying configuration-heavy applications from `app.config` and `web.config`
 - identifying large `appSettings` usage
 - identifying connection strings as external data dependency indicators
@@ -1056,6 +1097,13 @@ Current WCF work includes:
 - detecting `<system.serviceModel>` configuration
 - extracting configured WCF endpoints
 - modelling WCF endpoint details such as service name, address, binding, binding configuration, behaviour configuration, security mode, transport credential type, message credential type, timeout settings, message size limits, buffer limits, transfer mode, reader quota settings, metadata exchange endpoint indicator, contract, and config file path
+- scanning WCF service behaviours from `<serviceBehaviors>`
+- scanning WCF endpoint behaviours from `<endpointBehaviors>`
+- modelling WCF behaviour details such as behaviour kind, name, metadata publishing flags, debug flags, throttling values, `webHttp` indicator, and config file path
+- detecting service metadata settings such as `httpGetEnabled` and `httpsGetEnabled`
+- detecting service debug settings such as `includeExceptionDetailInFaults`
+- detecting service throttling settings such as `maxConcurrentCalls`, `maxConcurrentSessions`, and `maxConcurrentInstances`
+- detecting endpoint `webHttp` behaviour indicators
 - scanning C# source files for WCF service contracts
 - detecting interfaces marked with `[ServiceContract]`, `[ServiceContract(...)]`, or `[ServiceContractAttribute]`
 - detecting operations marked with `[OperationContract]`, `[OperationContract(...)]`, or `[OperationContractAttribute]`
@@ -1064,7 +1112,7 @@ Current WCF work includes:
 
 Planned WCF work includes:
 
-- richer WCF endpoint analysis beyond the currently detected binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
+- richer WCF endpoint and behaviour analysis beyond the currently detected endpoint, binding, security, credential, timeout, size, transfer mode, reader quota, metadata exchange, service behaviour, endpoint behaviour, metadata publishing, debug, throttling, and `webHttp` hints
 - more detailed WCF-related risk and modernisation indicators
 - further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
 
@@ -1108,6 +1156,7 @@ The Markdown report currently includes:
 - WCF endpoint details, including binding configuration, security mode, transport credential type, message credential type, metadata exchange indicator, contract, and config file path
 - WCF binding details, including timeout settings, message size limits, buffer limits, and transfer mode
 - WCF reader quota details
+- WCF behaviour details, including service behaviours, endpoint behaviours, metadata publishing flags, debug flags, throttling values, and `webHttp` indicators
 - WCF service contract details
 - WCF operation names
 - legacy ASP.NET artifact details, including file-based artifacts, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, Web API configuration, route configuration, startup registration, artifact kind, name, and file path
@@ -1209,6 +1258,22 @@ WCF service contracts discovered:
 - ICustomerService
   Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
   Operation: GetCustomer
+
+WCF behaviours discovered:
+- ServiceBehaviour: CustomerServiceBehaviour
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+  Service metadata: True
+  HTTP metadata enabled: true
+  HTTPS metadata enabled: false
+  Service debug: True
+  Include exception detail in faults: true
+  Service throttling: True
+  Max concurrent calls: 100
+  Max concurrent sessions: 50
+  Max concurrent instances: 25
+- EndpointBehaviour: JsonEndpointBehaviour
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+  Web HTTP: True
 
 Configuration files discovered:
 - C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
@@ -1345,6 +1410,7 @@ The current report sections are:
 - WCF Endpoints
 - WCF Binding Details
 - WCF Reader Quotas
+- WCF Behaviours
 - WCF Service Contracts
 - Legacy ASP.NET Artifacts
 - Configuration Files
@@ -1364,7 +1430,8 @@ The report currently includes sections such as:
 - Package references discovered: 4
 - WCF endpoints discovered: 1
 - WCF service contracts discovered: 1
-- Legacy ASP.NET artifacts discovered: 38
+- WCF behaviours discovered: 2
+- Legacy ASP.NET artifacts discovered: 36
 - Assembly references discovered: 2
 
 ## Solutions
@@ -1437,6 +1504,13 @@ graph TD
 | Service | Binding | Binding Configuration | Max Depth | Max String Content Length | Max Array Length | Max Bytes Per Read | Max Name Table Char Count |
 |---|---|---|---:|---:|---:|---:|---:|
 | SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 32 | 8192 | 16384 | 4096 | 16384 |
+
+## WCF Behaviours
+
+| Kind | Name | Service Metadata | HTTP Metadata | HTTPS Metadata | Service Debug | Exception Detail In Faults | Service Throttling | Max Concurrent Calls | Max Concurrent Sessions | Max Concurrent Instances | Web HTTP | Config File |
+|---|---|---|---|---|---|---|---|---:|---:|---:|---|---|
+| ServiceBehaviour | CustomerServiceBehaviour | True | true | false | True | true | True | 100 | 50 | 25 | False | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config` |
+| EndpointBehaviour | JsonEndpointBehaviour | False |  |  | False |  | False |  |  |  | True | `C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config` |
 
 ## WCF Service Contracts
 
@@ -1564,6 +1638,13 @@ The exact counts may vary as sample artifacts change, so this example should be 
 | Info | WCF Binding Limits | SampleLegacyApp.Services.CustomerService has explicit WCF message size or buffer limits | Configured WCF message size and buffer limits should be reviewed when migrating endpoints because equivalent request, response, and hosting limits may need to be set explicitly. |
 | Info | WCF Configuration | SampleLegacyApp.Services.CustomerService uses binding configuration CustomerBinding | Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review. |
 | Info | WCF Metadata | SampleLegacyApp.Services.CustomerService exposes a metadata exchange endpoint | Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies. |
+| Info | WCF Behaviour | CustomerServiceBehaviour is a WCF service behaviour | WCF service behaviours can contain metadata, debug, throttling, credential, authorization, and runtime settings that need migration review. |
+| Info | WCF Behaviour | JsonEndpointBehaviour is a WCF endpoint behaviour | WCF endpoint behaviours can affect request handling, serialization, dispatch, message inspection, and REST-style endpoint behaviour. |
+| Info | WCF Metadata | CustomerServiceBehaviour configures WCF service metadata publishing | Service metadata settings are useful discovery signals when identifying SOAP contracts, generated clients, and compatibility requirements. |
+| Info | WCF Metadata | CustomerServiceBehaviour enables WCF metadata publishing over HTTP or HTTPS | HTTP or HTTPS metadata publishing may indicate externally discoverable SOAP metadata that clients depend on. |
+| Warning | WCF Debug | CustomerServiceBehaviour includes exception detail in WCF faults | Including exception detail in faults can expose implementation details and should be reviewed before moving to modern hosting or public endpoints. |
+| Warning | WCF Throttling | CustomerServiceBehaviour configures WCF service throttling | WCF throttling settings may need explicit equivalents in modern hosting, gateway, queue, or service runtime configuration. |
+| Warning | WCF REST | JsonEndpointBehaviour uses WCF webHttp endpoint behaviour | webHttp endpoint behaviour usually indicates REST-style WCF endpoints that need separate review when migrating to ASP.NET Core APIs. |
 | Info | Packages | SampleLegacyApp.Web references Newtonsoft.Json | This is common in legacy and modern projects, but may be reviewed during modernisation. |
 ````
 
@@ -1679,6 +1760,86 @@ Current WCF endpoint discovery is configuration-based. It does not require the t
 
 ---
 
+## WCF Behaviour Discovery
+
+LegacyLens.NET can detect selected WCF service behaviour and endpoint behaviour configuration from `app.config` and `web.config` files.
+
+This is useful because WCF behaviours often contain runtime settings that materially affect migration planning, such as metadata publishing, debug exception detail, throttling, and REST-style `webHttp` endpoint behaviour.
+
+Current WCF behaviour discovery supports:
+
+- service behaviours under `<serviceBehaviors>`
+- endpoint behaviours under `<endpointBehaviors>`
+- service metadata settings from `<serviceMetadata>`
+- `httpGetEnabled`
+- `httpsGetEnabled`
+- service debug settings from `<serviceDebug>`
+- `includeExceptionDetailInFaults`
+- service throttling settings from `<serviceThrottling>`
+- `maxConcurrentCalls`
+- `maxConcurrentSessions`
+- `maxConcurrentInstances`
+- endpoint `webHttp` behaviour indicators
+
+Example WCF behaviour configuration:
+
+```xml
+<configuration>
+  <system.serviceModel>
+    <services>
+      <service
+        name="SampleLegacyApp.Services.CustomerService"
+        behaviorConfiguration="CustomerServiceBehaviour">
+        <endpoint
+          address=""
+          binding="basicHttpBinding"
+          bindingConfiguration="CustomerBinding"
+          behaviorConfiguration="JsonEndpointBehaviour"
+          contract="SampleLegacyApp.Contracts.ICustomerService" />
+      </service>
+    </services>
+
+    <behaviors>
+      <serviceBehaviors>
+        <behavior name="CustomerServiceBehaviour">
+          <serviceMetadata httpGetEnabled="true" httpsGetEnabled="false" />
+          <serviceDebug includeExceptionDetailInFaults="true" />
+          <serviceThrottling
+            maxConcurrentCalls="100"
+            maxConcurrentSessions="50"
+            maxConcurrentInstances="25" />
+        </behavior>
+      </serviceBehaviors>
+
+      <endpointBehaviors>
+        <behavior name="JsonEndpointBehaviour">
+          <webHttp />
+        </behavior>
+      </endpointBehaviors>
+    </behaviors>
+  </system.serviceModel>
+</configuration>
+```
+
+Example report output:
+
+```markdown
+## WCF Behaviours
+
+| Kind | Name | Service Metadata | HTTP Metadata | HTTPS Metadata | Service Debug | Exception Detail In Faults | Service Throttling | Max Concurrent Calls | Max Concurrent Sessions | Max Concurrent Instances | Web HTTP | Config File |
+|---|---|---|---|---|---|---|---|---:|---:|---:|---|---|
+| ServiceBehaviour | CustomerServiceBehaviour | True | true | false | True | true | True | 100 | 50 | 25 | False | `...\SampleLegacyApp.Web\Web.config` |
+| EndpointBehaviour | JsonEndpointBehaviour | False |  |  | False |  | False |  |  |  | True | `...\SampleLegacyApp.Web\Web.config` |
+```
+
+These behaviour details are also used as modernisation hint inputs. Service behaviours and endpoint behaviours are reported as informational WCF behaviour findings. Metadata publishing settings are reported as WCF metadata findings. `includeExceptionDetailInFaults="true"` is reported as a warning-level WCF debug finding. Service throttling is reported as a warning-level WCF throttling finding. `webHttp` endpoint behaviour is reported as a warning-level WCF REST finding.
+
+Current WCF behaviour discovery is configuration-based. It does not require the target application to build or run.
+
+> Note: the codebase uses the British spelling `Behaviour` for model and report names, while WCF XML uses the standard WCF element names `<behaviors>`, `<serviceBehaviors>`, `<endpointBehaviors>`, and `<behavior>`.
+
+---
+
 ## WCF Service Contract Discovery
 
 LegacyLens.NET can also detect WCF service contracts from C# source files.
@@ -1785,6 +1946,11 @@ Current hint areas include:
 - WCF reader quota review
 - WCF metadata exchange review
 - WCF service contract review
+- WCF behaviour review
+- WCF metadata publishing review
+- WCF debug setting review
+- WCF throttling review
+- WCF REST-style endpoint behaviour review
 - configuration-heavy application review
 
 Current severity levels are:
@@ -1825,6 +1991,19 @@ Current WCF operational detail hints include:
 | Explicit non-streaming transfer mode | `Info` | Explicit transfer mode settings should be reviewed because modern hosting and client behaviour may differ |
 | Streaming transfer mode | `Warning` | Streaming transfer modes may affect endpoint redesign, request buffering, file upload/download behaviour, hosting limits, and client compatibility |
 | Reader quota settings | `Warning` | Reader quotas may affect XML payload compatibility, maximum object graph depth, string sizes, array sizes, and generated SOAP client behaviour during migration |
+
+
+Current WCF behaviour hints include:
+
+| Indicator | Severity | Meaning |
+|---|---|---|
+| WCF service behaviour | `Info` | Service behaviours can contain metadata, debug, throttling, credential, authorization, and runtime settings that need migration review |
+| WCF endpoint behaviour | `Info` | Endpoint behaviours can affect request handling, serialization, dispatch, message inspection, and REST-style endpoint behaviour |
+| Service metadata configured | `Info` | Service metadata settings are useful discovery signals when identifying SOAP contracts, generated clients, and compatibility requirements |
+| HTTP or HTTPS metadata publishing enabled | `Info` | Metadata publishing may indicate externally discoverable SOAP metadata that clients depend on |
+| `includeExceptionDetailInFaults="true"` | `Warning` | Exception detail in faults can expose implementation details and should be reviewed before moving to modern hosting or public endpoints |
+| Service throttling configured | `Warning` | WCF throttling settings may need explicit equivalents in modern hosting, gateway, queue, or service runtime configuration |
+| `webHttp` endpoint behaviour | `Warning` | Usually indicates REST-style WCF endpoints that need separate review when migrating to ASP.NET Core APIs |
 
 
 Current legacy ASP.NET hints include:
@@ -1991,6 +2170,13 @@ Current MVP functionality includes:
 - WCF endpoint reporting
 - WCF binding detail reporting
 - WCF reader quota reporting
+- WCF service behaviour discovery from configuration files
+- WCF endpoint behaviour discovery from configuration files
+- WCF service metadata setting discovery from `<serviceMetadata>`
+- WCF service debug setting discovery from `<serviceDebug>`
+- WCF service throttling setting discovery from `<serviceThrottling>`
+- WCF endpoint `webHttp` behaviour discovery
+- WCF behaviour reporting in the generated Markdown report
 - WCF service contract discovery from C# source files
 - WCF operation discovery from `[OperationContract]` methods
 - WCF operation discovery scoped to the containing service contract interface
@@ -2028,7 +2214,7 @@ Current MVP functionality includes:
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
 - modernisation hints for legacy ASP.NET, `System.Web` assembly references, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC application startup, ASP.NET MVC startup registration calls, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, and ASP.NET Web API startup registration
-- modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, timeout settings, message size and buffer limits, transfer modes, reader quotas, metadata exchange endpoints, and service contracts
+- modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, timeout settings, message size and buffer limits, transfer modes, reader quotas, metadata exchange endpoints, service contracts, service behaviours, endpoint behaviours, metadata publishing settings, debug settings, throttling settings, and REST-style `webHttp` endpoint behaviours
 - modernisation hints for configuration-heavy applications
 - modernisation hint reporting in the generated Markdown report
 - modernisation review summary generation from detailed modernisation hints
@@ -2039,6 +2225,7 @@ Current MVP functionality includes:
 Planned MVP features include:
 
 - further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
+- additional WCF configuration indicators beyond the currently detected endpoints, named binding settings, service behaviours, endpoint behaviours, metadata publishing, debug, throttling, `webHttp`, timeout, size, transfer mode, reader quota, security, credential, and metadata exchange signals
 - additional legacy ASP.NET MVC and Web API bootstrap, request-pipeline, and behaviour indicators beyond the currently detected controller, action, routing, startup registration, bundle configuration, and filter configuration signals
 - further refinement of severity classification and review area grouping as more discovery signals are added
 
@@ -2079,6 +2266,7 @@ Status: Implemented
 - Include configuration file details
 - Include WCF binding detail sections
 - Include WCF reader quota sections
+- Include WCF behaviour detail sections
 - Include modernisation review summary
 
 ### Step 3: Dependency diagram generation
@@ -2103,6 +2291,14 @@ Implemented:
 - Detect WCF transfer mode from named binding configurations
 - Detect WCF reader quota settings from named binding configurations
 - Report WCF binding details and reader quotas in the generated Markdown report
+- Detect WCF service behaviours from `<serviceBehaviors>`
+- Detect WCF endpoint behaviours from `<endpointBehaviors>`
+- Detect WCF service metadata settings such as `httpGetEnabled` and `httpsGetEnabled`
+- Detect WCF service debug settings such as `includeExceptionDetailInFaults`
+- Detect WCF service throttling settings such as `maxConcurrentCalls`, `maxConcurrentSessions`, and `maxConcurrentInstances`
+- Detect WCF endpoint `webHttp` behaviour indicators
+- Report WCF behaviours in the generated Markdown report
+- Print WCF behaviours in the CLI output
 - Detect WCF metadata exchange endpoints from `IMetadataExchange` contracts and `mex*` bindings
 - Detect WCF service contracts from C# source files
 - Detect WCF operations marked with `[OperationContract]`
@@ -2111,7 +2307,7 @@ Implemented:
 
 Remaining work:
 
-- Add more specific WCF configuration indicators that are not yet detected, such as service behaviours, endpoint behaviours, throttling, diagnostics, metadata publishing settings, custom bindings, client endpoint configuration, and service hosting activation details.
+- Add further WCF configuration indicators that are not yet detected, such as diagnostics, custom bindings, client endpoint configuration, service hosting activation details, credential behaviours, authorization behaviours, and message inspector or custom behaviour extension details.
 - Further improve service contract parsing for more complex C# syntax beyond the currently supported static interface and operation contract patterns.
 
 ### Step 5: Risk and modernisation hints
@@ -2138,6 +2334,12 @@ Implemented:
 - Highlight WCF reader quota settings
 - Highlight WCF metadata exchange endpoints
 - Highlight discovered WCF service contracts
+- Highlight discovered WCF service behaviours
+- Highlight discovered WCF endpoint behaviours
+- Highlight WCF service metadata publishing settings
+- Highlight WCF debug exception detail settings
+- Highlight WCF service throttling settings
+- Highlight WCF REST-style `webHttp` endpoint behaviours
 - Identify legacy ASP.NET indicators from `System.Web` and `System.Web.*` assembly references
 - Identify WebForms pages as legacy ASP.NET migration risk indicators
 - Identify ASMX web services as legacy ASP.NET migration risk indicators

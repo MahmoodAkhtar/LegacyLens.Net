@@ -12,6 +12,7 @@ var discoveryService = new ProjectDiscoveryService();
 var projects = discoveryService.DiscoverProjects(path);
 var wcfConfigScanner = new WcfConfigScanner();
 var wcfEndpoints = wcfConfigScanner.Scan(path);
+var wcfBehaviours = wcfConfigScanner.ScanBehaviours(path);
 
 Console.WriteLine("Projects discovered:");
 
@@ -83,6 +84,48 @@ else
     }
 }
 
+Console.WriteLine();
+Console.WriteLine("WCF behaviours discovered:");
+
+if (wcfBehaviours.Count == 0)
+{
+    Console.WriteLine("- None");
+}
+else
+{
+    foreach (var behaviour in wcfBehaviours)
+    {
+        Console.WriteLine($"- {behaviour.Kind}: {behaviour.Name ?? "Unnamed"}");
+        Console.WriteLine($"  Config file: {behaviour.ConfigFilePath}");
+
+        if (behaviour.HasServiceMetadata)
+        {
+            Console.WriteLine("  Service metadata: True");
+            Console.WriteLine($"  HTTP metadata enabled: {behaviour.ServiceMetadataHttpGetEnabled ?? ""}");
+            Console.WriteLine($"  HTTPS metadata enabled: {behaviour.ServiceMetadataHttpsGetEnabled ?? ""}");
+        }
+
+        if (behaviour.HasServiceDebug)
+        {
+            Console.WriteLine("  Service debug: True");
+            Console.WriteLine($"  Include exception detail in faults: {behaviour.IncludeExceptionDetailInFaults ?? ""}");
+        }
+
+        if (behaviour.HasServiceThrottling)
+        {
+            Console.WriteLine("  Service throttling: True");
+            Console.WriteLine($"  Max concurrent calls: {behaviour.MaxConcurrentCalls ?? ""}");
+            Console.WriteLine($"  Max concurrent sessions: {behaviour.MaxConcurrentSessions ?? ""}");
+            Console.WriteLine($"  Max concurrent instances: {behaviour.MaxConcurrentInstances ?? ""}");
+        }
+
+        if (behaviour.HasWebHttp)
+        {
+            Console.WriteLine("  Web HTTP: True");
+        }
+    }
+}
+
 var configFileScanner = new ConfigFileScanner();
 var configFiles = configFileScanner.Scan(path);
 
@@ -129,6 +172,7 @@ var modernisationHints = modernisationHintAnalyzer.Analyze(
     projects,
     wcfEndpoints,
     wcfServiceContracts,
+    wcfBehaviours,
     legacyAspNetArtifacts,
     configFiles);
 
@@ -209,6 +253,7 @@ reportWriter.Write(
     projects,
     wcfEndpoints,
     wcfServiceContracts,
+    wcfBehaviours,
     legacyAspNetArtifacts,
     modernisationHints,
     configFiles);

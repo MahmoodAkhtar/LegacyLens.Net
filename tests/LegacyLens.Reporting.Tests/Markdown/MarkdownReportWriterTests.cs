@@ -234,7 +234,8 @@ public sealed class MarkdownReportWriterTests
             markdown.Should().Contain("| Newtonsoft.Json | 1 |");
 
             markdown.Should().Contain("## Project References");
-            markdown.Should().Contain(@"| SampleLegacyApp.Web | `..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj` |");
+            markdown.Should()
+                .Contain(@"| SampleLegacyApp.Web | `..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj` |");
 
             markdown.Should().Contain("## Assembly References");
             markdown.Should().Contain("| SampleLegacyApp.Web | `System.Web` |");
@@ -256,7 +257,8 @@ public sealed class MarkdownReportWriterTests
         try
         {
             var webProjectPath = Path.Combine(rootPath, "SampleLegacyApp.Web", "SampleLegacyApp.Web.csproj");
-            var servicesProjectPath = Path.Combine(rootPath, "SampleLegacyApp.Services", "SampleLegacyApp.Services.csproj");
+            var servicesProjectPath =
+                Path.Combine(rootPath, "SampleLegacyApp.Services", "SampleLegacyApp.Services.csproj");
             var outputPath = Path.Combine(rootPath, "discovery-report.md");
 
             var webProject = new DiscoveredProject
@@ -354,13 +356,19 @@ public sealed class MarkdownReportWriterTests
             var markdown = File.ReadAllText(outputPath);
 
             markdown.Should().Contain("## WCF Endpoints");
-            markdown.Should().Contain($"| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | CustomerBinding | Transport | Windows | UserName | False | SampleLegacyApp.Contracts.ICustomerService | `{configFilePath}` |");
+            markdown.Should()
+                .Contain(
+                    $"| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | CustomerBinding | Transport | Windows | UserName | False | SampleLegacyApp.Contracts.ICustomerService | `{configFilePath}` |");
 
             markdown.Should().Contain("## WCF Binding Details");
-            markdown.Should().Contain("| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 00:01:00 | 00:01:00 | 00:02:00 | 00:10:00 | 1048576 | 65536 | 524288 | Streamed |");
+            markdown.Should()
+                .Contain(
+                    "| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 00:01:00 | 00:01:00 | 00:02:00 | 00:10:00 | 1048576 | 65536 | 524288 | Streamed |");
 
             markdown.Should().Contain("## WCF Reader Quotas");
-            markdown.Should().Contain("| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 32 | 8192 | 16384 | 4096 | 16384 |");
+            markdown.Should()
+                .Contain(
+                    "| SampleLegacyApp.Services.CustomerService | basicHttpBinding | CustomerBinding | 32 | 8192 | 16384 | 4096 | 16384 |");
         }
         finally
         {
@@ -608,7 +616,9 @@ public sealed class MarkdownReportWriterTests
             var markdown = File.ReadAllText(outputPath);
 
             markdown.Should().Contain("## Modernisation Hints");
-            markdown.Should().Contain("| Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET. |");
+            markdown.Should()
+                .Contain(
+                    "| Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET. |");
         }
         finally
         {
@@ -895,6 +905,69 @@ public sealed class MarkdownReportWriterTests
         finally
         {
             DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void Write_WhenWcfBehavioursExist_WritesWcfBehaviourSection()
+    {
+        var outputPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.md");
+
+        try
+        {
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                new[]
+                {
+                    new WcfBehaviour
+                    {
+                        Kind = WcfBehaviourKind.ServiceBehaviour,
+                        ConfigFilePath = "web.config",
+                        Name = "CustomerServiceBehaviour",
+                        HasServiceMetadata = true,
+                        ServiceMetadataHttpGetEnabled = "true",
+                        ServiceMetadataHttpsGetEnabled = "false",
+                        HasServiceDebug = true,
+                        IncludeExceptionDetailInFaults = "true",
+                        HasServiceThrottling = true,
+                        MaxConcurrentCalls = "100",
+                        MaxConcurrentSessions = "50",
+                        MaxConcurrentInstances = "25"
+                    },
+                    new WcfBehaviour
+                    {
+                        Kind = WcfBehaviourKind.EndpointBehaviour,
+                        ConfigFilePath = "web.config",
+                        Name = "JsonEndpointBehaviour",
+                        HasWebHttp = true
+                    }
+                },
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            Assert.Contains("## WCF Behaviours", markdown);
+            Assert.Contains("CustomerServiceBehaviour", markdown);
+            Assert.Contains("JsonEndpointBehaviour", markdown);
+            Assert.Contains("ServiceBehaviour", markdown);
+            Assert.Contains("EndpointBehaviour", markdown);
+            Assert.Contains("100", markdown);
+            Assert.Contains("True", markdown);
+        }
+        finally
+        {
+            if (File.Exists(outputPath))
+            {
+                File.Delete(outputPath);
+            }
         }
     }
 

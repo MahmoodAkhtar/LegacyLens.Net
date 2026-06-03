@@ -14,9 +14,27 @@ public sealed class ModernisationHintAnalyzer
         IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts,
         IReadOnlyList<DiscoveredConfigFile> configFiles)
     {
+        return Analyze(
+            projects,
+            wcfEndpoints,
+            wcfServiceContracts,
+            Array.Empty<WcfBehaviour>(),
+            legacyAspNetArtifacts,
+            configFiles);
+    }
+
+    public IReadOnlyList<ModernisationHint> Analyze(
+        IReadOnlyList<DiscoveredProject> projects,
+        IReadOnlyList<WcfEndpoint> wcfEndpoints,
+        IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<WcfBehaviour> wcfBehaviours,
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts,
+        IReadOnlyList<DiscoveredConfigFile> configFiles)
+    {
         ArgumentNullException.ThrowIfNull(projects);
         ArgumentNullException.ThrowIfNull(wcfEndpoints);
         ArgumentNullException.ThrowIfNull(wcfServiceContracts);
+        ArgumentNullException.ThrowIfNull(wcfBehaviours);
         ArgumentNullException.ThrowIfNull(legacyAspNetArtifacts);
         ArgumentNullException.ThrowIfNull(configFiles);
 
@@ -25,13 +43,14 @@ public sealed class ModernisationHintAnalyzer
         AddTargetFrameworkHints(projects, hints);
         AddProjectCouplingHints(projects, hints);
         AddPackageHints(projects, hints);
-        AddWcfHints(wcfEndpoints, wcfServiceContracts, hints);
+        AddWcfHints(wcfEndpoints, wcfServiceContracts, wcfBehaviours, hints);
         AddAssemblyReferenceHints(projects, hints);
         AddLegacyAspNetArtifactHints(legacyAspNetArtifacts, hints);
         AddConfigHints(configFiles, hints);
 
         return hints;
     }
+
 
     private static void AddConfigHints(
         IReadOnlyList<DiscoveredConfigFile> configFiles,
@@ -178,6 +197,7 @@ public sealed class ModernisationHintAnalyzer
     private static void AddWcfHints(
         IReadOnlyList<WcfEndpoint> wcfEndpoints,
         IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<WcfBehaviour> wcfBehaviours,
         List<ModernisationHint> hints)
     {
         if (wcfEndpoints.Count > 0)
@@ -207,6 +227,120 @@ public sealed class ModernisationHintAnalyzer
                     "WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning."
             });
         }
+
+        AddWcfBehaviourHints(wcfBehaviours, hints);
+    }
+
+    private static void AddWcfBehaviourHints(
+        IReadOnlyList<WcfBehaviour> wcfBehaviours,
+        List<ModernisationHint> hints)
+    {
+        foreach (var behaviour in wcfBehaviours)
+        {
+            var behaviourName = GetWcfBehaviourName(behaviour);
+
+            if (behaviour.Kind == WcfBehaviourKind.ServiceBehaviour)
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Info,
+                    Area = "WCF Behaviour",
+                    Finding = $"{behaviourName} is a WCF service behaviour",
+                    Reason =
+                        "WCF service behaviours can contain metadata, debug, throttling, credential, authorization, and runtime settings that need migration review."
+                });
+            }
+
+            if (behaviour.Kind == WcfBehaviourKind.EndpointBehaviour)
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Info,
+                    Area = "WCF Behaviour",
+                    Finding = $"{behaviourName} is a WCF endpoint behaviour",
+                    Reason =
+                        "WCF endpoint behaviours can affect request handling, serialization, dispatch, message inspection, and REST-style endpoint behaviour."
+                });
+            }
+
+            if (behaviour.HasServiceMetadata)
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Info,
+                    Area = "WCF Metadata",
+                    Finding = $"{behaviourName} configures WCF service metadata publishing",
+                    Reason =
+                        "Service metadata settings are useful discovery signals when identifying SOAP contracts, generated clients, and compatibility requirements."
+                });
+            }
+
+            if (IsTrue(behaviour.ServiceMetadataHttpGetEnabled) ||
+                IsTrue(behaviour.ServiceMetadataHttpsGetEnabled))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Info,
+                    Area = "WCF Metadata",
+                    Finding = $"{behaviourName} enables WCF metadata publishing over HTTP or HTTPS",
+                    Reason =
+                        "HTTP or HTTPS metadata publishing may indicate externally discoverable SOAP metadata that clients depend on."
+                });
+            }
+
+            if (IsTrue(behaviour.IncludeExceptionDetailInFaults))
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "WCF Debug",
+                    Finding = $"{behaviourName} includes exception detail in WCF faults",
+                    Reason =
+                        "Including exception detail in faults can expose implementation details and should be reviewed before moving to modern hosting or public endpoints."
+                });
+            }
+
+            if (behaviour.HasServiceThrottling)
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "WCF Throttling",
+                    Finding = $"{behaviourName} configures WCF service throttling",
+                    Reason =
+                        "WCF throttling settings may need explicit equivalents in modern hosting, gateway, queue, or service runtime configuration."
+                });
+            }
+
+            if (behaviour.HasWebHttp)
+            {
+                hints.Add(new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = "WCF REST",
+                    Finding = $"{behaviourName} uses WCF webHttp endpoint behaviour",
+                    Reason =
+                        "webHttp endpoint behaviour usually indicates REST-style WCF endpoints that need separate review when migrating to ASP.NET Core APIs."
+                });
+            }
+        }
+    }
+
+    private static string GetWcfBehaviourName(WcfBehaviour behaviour)
+    {
+        if (!string.IsNullOrWhiteSpace(behaviour.Name))
+        {
+            return behaviour.Name;
+        }
+
+        return behaviour.Kind == WcfBehaviourKind.ServiceBehaviour
+            ? "Unnamed service behaviour"
+            : "Unnamed endpoint behaviour";
+    }
+
+    private static bool IsTrue(string? value)
+    {
+        return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddWcfEndpointDetailHints(

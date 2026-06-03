@@ -373,6 +373,111 @@ public sealed class WcfConfigScannerTests : IDisposable
         Assert.Equal("16384", endpoint.ReaderQuotaMaxNameTableCharCount);
     }
 
+    [Fact]
+    public void ScanBehaviours_WhenConfigContainsServiceAndEndpointBehaviours_ReturnsBehaviourDetails()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var configPath = Path.Combine(rootPath, "web.config");
+
+            File.WriteAllText(
+                configPath,
+                """
+                <configuration>
+                  <system.serviceModel>
+                    <behaviors>
+                      <serviceBehaviors>
+                        <behavior name="CustomerServiceBehaviour">
+                          <serviceMetadata httpGetEnabled="true" httpsGetEnabled="false" />
+                          <serviceDebug includeExceptionDetailInFaults="true" />
+                          <serviceThrottling
+                            maxConcurrentCalls="100"
+                            maxConcurrentSessions="50"
+                            maxConcurrentInstances="25" />
+                        </behavior>
+                      </serviceBehaviors>
+                      <endpointBehaviors>
+                        <behavior name="JsonEndpointBehaviour">
+                          <webHttp />
+                        </behavior>
+                      </endpointBehaviors>
+                    </behaviors>
+                  </system.serviceModel>
+                </configuration>
+                """);
+
+            var scanner = new WcfConfigScanner();
+
+            var behaviours = scanner.ScanBehaviours(rootPath);
+
+            var serviceBehaviour = Assert.Single(
+                behaviours,
+                x => x.Kind == WcfBehaviourKind.ServiceBehaviour);
+
+            Assert.Equal("CustomerServiceBehaviour", serviceBehaviour.Name);
+            Assert.True(serviceBehaviour.HasServiceMetadata);
+            Assert.Equal("true", serviceBehaviour.ServiceMetadataHttpGetEnabled);
+            Assert.Equal("false", serviceBehaviour.ServiceMetadataHttpsGetEnabled);
+            Assert.True(serviceBehaviour.HasServiceDebug);
+            Assert.Equal("true", serviceBehaviour.IncludeExceptionDetailInFaults);
+            Assert.True(serviceBehaviour.HasServiceThrottling);
+            Assert.Equal("100", serviceBehaviour.MaxConcurrentCalls);
+            Assert.Equal("50", serviceBehaviour.MaxConcurrentSessions);
+            Assert.Equal("25", serviceBehaviour.MaxConcurrentInstances);
+
+            var endpointBehaviour = Assert.Single(
+                behaviours,
+                x => x.Kind == WcfBehaviourKind.EndpointBehaviour);
+
+            Assert.Equal("JsonEndpointBehaviour", endpointBehaviour.Name);
+            Assert.True(endpointBehaviour.HasWebHttp);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(rootPath);
+        }
+    }
+
+    [Fact]
+    public void ScanBehaviours_WhenConfigIsInvalid_IgnoresFile()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(rootPath, "web.config"),
+                "<configuration>");
+
+            var scanner = new WcfConfigScanner();
+
+            var behaviours = scanner.ScanBehaviours(rootPath);
+
+            Assert.Empty(behaviours);
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(rootPath);
+        }
+    }
+
+    private static string CreateTemporaryDirectory()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(path);
+        return path;
+    }
+
+    private static void DeleteTemporaryDirectory(string path)
+    {
+        if (Directory.Exists(path))
+        {
+            Directory.Delete(path, recursive: true);
+        }
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_rootPath))

@@ -114,16 +114,146 @@ public sealed class WcfConfigScanner
                         TransferMode = GetAttributeValue(bindingElement, "transferMode"),
 
                         ReaderQuotaMaxDepth = GetAttributeValue(readerQuotasElement, "maxDepth"),
-                        ReaderQuotaMaxStringContentLength = GetAttributeValue(readerQuotasElement, "maxStringContentLength"),
+                        ReaderQuotaMaxStringContentLength =
+                            GetAttributeValue(readerQuotasElement, "maxStringContentLength"),
                         ReaderQuotaMaxArrayLength = GetAttributeValue(readerQuotasElement, "maxArrayLength"),
                         ReaderQuotaMaxBytesPerRead = GetAttributeValue(readerQuotasElement, "maxBytesPerRead"),
-                        ReaderQuotaMaxNameTableCharCount = GetAttributeValue(readerQuotasElement, "maxNameTableCharCount")
+                        ReaderQuotaMaxNameTableCharCount =
+                            GetAttributeValue(readerQuotasElement, "maxNameTableCharCount")
                     });
                 }
             }
         }
 
         return endpoints;
+    }
+
+    public IReadOnlyList<WcfBehaviour> ScanBehaviours(string rootPath)
+    {
+        if (string.IsNullOrWhiteSpace(rootPath))
+        {
+            throw new ArgumentException("Root path cannot be empty.", nameof(rootPath));
+        }
+
+        if (!Directory.Exists(rootPath))
+        {
+            throw new DirectoryNotFoundException($"Root path does not exist: {rootPath}");
+        }
+
+        var configFiles = Directory
+            .GetFiles(rootPath, "*.config", SearchOption.AllDirectories)
+            .Where(x =>
+                string.Equals(Path.GetFileName(x), "app.config", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(Path.GetFileName(x), "web.config", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        var behaviours = new List<WcfBehaviour>();
+
+        foreach (var configFile in configFiles)
+        {
+            XDocument document;
+
+            try
+            {
+                document = XDocument.Load(configFile);
+            }
+            catch
+            {
+                continue;
+            }
+
+            var serviceModelElement = document
+                .Descendants()
+                .FirstOrDefault(x => x.Name.LocalName == "system.serviceModel");
+
+            if (serviceModelElement is null)
+            {
+                continue;
+            }
+
+            AddServiceBehaviours(configFile, serviceModelElement, behaviours);
+            AddEndpointBehaviours(configFile, serviceModelElement, behaviours);
+        }
+
+        return behaviours
+            .OrderBy(x => x.Kind)
+            .ThenBy(x => x.ConfigFilePath)
+            .ThenBy(x => x.Name)
+            .ToList();
+    }
+
+    private static void AddServiceBehaviours(
+        string configFile,
+        XElement serviceModelElement,
+        List<WcfBehaviour> behaviours)
+    {
+        var serviceBehaviourElements = serviceModelElement
+            .Descendants()
+            .Where(x => x.Name.LocalName == "serviceBehaviors")
+            .Elements()
+            .Where(x => x.Name.LocalName == "behavior");
+
+        foreach (var behaviourElement in serviceBehaviourElements)
+        {
+            var serviceMetadataElement = behaviourElement
+                .Elements()
+                .FirstOrDefault(x => x.Name.LocalName == "serviceMetadata");
+
+            var serviceDebugElement = behaviourElement
+                .Elements()
+                .FirstOrDefault(x => x.Name.LocalName == "serviceDebug");
+
+            var serviceThrottlingElement = behaviourElement
+                .Elements()
+                .FirstOrDefault(x => x.Name.LocalName == "serviceThrottling");
+
+            behaviours.Add(new WcfBehaviour
+            {
+                Kind = WcfBehaviourKind.ServiceBehaviour,
+                ConfigFilePath = configFile,
+                Name = GetAttributeValue(behaviourElement, "name"),
+
+                HasServiceMetadata = serviceMetadataElement is not null,
+                ServiceMetadataHttpGetEnabled = GetAttributeValue(serviceMetadataElement, "httpGetEnabled"),
+                ServiceMetadataHttpsGetEnabled = GetAttributeValue(serviceMetadataElement, "httpsGetEnabled"),
+
+                HasServiceDebug = serviceDebugElement is not null,
+                IncludeExceptionDetailInFaults =
+                    GetAttributeValue(serviceDebugElement, "includeExceptionDetailInFaults"),
+
+                HasServiceThrottling = serviceThrottlingElement is not null,
+                MaxConcurrentCalls = GetAttributeValue(serviceThrottlingElement, "maxConcurrentCalls"),
+                MaxConcurrentSessions = GetAttributeValue(serviceThrottlingElement, "maxConcurrentSessions"),
+                MaxConcurrentInstances = GetAttributeValue(serviceThrottlingElement, "maxConcurrentInstances")
+            });
+        }
+    }
+
+    private static void AddEndpointBehaviours(
+        string configFile,
+        XElement serviceModelElement,
+        List<WcfBehaviour> behaviours)
+    {
+        var endpointBehaviourElements = serviceModelElement
+            .Descendants()
+            .Where(x => x.Name.LocalName == "endpointBehaviors")
+            .Elements()
+            .Where(x => x.Name.LocalName == "behavior");
+
+        foreach (var behaviourElement in endpointBehaviourElements)
+        {
+            var webHttpElement = behaviourElement
+                .Elements()
+                .FirstOrDefault(x => x.Name.LocalName == "webHttp");
+
+            behaviours.Add(new WcfBehaviour
+            {
+                Kind = WcfBehaviourKind.EndpointBehaviour,
+                ConfigFilePath = configFile,
+                Name = GetAttributeValue(behaviourElement, "name"),
+                HasWebHttp = webHttpElement is not null
+            });
+        }
     }
 
     private static XElement? FindBindingElement(

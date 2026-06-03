@@ -127,7 +127,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Risk,
             Area = "Packages",
             Finding = "LegacyApp.Web references System.ServiceModel.Http",
-            Reason = "System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning."
+            Reason =
+                "System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning."
         });
     }
 
@@ -220,7 +221,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Risk,
             Area = "WCF",
             Finding = "1 WCF endpoint(s) discovered",
-            Reason = "Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment."
+            Reason =
+                "Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment."
         });
     }
 
@@ -251,7 +253,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Risk,
             Area = "WCF",
             Finding = "1 WCF service contract(s) discovered",
-            Reason = "WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning."
+            Reason =
+                "WCF service contracts identify service APIs that may need redesign, replacement, or compatibility planning."
         });
     }
 
@@ -280,7 +283,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "WCF Binding",
             Finding = "basicHttpBinding endpoint discovered for LegacyApp.Services.CustomerService",
-            Reason = "basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning."
+            Reason =
+                "basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning."
         });
     }
 
@@ -426,7 +430,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Info,
             Area = "WCF Configuration",
             Finding = "LegacyApp.Services.CustomerService uses binding configuration CustomerBinding",
-            Reason = "Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review."
+            Reason =
+                "Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review."
         });
     }
 
@@ -456,7 +461,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "WCF Security",
             Finding = "LegacyApp.Services.CustomerService uses WCF security mode Transport",
-            Reason = "WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints."
+            Reason =
+                "WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints."
         });
     }
 
@@ -486,7 +492,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "WCF Security",
             Finding = "LegacyApp.Services.CustomerService uses transport credential type Windows",
-            Reason = "Transport credential settings may affect authentication and hosting choices during service migration."
+            Reason =
+                "Transport credential settings may affect authentication and hosting choices during service migration."
         });
     }
 
@@ -547,7 +554,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Info,
             Area = "WCF Metadata",
             Finding = "LegacyApp.Services.CustomerService exposes a metadata exchange endpoint",
-            Reason = "Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies."
+            Reason =
+                "Metadata exchange endpoints are useful discovery signals when identifying SOAP contracts and generated client dependencies."
         });
     }
 
@@ -580,7 +588,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Info,
             Area = "WCF Timeout",
             Finding = "LegacyApp.Services.CustomerService has explicit WCF timeout settings",
-            Reason = "Configured WCF timeout values should be reviewed when replacing endpoints because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ."
+            Reason =
+                "Configured WCF timeout values should be reviewed when replacing endpoints because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ."
         });
     }
 
@@ -612,7 +621,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Info,
             Area = "WCF Binding Limits",
             Finding = "LegacyApp.Services.CustomerService has explicit WCF message size or buffer limits",
-            Reason = "Configured WCF message size and buffer limits should be reviewed when migrating endpoints because equivalent request, response, and hosting limits may need to be set explicitly."
+            Reason =
+                "Configured WCF message size and buffer limits should be reviewed when migrating endpoints because equivalent request, response, and hosting limits may need to be set explicitly."
         });
     }
 
@@ -642,7 +652,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Info,
             Area = "WCF Transfer Mode",
             Finding = "LegacyApp.Services.CustomerService uses WCF transfer mode Buffered",
-            Reason = "Explicit WCF transfer mode settings should be reviewed when replacing endpoints because modern hosting and client behaviour may differ."
+            Reason =
+                "Explicit WCF transfer mode settings should be reviewed when replacing endpoints because modern hosting and client behaviour may differ."
         });
     }
 
@@ -675,7 +686,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "WCF Transfer Mode",
             Finding = $"LegacyApp.Services.CustomerService uses WCF transfer mode {transferMode}",
-            Reason = "Streaming WCF transfer modes may affect endpoint redesign, request buffering, file upload/download behaviour, hosting limits, and client compatibility."
+            Reason =
+                "Streaming WCF transfer modes may affect endpoint redesign, request buffering, file upload/download behaviour, hosting limits, and client compatibility."
         });
     }
 
@@ -709,7 +721,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "WCF Reader Quotas",
             Finding = "LegacyApp.Services.CustomerService has explicit WCF reader quota settings",
-            Reason = "Configured WCF reader quotas may affect XML payload compatibility, maximum object graph depth, string sizes, array sizes, and generated SOAP client behaviour during migration."
+            Reason =
+                "Configured WCF reader quotas may affect XML payload compatibility, maximum object graph depth, string sizes, array sizes, and generated SOAP client behaviour during migration."
         });
     }
 
@@ -766,7 +779,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Risk,
             Area = "Legacy ASP.NET",
             Finding = "LegacyApp.Web references System.Web",
-            Reason = "System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core."
+            Reason =
+                "System.Web usually indicates classic ASP.NET, WebForms, MVC 5, ASMX, or ASP.NET-hosted legacy functionality that does not directly migrate to modern ASP.NET Core."
         });
     }
 
@@ -798,7 +812,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "Legacy ASP.NET",
             Finding = "LegacyApp.Web references System.Web.Mvc",
-            Reason = "System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment."
+            Reason =
+                "System.Web-related assemblies indicate legacy ASP.NET functionality that may need separate migration assessment."
         });
     }
 
@@ -826,7 +841,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Risk,
             Area = "Legacy ASP.NET",
             Finding = "Default.aspx is a WebForms page",
-            Reason = "WebForms pages indicate classic ASP.NET UI that does not directly migrate to ASP.NET Core and usually needs redesign or replacement planning."
+            Reason =
+                "WebForms pages indicate classic ASP.NET UI that does not directly migrate to ASP.NET Core and usually needs redesign or replacement planning."
         });
     }
 
@@ -854,7 +870,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "Legacy ASP.NET",
             Finding = "CustomerSummary.ascx is a WebForms user control",
-            Reason = "WebForms user controls may contain reusable UI and page lifecycle behaviour that needs review during ASP.NET Core migration planning."
+            Reason =
+                "WebForms user controls may contain reusable UI and page lifecycle behaviour that needs review during ASP.NET Core migration planning."
         });
     }
 
@@ -882,7 +899,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "Legacy ASP.NET",
             Finding = "Site.master is a WebForms master page",
-            Reason = "Master pages usually indicate shared WebForms layout structure that may need redesign when moving to modern ASP.NET."
+            Reason =
+                "Master pages usually indicate shared WebForms layout structure that may need redesign when moving to modern ASP.NET."
         });
     }
 
@@ -910,7 +928,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Risk,
             Area = "Legacy ASP.NET",
             Finding = "CustomerService.asmx is an ASMX web service",
-            Reason = "ASMX web services are legacy SOAP-style ASP.NET endpoints that usually need replacement or compatibility planning during modernisation."
+            Reason =
+                "ASMX web services are legacy SOAP-style ASP.NET endpoints that usually need replacement or compatibility planning during modernisation."
         });
     }
 
@@ -938,7 +957,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "Legacy ASP.NET",
             Finding = "Download.ashx is an ASP.NET HTTP handler",
-            Reason = "HTTP handlers may contain custom request processing behaviour that needs mapping to modern ASP.NET middleware, endpoints, or controllers."
+            Reason =
+                "HTTP handlers may contain custom request processing behaviour that needs mapping to modern ASP.NET middleware, endpoints, or controllers."
         });
     }
 
@@ -966,7 +986,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Info,
             Area = "Legacy ASP.NET",
             Finding = "Global.asax is a Global.asax application file",
-            Reason = "Global.asax may contain application startup, routing, error handling, or lifecycle code that should be reviewed when migrating to modern ASP.NET hosting."
+            Reason =
+                "Global.asax may contain application startup, routing, error handling, or lifecycle code that should be reviewed when migrating to modern ASP.NET hosting."
         });
     }
 
@@ -1019,7 +1040,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "Configuration",
             Finding = "Web.config contains 10 appSettings entries",
-            Reason = "A large number of appSettings entries may indicate environment-specific behaviour or operational settings hidden in configuration."
+            Reason =
+                "A large number of appSettings entries may indicate environment-specific behaviour or operational settings hidden in configuration."
         });
     }
 
@@ -1048,7 +1070,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Info,
             Area = "Configuration",
             Finding = "Web.config contains 2 connection string(s)",
-            Reason = "Connection strings identify external data dependencies that should be reviewed during migration planning."
+            Reason =
+                "Connection strings identify external data dependencies that should be reviewed during migration planning."
         });
     }
 
@@ -1077,7 +1100,8 @@ public sealed class ModernisationHintAnalyzerTests
             Severity = ModernisationHintSeverity.Warning,
             Area = "Configuration",
             Finding = "Web.config contains 1 custom configuration section(s)",
-            Reason = "Custom configuration sections may indicate framework-specific or application-specific behaviour that needs migration assessment."
+            Reason =
+                "Custom configuration sections may indicate framework-specific or application-specific behaviour that needs migration assessment."
         });
     }
 
@@ -1148,6 +1172,92 @@ public sealed class ModernisationHintAnalyzerTests
         act.Should().Throw<ArgumentNullException>();
     }
 
+    [Fact]
+    public void Analyze_WhenWcfServiceBehaviourHasMetadataDebugAndThrottling_AddsBehaviourHints()
+    {
+        var analyzer = new ModernisationHintAnalyzer();
+
+        var hints = analyzer.Analyze(
+            Array.Empty<DiscoveredProject>(),
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            new[]
+            {
+                new WcfBehaviour
+                {
+                    Kind = WcfBehaviourKind.ServiceBehaviour,
+                    ConfigFilePath = "web.config",
+                    Name = "CustomerServiceBehaviour",
+                    HasServiceMetadata = true,
+                    ServiceMetadataHttpGetEnabled = "true",
+                    HasServiceDebug = true,
+                    IncludeExceptionDetailInFaults = "true",
+                    HasServiceThrottling = true,
+                    MaxConcurrentCalls = "100"
+                }
+            },
+            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+            Array.Empty<DiscoveredConfigFile>());
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "WCF Behaviour" &&
+            x.Finding == "CustomerServiceBehaviour is a WCF service behaviour");
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "WCF Metadata" &&
+            x.Finding == "CustomerServiceBehaviour configures WCF service metadata publishing");
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "WCF Metadata" &&
+            x.Finding == "CustomerServiceBehaviour enables WCF metadata publishing over HTTP or HTTPS");
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Debug" &&
+            x.Finding == "CustomerServiceBehaviour includes exception detail in WCF faults");
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Throttling" &&
+            x.Finding == "CustomerServiceBehaviour configures WCF service throttling");
+    }
+
+    [Fact]
+    public void Analyze_WhenWcfEndpointBehaviourHasWebHttp_AddsRestHint()
+    {
+        var analyzer = new ModernisationHintAnalyzer();
+
+        var hints = analyzer.Analyze(
+            Array.Empty<DiscoveredProject>(),
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            new[]
+            {
+                new WcfBehaviour
+                {
+                    Kind = WcfBehaviourKind.EndpointBehaviour,
+                    ConfigFilePath = "web.config",
+                    Name = "JsonEndpointBehaviour",
+                    HasWebHttp = true
+                }
+            },
+            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+            Array.Empty<DiscoveredConfigFile>());
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Info &&
+            x.Area == "WCF Behaviour" &&
+            x.Finding == "JsonEndpointBehaviour is a WCF endpoint behaviour");
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF REST" &&
+            x.Finding == "JsonEndpointBehaviour uses WCF webHttp endpoint behaviour");
+    }
+    
     [Fact]
     public void Analyze_ThrowsArgumentNullException_WhenLegacyAspNetArtifactsIsNull()
     {
