@@ -1954,12 +1954,14 @@ Current MVP functionality includes:
 Planned MVP features include:
 
 - further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
-- additional legacy ASP.NET source-level indicators beyond the currently detected MVC controller, MVC action, MVC route attribute, MVC action attribute, MVC area registration, Web API controller, Web API action, Web API route attribute, Web API action attribute, route configuration, Web API configuration, MVC startup registration, Web API startup registration, bundle configuration, and filter configuration signals
+- additional legacy ASP.NET MVC and Web API bootstrap, request-pipeline, and behaviour indicators beyond the currently detected controller, action, routing, startup registration, bundle configuration, and filter configuration signals
 - improved severity classification as more discovery signals are added
 
 ---
 
 ## Development Roadmap
+
+The roadmap is maintained as a forward-looking plan. Remaining work items should avoid repeating capabilities that are already implemented and should instead describe the next specific discovery, analysis, reporting, or prioritisation improvements that would make LegacyLens.NET more useful in real-world legacy codebase reviews.
 
 ### Step 1: Static solution and project discovery
 
@@ -2023,8 +2025,8 @@ Implemented:
 
 Remaining work:
 
-- Improve endpoint analysis beyond the currently detected binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
-- Further improve service contract parsing for more complex C# syntax beyond the currently supported static interface and operation contract patterns
+- Add more specific WCF configuration indicators that are not yet detected, such as service behaviours, endpoint behaviours, throttling, diagnostics, metadata publishing settings, custom bindings, client endpoint configuration, and service hosting activation details.
+- Further improve service contract parsing for more complex C# syntax beyond the currently supported static interface and operation contract patterns.
 
 ### Step 5: Risk and modernisation hints
 
@@ -2080,9 +2082,9 @@ Implemented:
 
 Remaining work:
 
-- Add more source-level legacy ASP.NET indicators beyond the current MVC controller, MVC action, MVC route attribute, MVC action attribute, MVC area registration, Web API controller, Web API action, Web API route attribute, Web API action attribute, route configuration, Web API configuration, MVC startup registration, Web API startup registration, bundle configuration, and filter configuration signals
-- Add richer WCF endpoint risk analysis beyond the current binding, security, credential, timeout, size, transfer mode, reader quota, and metadata exchange hints
-- Improve severity classification as more discovery signals are added
+- Add a higher-level prioritisation layer that groups discovered hints into top review areas, such as WCF migration, legacy ASP.NET migration, routing review, configuration review, and dependency review.
+- Improve severity classification as more discovery signals are added and as real-world scan examples reveal which findings are most useful to surface as `Info`, `Warning`, or `Risk`.
+- Consider adding confidence or evidence metadata to hints so reports can distinguish between file-based evidence, configuration-based evidence, and source-level pattern evidence.
 
 ---
 
@@ -2120,8 +2122,8 @@ Implemented:
 
 Remaining work:
 
-- Improve legacy ASP.NET source-level analysis beyond the currently detected MVC controller, MVC action, MVC route attribute, MVC action attribute, MVC area registration, Web API controller, Web API action, Web API route attribute, Web API action attribute, route configuration, Web API configuration, MVC startup registration, Web API startup registration, bundle configuration, and filter configuration signals
-- Consider detecting additional ASP.NET MVC and Web API indicators such as dependency resolver setup, authentication startup, authorization filter setup, formatter configuration, message handlers, and other common application bootstrap patterns
+- Add more specific ASP.NET MVC and Web API bootstrap and request-pipeline indicators that are not yet detected, such as `DependencyResolver.SetResolver(...)`, custom controller factories, authentication and authorization setup, global filter registrations beyond the standard `FilterConfig.RegisterGlobalFilters(...)` call, Web API formatter configuration, Web API message handlers, exception filters, CORS setup, custom model binders, and custom value providers.
+- Improve source-level parsing so legacy ASP.NET discovery is less dependent on simple file names, inheritance patterns, method return types, and regular-expression based source matching.
 
 ---
 
