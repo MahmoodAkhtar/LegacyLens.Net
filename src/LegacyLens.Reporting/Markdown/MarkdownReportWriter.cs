@@ -31,7 +31,7 @@ public sealed class MarkdownReportWriter
             modernisationHints,
             configFiles);
     }
-    
+
     public void Write(
         string outputPath,
         IReadOnlyList<DiscoveredSolution> solutions,
@@ -132,12 +132,14 @@ public sealed class MarkdownReportWriter
     {
         builder.AppendLine("## WCF Behaviours");
         builder.AppendLine();
-        builder.AppendLine("| Kind | Name | Service Metadata | HTTP Metadata | HTTPS Metadata | Service Debug | Exception Detail In Faults | Service Throttling | Max Concurrent Calls | Max Concurrent Sessions | Max Concurrent Instances | Web HTTP | Config File |");
+        builder.AppendLine(
+            "| Kind | Name | Service Metadata | HTTP Metadata | HTTPS Metadata | Service Debug | Exception Detail In Faults | Service Throttling | Max Concurrent Calls | Max Concurrent Sessions | Max Concurrent Instances | Web HTTP | Config File |");
         builder.AppendLine("|---|---|---|---|---|---|---|---|---:|---:|---:|---|---|");
 
         if (behaviours.Count == 0)
         {
-            builder.AppendLine("| None | None | None | None | None | None | None | None | None | None | None | None | None |");
+            builder.AppendLine(
+                "| None | None | None | None | None | None | None | None | None | None | None | None | None |");
             builder.AppendLine();
             return;
         }
@@ -153,7 +155,7 @@ public sealed class MarkdownReportWriter
 
         builder.AppendLine();
     }
-    
+
     private static void AppendSolutions(
         StringBuilder builder,
         IReadOnlyList<DiscoveredSolution> solutions)
@@ -381,7 +383,8 @@ public sealed class MarkdownReportWriter
     {
         builder.AppendLine("## WCF Endpoints");
         builder.AppendLine();
-        builder.AppendLine("| Service | Address | Binding | Binding Configuration | Security Mode | Transport Credential | Message Credential | Metadata Exchange | Contract | Config File |");
+        builder.AppendLine(
+            "| Service | Address | Binding | Binding Configuration | Security Mode | Transport Credential | Message Credential | Metadata Exchange | Contract | Config File |");
         builder.AppendLine("|---|---|---|---|---|---|---|---|---|---|");
 
         if (endpoints.Count == 0)
@@ -406,7 +409,8 @@ public sealed class MarkdownReportWriter
     {
         builder.AppendLine("## WCF Binding Details");
         builder.AppendLine();
-        builder.AppendLine("| Service | Binding | Binding Configuration | Open Timeout | Close Timeout | Send Timeout | Receive Timeout | Max Received Message Size | Max Buffer Size | Max Buffer Pool Size | Transfer Mode |");
+        builder.AppendLine(
+            "| Service | Binding | Binding Configuration | Open Timeout | Close Timeout | Send Timeout | Receive Timeout | Max Received Message Size | Max Buffer Size | Max Buffer Pool Size | Transfer Mode |");
         builder.AppendLine("|---|---|---|---|---|---|---|---:|---:|---:|---|");
 
         var endpointsWithBindingDetails = endpoints
@@ -437,7 +441,8 @@ public sealed class MarkdownReportWriter
     {
         builder.AppendLine("## WCF Reader Quotas");
         builder.AppendLine();
-        builder.AppendLine("| Service | Binding | Binding Configuration | Max Depth | Max String Content Length | Max Array Length | Max Bytes Per Read | Max Name Table Char Count |");
+        builder.AppendLine(
+            "| Service | Binding | Binding Configuration | Max Depth | Max String Content Length | Max Array Length | Max Bytes Per Read | Max Name Table Char Count |");
         builder.AppendLine("|---|---|---|---:|---:|---:|---:|---:|");
 
         var endpointsWithReaderQuotas = endpoints
@@ -579,30 +584,67 @@ public sealed class MarkdownReportWriter
 
         builder.AppendLine();
     }
-    
+
     private static void AppendModernisationHints(
         StringBuilder builder,
         IReadOnlyList<ModernisationHint> hints)
     {
         builder.AppendLine("## Modernisation Hints");
         builder.AppendLine();
-        builder.AppendLine("| Severity | Area | Finding | Reason |");
-        builder.AppendLine("|---|---|---|---|");
+        builder.AppendLine("| Severity | Area | Finding | Evidence | Confidence | Source | Reason |");
+        builder.AppendLine("|---|---|---|---|---|---|---|");
 
         if (hints.Count == 0)
         {
-            builder.AppendLine("| None | None | None | None |");
+            builder.AppendLine("| None | None | None | None | None | None | None |");
             builder.AppendLine();
             return;
         }
 
-        foreach (var hint in hints.OrderByDescending(x => x.Severity).ThenBy(x => x.Area))
+        foreach (var hint in hints
+                     .OrderByDescending(x => x.Severity)
+                     .ThenBy(x => x.Area)
+                     .ThenBy(x => x.Finding))
         {
+            var evidence = BuildEvidenceText(hint);
+            var source = BuildSourceText(hint);
+
             builder.AppendLine(
-                $"| {hint.Severity} | {Escape(hint.Area)} | {Escape(hint.Finding)} | {Escape(hint.Reason)} |");
+                $"| {hint.Severity} | {Escape(hint.Area)} | {Escape(hint.Finding)} | {Escape(evidence)} | {hint.Confidence} | {source} | {Escape(hint.Reason)} |");
         }
 
         builder.AppendLine();
+    }
+
+    private static string BuildEvidenceText(ModernisationHint hint)
+    {
+        if (string.IsNullOrWhiteSpace(hint.EvidenceKind) &&
+            string.IsNullOrWhiteSpace(hint.EvidenceName))
+        {
+            return "None";
+        }
+
+        if (string.IsNullOrWhiteSpace(hint.EvidenceKind))
+        {
+            return hint.EvidenceName ?? "None";
+        }
+
+        if (string.IsNullOrWhiteSpace(hint.EvidenceName))
+        {
+            return hint.EvidenceKind;
+        }
+
+        return $"{hint.EvidenceKind}: {hint.EvidenceName}";
+    }
+
+    private static string BuildSourceText(ModernisationHint hint)
+    {
+        if (string.IsNullOrWhiteSpace(hint.EvidencePath))
+        {
+            return "None";
+        }
+
+        return $"`{Escape(hint.EvidencePath)}`";
     }
 
     private static bool HasBindingDetails(WcfEndpoint endpoint)

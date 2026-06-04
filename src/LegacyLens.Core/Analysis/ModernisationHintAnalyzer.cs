@@ -48,9 +48,347 @@ public sealed class ModernisationHintAnalyzer
         AddLegacyAspNetArtifactHints(legacyAspNetArtifacts, hints);
         AddConfigHints(configFiles, hints);
 
-        return hints;
+        return AddEvidenceMetadata(
+            hints,
+            projects,
+            wcfEndpoints,
+            wcfServiceContracts,
+            wcfBehaviours,
+            legacyAspNetArtifacts,
+            configFiles);
     }
 
+    private static IReadOnlyList<ModernisationHint> AddEvidenceMetadata(
+        IReadOnlyList<ModernisationHint> hints,
+        IReadOnlyList<DiscoveredProject> projects,
+        IReadOnlyList<WcfEndpoint> wcfEndpoints,
+        IReadOnlyList<WcfServiceContract> wcfServiceContracts,
+        IReadOnlyList<WcfBehaviour> wcfBehaviours,
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts,
+        IReadOnlyList<DiscoveredConfigFile> configFiles)
+    {
+        return hints
+            .Select(hint =>
+                TryAddPackageEvidence(hint, projects) ??
+                TryAddAssemblyReferenceEvidence(hint, projects) ??
+                TryAddWcfBehaviourEvidence(hint, wcfBehaviours) ??
+                TryAddWcfEndpointEvidence(hint, wcfEndpoints) ??
+                TryAddWcfServiceContractEvidence(hint, wcfServiceContracts) ??
+                TryAddLegacyAspNetArtifactEvidence(hint, legacyAspNetArtifacts) ??
+                TryAddConfigFileEvidence(hint, configFiles) ??
+                TryAddProjectEvidence(hint, projects) ??
+                AddSummaryEvidence(hint))
+            .ToList();
+    }
+
+    private static ModernisationHint? TryAddPackageEvidence(
+        ModernisationHint hint,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        foreach (var project in projects)
+        {
+            foreach (var package in project.PackageReferences)
+            {
+                if (hint.Finding.Contains(project.Name, StringComparison.OrdinalIgnoreCase) &&
+                    hint.Finding.Contains(package, StringComparison.OrdinalIgnoreCase))
+                {
+                    return WithEvidence(
+                        hint,
+                        "PackageReference",
+                        package,
+                        project.ProjectFilePath,
+                        ModernisationHintConfidence.High);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static ModernisationHint? TryAddAssemblyReferenceEvidence(
+        ModernisationHint hint,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        foreach (var project in projects)
+        {
+            foreach (var reference in project.AssemblyReferences)
+            {
+                if (hint.Finding.Contains(project.Name, StringComparison.OrdinalIgnoreCase) &&
+                    hint.Finding.Contains(reference, StringComparison.OrdinalIgnoreCase))
+                {
+                    return WithEvidence(
+                        hint,
+                        "AssemblyReference",
+                        reference,
+                        project.ProjectFilePath,
+                        ModernisationHintConfidence.High);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static ModernisationHint? TryAddProjectEvidence(
+        ModernisationHint hint,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        foreach (var project in projects)
+        {
+            if (hint.Finding.StartsWith(project.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                return WithEvidence(
+                    hint,
+                    "Project",
+                    project.Name,
+                    project.ProjectFilePath,
+                    ModernisationHintConfidence.High);
+            }
+        }
+
+        return null;
+    }
+
+    private static ModernisationHint? TryAddWcfEndpointEvidence(
+        ModernisationHint hint,
+        IReadOnlyList<WcfEndpoint> wcfEndpoints)
+    {
+        if (!IsWcfEndpointHint(hint))
+        {
+            return null;
+        }
+
+        foreach (var endpoint in wcfEndpoints)
+        {
+            var serviceName = GetServiceName(endpoint);
+
+            if (hint.Finding.Contains(serviceName, StringComparison.OrdinalIgnoreCase))
+            {
+                return WithEvidence(
+                    hint,
+                    "WcfEndpoint",
+                    serviceName,
+                    endpoint.ConfigFilePath,
+                    ModernisationHintConfidence.High);
+            }
+        }
+
+        if (hint.Area.Equals("WCF", StringComparison.OrdinalIgnoreCase) &&
+            hint.Finding.Contains("endpoint", StringComparison.OrdinalIgnoreCase))
+        {
+            if (wcfEndpoints.Count == 1)
+            {
+                var endpoint = wcfEndpoints[0];
+
+                return WithEvidence(
+                    hint,
+                    "WcfEndpoint",
+                    GetServiceName(endpoint),
+                    endpoint.ConfigFilePath,
+                    ModernisationHintConfidence.Medium);
+            }
+
+            if (wcfEndpoints.Count > 1)
+            {
+                return WithEvidence(
+                    hint,
+                    "WcfEndpointSummary",
+                    $"{wcfEndpoints.Count} WCF endpoint(s)",
+                    null,
+                    ModernisationHintConfidence.Medium);
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsWcfEndpointHint(ModernisationHint hint)
+    {
+        return hint.Area.Equals("WCF", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Equals("WCF Binding", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Equals("WCF Configuration", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Equals("WCF Security", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Equals("WCF Timeout", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Equals("WCF Binding Limits", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Equals("WCF Transfer Mode", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Equals("WCF Reader Quotas", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Equals("WCF Metadata", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static ModernisationHint? TryAddWcfServiceContractEvidence(
+        ModernisationHint hint,
+        IReadOnlyList<WcfServiceContract> wcfServiceContracts)
+    {
+        if (!IsWcfServiceContractHint(hint))
+        {
+            return null;
+        }
+
+        foreach (var contract in wcfServiceContracts)
+        {
+            if (hint.Finding.Contains(contract.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                return WithEvidence(
+                    hint,
+                    "WcfServiceContract",
+                    contract.Name,
+                    contract.SourceFilePath,
+                    ModernisationHintConfidence.High);
+            }
+        }
+
+        if (hint.Area.Equals("WCF", StringComparison.OrdinalIgnoreCase) &&
+            hint.Finding.Contains("service contract", StringComparison.OrdinalIgnoreCase))
+        {
+            if (wcfServiceContracts.Count == 1)
+            {
+                var contract = wcfServiceContracts[0];
+
+                return WithEvidence(
+                    hint,
+                    "WcfServiceContract",
+                    contract.Name,
+                    contract.SourceFilePath,
+                    ModernisationHintConfidence.Medium);
+            }
+
+            if (wcfServiceContracts.Count > 1)
+            {
+                return WithEvidence(
+                    hint,
+                    "WcfServiceContractSummary",
+                    $"{wcfServiceContracts.Count} WCF service contract(s)",
+                    null,
+                    ModernisationHintConfidence.Medium);
+            }
+        }
+
+        return null;
+    }
+
+    private static bool IsWcfServiceContractHint(ModernisationHint hint)
+    {
+        return hint.Area.Equals("WCF", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("service contract", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static ModernisationHint? TryAddWcfBehaviourEvidence(
+        ModernisationHint hint,
+        IReadOnlyList<WcfBehaviour> wcfBehaviours)
+    {
+        if (!hint.Area.StartsWith("WCF", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        foreach (var behaviour in wcfBehaviours)
+        {
+            var behaviourName = GetWcfBehaviourName(behaviour);
+
+            if (hint.Finding.Contains(behaviourName, StringComparison.OrdinalIgnoreCase))
+            {
+                return WithEvidence(
+                    hint,
+                    "WcfBehaviour",
+                    behaviourName,
+                    behaviour.ConfigFilePath,
+                    ModernisationHintConfidence.High);
+            }
+        }
+
+        return null;
+    }
+
+    private static ModernisationHint? TryAddLegacyAspNetArtifactEvidence(
+        ModernisationHint hint,
+        IReadOnlyList<DiscoveredLegacyAspNetArtifact> legacyAspNetArtifacts)
+    {
+        if (!hint.Area.StartsWith("Legacy ASP.NET", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var matchingArtifact = legacyAspNetArtifacts
+            .Select(artifact => new
+            {
+                Artifact = artifact,
+                Name = GetLegacyAspNetArtifactName(artifact)
+            })
+            .Where(x =>
+                !string.IsNullOrWhiteSpace(x.Name) &&
+                hint.Finding.Contains(x.Name, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(x => x.Name.Length)
+            .FirstOrDefault();
+
+        if (matchingArtifact is null)
+        {
+            return null;
+        }
+
+        return WithEvidence(
+            hint,
+            "LegacyAspNetArtifact",
+            matchingArtifact.Name,
+            matchingArtifact.Artifact.FilePath,
+            ModernisationHintConfidence.High);
+    }
+
+    private static ModernisationHint? TryAddConfigFileEvidence(
+        ModernisationHint hint,
+        IReadOnlyList<DiscoveredConfigFile> configFiles)
+    {
+        if (!hint.Area.Equals("Configuration", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        foreach (var configFile in configFiles)
+        {
+            var fileName = Path.GetFileName(configFile.FilePath);
+
+            if (hint.Finding.Contains(fileName, StringComparison.OrdinalIgnoreCase))
+            {
+                return WithEvidence(
+                    hint,
+                    "ConfigurationFile",
+                    fileName,
+                    configFile.FilePath,
+                    ModernisationHintConfidence.High);
+            }
+        }
+
+        return null;
+    }
+
+    private static ModernisationHint AddSummaryEvidence(ModernisationHint hint)
+    {
+        return WithEvidence(
+            hint,
+            "AnalysisSummary",
+            hint.Area,
+            null,
+            ModernisationHintConfidence.Medium);
+    }
+
+    private static ModernisationHint WithEvidence(
+        ModernisationHint hint,
+        string evidenceKind,
+        string evidenceName,
+        string? evidencePath,
+        ModernisationHintConfidence confidence)
+    {
+        return new ModernisationHint
+        {
+            Severity = hint.Severity,
+            Area = hint.Area,
+            Finding = hint.Finding,
+            Reason = hint.Reason,
+            EvidenceKind = evidenceKind,
+            EvidenceName = evidenceName,
+            EvidencePath = evidencePath,
+            Confidence = confidence
+        };
+    }
 
     private static void AddConfigHints(
         IReadOnlyList<DiscoveredConfigFile> configFiles,
@@ -795,8 +1133,8 @@ public sealed class ModernisationHintAnalyzer
                             "Global filter registration should be reviewed because equivalent ASP.NET Core filters, middleware, or endpoint conventions may need to be configured explicitly."
                     });
                     break;
-                
-                                case LegacyAspNetArtifactKind.MvcDependencyResolverRegistration:
+
+                case LegacyAspNetArtifactKind.MvcDependencyResolverRegistration:
                     hints.Add(new ModernisationHint
                     {
                         Severity = ModernisationHintSeverity.Warning,
@@ -927,8 +1265,8 @@ public sealed class ModernisationHintAnalyzer
                             "Web API startup registration should be reviewed because routing, formatters, filters, dependency resolution, or other API configuration may need explicit ASP.NET Core equivalents."
                     });
                     break;
-                
-                                case LegacyAspNetArtifactKind.WebApiDependencyResolverRegistration:
+
+                case LegacyAspNetArtifactKind.WebApiDependencyResolverRegistration:
                     hints.Add(new ModernisationHint
                     {
                         Severity = ModernisationHintSeverity.Warning,

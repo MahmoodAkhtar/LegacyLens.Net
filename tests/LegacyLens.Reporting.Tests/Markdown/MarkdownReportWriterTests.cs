@@ -587,21 +587,29 @@ public sealed class MarkdownReportWriterTests
     [Fact]
     public void Write_IncludesModernisationHints()
     {
-        var rootPath = CreateTemporaryDirectory();
+        var outputPath = Path.Combine(
+            Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"),
+            "discovery-report.md");
 
         try
         {
-            var outputPath = Path.Combine(rootPath, "discovery-report.md");
-
-            var hint = new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Risk,
-                Area = "Legacy ASP.NET",
-                Finding = "SampleLegacyApp.Web references System.Web",
-                Reason = "System.Web usually indicates classic ASP.NET."
-            };
-
             var writer = new MarkdownReportWriter();
+
+            var hints = new[]
+            {
+                new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Risk,
+                    Area = "Target Framework",
+                    Finding = "LegacyApp targets net48",
+                    Reason = ".NET Framework projects usually need extra assessment before migration to modern .NET.",
+                    EvidenceKind = "Project",
+                    EvidenceName = "LegacyApp",
+                    EvidencePath = @"C:\Code\LegacyApp\LegacyApp.csproj",
+                    Confidence = ModernisationHintConfidence.High
+                }
+            };
 
             writer.Write(
                 outputPath,
@@ -609,20 +617,31 @@ public sealed class MarkdownReportWriterTests
                 Array.Empty<DiscoveredProject>(),
                 Array.Empty<WcfEndpoint>(),
                 Array.Empty<WcfServiceContract>(),
+                Array.Empty<WcfBehaviour>(),
                 Array.Empty<DiscoveredLegacyAspNetArtifact>(),
-                new[] { hint },
+                hints,
                 Array.Empty<DiscoveredConfigFile>());
 
             var markdown = File.ReadAllText(outputPath);
 
-            markdown.Should().Contain("## Modernisation Hints");
-            markdown.Should()
-                .Contain(
-                    "| Risk | Legacy ASP.NET | SampleLegacyApp.Web references System.Web | System.Web usually indicates classic ASP.NET. |");
+            Assert.Contains("## Modernisation Hints", markdown);
+            Assert.Contains("| Severity | Area | Finding | Evidence | Confidence | Source | Reason |", markdown);
+            Assert.Contains("|---|---|---|---|---|---|---|", markdown);
+            Assert.Contains("LegacyApp targets net48", markdown);
+            Assert.Contains("Project: LegacyApp", markdown);
+            Assert.Contains("| High |", markdown);
+            Assert.Contains(@"`C:\Code\LegacyApp\LegacyApp.csproj`", markdown);
+            Assert.Contains(".NET Framework projects usually need extra assessment before migration to modern .NET.",
+                markdown);
         }
         finally
         {
-            DeleteDirectory(rootPath);
+            var directory = Path.GetDirectoryName(outputPath);
+
+            if (!string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
         }
     }
 
