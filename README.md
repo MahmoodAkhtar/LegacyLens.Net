@@ -2222,12 +2222,12 @@ Current MVP functionality includes:
 - modernisation review summary reporting in the generated Markdown report
 - output file generation under the `output/` directory
 
-Planned MVP features include:
+Remaining MVP refinements include:
 
 - further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
 - additional WCF configuration indicators beyond the currently detected endpoints, named binding settings, service behaviours, endpoint behaviours, metadata publishing, debug, throttling, `webHttp`, timeout, size, transfer mode, reader quota, security, credential, and metadata exchange signals
-- additional legacy ASP.NET MVC and Web API bootstrap, request-pipeline, and behaviour indicators beyond the currently detected controller, action, routing, startup registration, bundle configuration, and filter configuration signals
-- further refinement of severity classification and review area grouping as more discovery signals are added
+- additional legacy ASP.NET MVC and Web API bootstrap, request-pipeline, and behaviour indicators beyond the currently detected controller, action, routing, startup registration, bundle configuration, filter configuration, Web API configuration, and Web API route registration signals
+- further refinement of severity classification, evidence, confidence, and review area grouping as more discovery signals are added
 
 ---
 
@@ -2278,7 +2278,7 @@ Status: Implemented
 
 ### Step 4: WCF configuration and service contract discovery
 
-Status: Partially implemented
+Status: Implemented with remaining refinements
 
 Implemented:
 
@@ -2305,14 +2305,14 @@ Implemented:
 - Scope detected WCF operations to their containing service contract interface
 - Report contract name, operation names, and source file path
 
-Remaining work:
+Remaining refinements:
 
 - Add further WCF configuration indicators that are not yet detected, such as diagnostics, custom bindings, client endpoint configuration, service hosting activation details, credential behaviours, authorization behaviours, and message inspector or custom behaviour extension details.
 - Further improve service contract parsing for more complex C# syntax beyond the currently supported static interface and operation contract patterns.
 
 ### Step 5: Risk and modernisation hints
 
-Status: Partially implemented
+Status: Implemented with remaining refinements
 
 Implemented:
 
@@ -2372,16 +2372,16 @@ Implemented:
 - Report prioritised modernisation review areas in the generated Markdown report
 - Print prioritised modernisation review areas in the CLI output
 
-Remaining work:
+Remaining refinements:
 
 - Refine review area grouping and severity ranking as more discovery signals are added.
-- Add richer evidence or confidence metadata to modernisation hints so review summaries can explain which files, projects, packages, or configuration entries contributed to each priority area.
+- Add richer evidence, confidence, and source metadata to modernisation hints so review summaries can explain which files, projects, packages, assembly references, artifacts, or configuration entries contributed to each priority area.
 
 ---
 
 ### Step 6: Legacy ASP.NET artifact discovery
 
-Status: Partially implemented
+Status: Implemented with remaining refinements
 
 Implemented:
 
@@ -2411,7 +2411,7 @@ Implemented:
 - Report discovered legacy ASP.NET artifacts in the generated Markdown report
 - Include discovered legacy ASP.NET artifacts in modernisation hint analysis
 
-Remaining work:
+Remaining refinements:
 
 - Add more specific ASP.NET MVC and Web API bootstrap and request-pipeline indicators that are not yet detected, such as `DependencyResolver.SetResolver(...)`, custom controller factories, authentication and authorization setup, global filter registrations beyond the standard `FilterConfig.RegisterGlobalFilters(...)` call, Web API formatter configuration, Web API message handlers, exception filters, CORS setup, custom model binders, and custom value providers.
 - Improve source-level parsing so legacy ASP.NET discovery is less dependent on simple file names, inheritance patterns, method return types, and regular-expression based source matching.

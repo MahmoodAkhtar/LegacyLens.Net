@@ -21,11 +21,21 @@ public enum LegacyAspNetArtifactKind
     MvcBundleRegistrationCall,
     MvcFilterConfig,
     MvcFilterRegistrationCall,
+    MvcDependencyResolverRegistration,
+    MvcControllerFactoryRegistration,
+    MvcGlobalFilterRegistration,
+    MvcModelBinderRegistration,
+    MvcValueProviderFactoryRegistration,
     WebApiController,
     WebApiAction,
     WebApiRouteAttribute,
     WebApiActionAttribute,
     WebApiConfig,
     WebApiRouteRegistrationCall,
-    WebApiGlobalConfigurationCall
+    WebApiGlobalConfigurationCall,
+    WebApiDependencyResolverRegistration,
+    WebApiFormatterConfiguration,
+    WebApiMessageHandlerRegistration,
+    WebApiFilterRegistration,
+    WebApiCorsRegistration
 }

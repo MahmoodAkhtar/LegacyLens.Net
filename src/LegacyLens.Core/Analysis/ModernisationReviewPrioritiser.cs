@@ -114,10 +114,24 @@ public sealed class ModernisationReviewPrioritiser
                hint.Area.Contains("Bundling", StringComparison.OrdinalIgnoreCase) ||
                hint.Area.Contains("Filters", StringComparison.OrdinalIgnoreCase) ||
                hint.Area.Contains("Attributes", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Contains("Request Pipeline", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Contains("Dependency Resolution", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Contains("Model Binding", StringComparison.OrdinalIgnoreCase) ||
+               hint.Area.Contains("Web API Pipeline", StringComparison.OrdinalIgnoreCase) ||
                hint.Finding.Contains("Application_Start", StringComparison.OrdinalIgnoreCase) ||
                hint.Finding.Contains("GlobalConfiguration.Configure", StringComparison.OrdinalIgnoreCase) ||
                hint.Finding.Contains("RegisterGlobalFilters", StringComparison.OrdinalIgnoreCase) ||
-               hint.Finding.Contains("RegisterBundles", StringComparison.OrdinalIgnoreCase);
+               hint.Finding.Contains("RegisterBundles", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("SetResolver", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("SetControllerFactory", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("GlobalFilters.Filters.Add", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("ModelBinders.Binders", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("ValueProviderFactories.Factories", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("config.DependencyResolver", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("config.Formatters", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("config.MessageHandlers.Add", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("config.Filters.Add", StringComparison.OrdinalIgnoreCase) ||
+               hint.Finding.Contains("config.EnableCors", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string BuildSummary(
@@ -140,8 +154,8 @@ public sealed class ModernisationReviewPrioritiser
                 $"{countSummary}. Review conventional routes, attribute routes, area routes, and Web API route registrations to preserve URL and client compatibility.",
 
             "Startup and request pipeline review" =>
-                $"{countSummary}. Review application startup, global filters, action attributes, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents.",
-
+                $"{countSummary}. Review application startup, dependency resolver setup, controller factories, global filters, action attributes, formatters, message handlers, CORS, model binding, value providers, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents.",
+            
             "Configuration review" =>
                 $"{countSummary}. Review appSettings, connection strings, and custom configuration sections for runtime behaviour and external dependencies.",
 

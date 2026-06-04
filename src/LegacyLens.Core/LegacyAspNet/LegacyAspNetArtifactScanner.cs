@@ -56,6 +56,46 @@ public sealed class LegacyAspNetArtifactScanner
         @"\bMapHttpRoute\s*\(",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
 
+    private static readonly Regex MvcDependencyResolverRegistrationRegex = new(
+        @"\bDependencyResolver\s*\.\s*SetResolver\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex MvcControllerFactoryRegistrationRegex = new(
+        @"\bControllerBuilder\s*\.\s*Current\s*\.\s*SetControllerFactory\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex MvcGlobalFilterRegistrationRegex = new(
+        @"\bGlobalFilters\s*\.\s*Filters\s*\.\s*Add\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex MvcModelBinderRegistrationRegex = new(
+        @"\bModelBinders\s*\.\s*Binders\s*(?:\.|\[)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex MvcValueProviderFactoryRegistrationRegex = new(
+        @"\bValueProviderFactories\s*\.\s*Factories\s*(?:\.|\[)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex WebApiDependencyResolverRegistrationRegex = new(
+        @"(?:\bconfig\s*\.\s*DependencyResolver\s*=|\bGlobalConfiguration\s*\.\s*Configuration\s*\.\s*DependencyResolver\s*=)",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex WebApiFormatterConfigurationRegex = new(
+        @"\bconfig\s*\.\s*Formatters\s*\.",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex WebApiMessageHandlerRegistrationRegex = new(
+        @"\bconfig\s*\.\s*MessageHandlers\s*\.\s*Add\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex WebApiFilterRegistrationRegex = new(
+        @"\bconfig\s*\.\s*Filters\s*\.\s*Add\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+    private static readonly Regex WebApiCorsRegistrationRegex = new(
+        @"\bconfig\s*\.\s*EnableCors\s*\(",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+    
     private static readonly HashSet<string> MvcActionReturnTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "ActionResult",
@@ -262,6 +302,8 @@ public sealed class LegacyAspNetArtifactScanner
             AddMvcApplicationStartupArtifacts(sourceFilePath, source, artifacts);
             AddMvcBundleConfigArtifact(sourceFilePath, source, artifacts);
             AddMvcFilterConfigArtifact(sourceFilePath, source, artifacts);
+            AddMvcRequestPipelineArtifacts(sourceFilePath, source, artifacts);
+            AddWebApiRequestPipelineArtifacts(sourceFilePath, source, artifacts);
         }
     }
 
@@ -729,6 +771,118 @@ public sealed class LegacyAspNetArtifactScanner
             sourceFilePath));
     }
 
+        private static void AddMvcRequestPipelineArtifacts(
+        string sourceFilePath,
+        string source,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        if (MvcDependencyResolverRegistrationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcDependencyResolverRegistration,
+                FilePath = sourceFilePath,
+                Name = "DependencyResolver.SetResolver"
+            });
+        }
+
+        if (MvcControllerFactoryRegistrationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcControllerFactoryRegistration,
+                FilePath = sourceFilePath,
+                Name = "ControllerBuilder.Current.SetControllerFactory"
+            });
+        }
+
+        if (MvcGlobalFilterRegistrationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcGlobalFilterRegistration,
+                FilePath = sourceFilePath,
+                Name = "GlobalFilters.Filters.Add"
+            });
+        }
+
+        if (MvcModelBinderRegistrationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcModelBinderRegistration,
+                FilePath = sourceFilePath,
+                Name = "ModelBinders.Binders"
+            });
+        }
+
+        if (MvcValueProviderFactoryRegistrationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.MvcValueProviderFactoryRegistration,
+                FilePath = sourceFilePath,
+                Name = "ValueProviderFactories.Factories"
+            });
+        }
+    }
+
+    private static void AddWebApiRequestPipelineArtifacts(
+        string sourceFilePath,
+        string source,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        if (WebApiDependencyResolverRegistrationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiDependencyResolverRegistration,
+                FilePath = sourceFilePath,
+                Name = "config.DependencyResolver"
+            });
+        }
+
+        if (WebApiFormatterConfigurationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiFormatterConfiguration,
+                FilePath = sourceFilePath,
+                Name = "config.Formatters"
+            });
+        }
+
+        if (WebApiMessageHandlerRegistrationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiMessageHandlerRegistration,
+                FilePath = sourceFilePath,
+                Name = "config.MessageHandlers.Add"
+            });
+        }
+
+        if (WebApiFilterRegistrationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiFilterRegistration,
+                FilePath = sourceFilePath,
+                Name = "config.Filters.Add"
+            });
+        }
+
+        if (WebApiCorsRegistrationRegex.IsMatch(source))
+        {
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.WebApiCorsRegistration,
+                FilePath = sourceFilePath,
+                Name = "config.EnableCors"
+            });
+        }
+    }
+    
     private static string GetClassBody(string source, Match classMatch)
     {
         var openingBraceIndex = source.IndexOf('{', classMatch.Index);

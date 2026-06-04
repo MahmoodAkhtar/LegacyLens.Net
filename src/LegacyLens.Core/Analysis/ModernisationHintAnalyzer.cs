@@ -795,6 +795,61 @@ public sealed class ModernisationHintAnalyzer
                             "Global filter registration should be reviewed because equivalent ASP.NET Core filters, middleware, or endpoint conventions may need to be configured explicitly."
                     });
                     break;
+                
+                                case LegacyAspNetArtifactKind.MvcDependencyResolverRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Dependency Resolution",
+                        Finding = $"{name} configures ASP.NET MVC dependency resolution",
+                        Reason =
+                            "MVC dependency resolver registration can affect controller activation, service lifetimes, filters, model binders, and other application services that need explicit mapping during ASP.NET Core migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcControllerFactoryRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Request Pipeline",
+                        Finding = $"{name} configures an ASP.NET MVC controller factory",
+                        Reason =
+                            "Custom MVC controller factories can affect controller creation, dependency injection, routing behaviour, and request handling during migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcGlobalFilterRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Filters",
+                        Finding = $"{name} registers an ASP.NET MVC global filter",
+                        Reason =
+                            "Global filter registrations can affect authorization, error handling, caching, model binding, and other cross-cutting request behaviour."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcModelBinderRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Model Binding",
+                        Finding = $"{name} configures ASP.NET MVC model binders",
+                        Reason =
+                            "Custom MVC model binder registrations can materially affect request input handling and should be mapped carefully when moving to ASP.NET Core model binding."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.MvcValueProviderFactoryRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Model Binding",
+                        Finding = $"{name} configures ASP.NET MVC value provider factories",
+                        Reason =
+                            "Custom MVC value provider factories can affect how route, query string, form, header, cookie, or other request values are supplied to model binding."
+                    });
+                    break;
 
                 case LegacyAspNetArtifactKind.WebApiController:
                     hints.Add(new ModernisationHint
@@ -870,6 +925,61 @@ public sealed class ModernisationHintAnalyzer
                         Finding = $"{name} registers ASP.NET Web API startup configuration",
                         Reason =
                             "Web API startup registration should be reviewed because routing, formatters, filters, dependency resolution, or other API configuration may need explicit ASP.NET Core equivalents."
+                    });
+                    break;
+                
+                                case LegacyAspNetArtifactKind.WebApiDependencyResolverRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Dependency Resolution",
+                        Finding = $"{name} configures ASP.NET Web API dependency resolution",
+                        Reason =
+                            "Web API dependency resolver configuration can affect controller activation, service lifetimes, filters, message handlers, and other API services that need explicit ASP.NET Core equivalents."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiFormatterConfiguration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Web API Pipeline",
+                        Finding = $"{name} configures ASP.NET Web API formatters",
+                        Reason =
+                            "Web API formatter configuration can affect JSON, XML, media type negotiation, serialization settings, and client compatibility during migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiMessageHandlerRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Web API Pipeline",
+                        Finding = $"{name} registers an ASP.NET Web API message handler",
+                        Reason =
+                            "Web API message handlers can implement cross-cutting request and response behaviour that may need mapping to ASP.NET Core middleware or delegating handlers."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiFilterRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Web API Pipeline",
+                        Finding = $"{name} registers an ASP.NET Web API filter",
+                        Reason =
+                            "Web API filter registrations can affect authorization, exception handling, action execution, caching, or other endpoint behaviour during migration."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.WebApiCorsRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Web API Pipeline",
+                        Finding = $"{name} enables ASP.NET Web API CORS configuration",
+                        Reason =
+                            "CORS configuration affects browser clients and cross-origin API access and should be mapped explicitly when migrating to ASP.NET Core."
                     });
                     break;
             }

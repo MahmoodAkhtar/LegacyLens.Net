@@ -235,4 +235,34 @@ public sealed class ModernisationReviewPrioritiserTests
         Assert.Equal("WCF migration", reviewArea.Area);
         Assert.Equal(ModernisationHintSeverity.Risk, reviewArea.HighestSeverity);
     }
+    
+    [Theory]
+    [InlineData("Legacy ASP.NET Dependency Resolution", "DependencyResolver.SetResolver configures ASP.NET MVC dependency resolution")]
+    [InlineData("Legacy ASP.NET Request Pipeline", "ControllerBuilder.Current.SetControllerFactory configures an ASP.NET MVC controller factory")]
+    [InlineData("Legacy ASP.NET Model Binding", "ModelBinders.Binders configures ASP.NET MVC model binders")]
+    [InlineData("Legacy ASP.NET Web API Pipeline", "config.Formatters configures ASP.NET Web API formatters")]
+    public void Prioritise_WhenHintIsRequestPipelineRelated_GroupsIntoStartupAndRequestPipelineReview(
+        string area,
+        string finding)
+    {
+        var prioritiser = new ModernisationReviewPrioritiser();
+
+        var reviewAreas = prioritiser.Prioritise(
+            new[]
+            {
+                new ModernisationHint
+                {
+                    Severity = ModernisationHintSeverity.Warning,
+                    Area = area,
+                    Finding = finding,
+                    Reason = "Test reason"
+                }
+            });
+
+        Assert.Contains(
+            reviewAreas,
+            x => x.Area == "Startup and request pipeline review" &&
+                 x.HighestSeverity == ModernisationHintSeverity.Warning &&
+                 x.WarningCount == 1);
+    }
 }
