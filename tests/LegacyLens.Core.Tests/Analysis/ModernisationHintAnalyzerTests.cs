@@ -284,20 +284,22 @@ public sealed class ModernisationHintAnalyzerTests
     [Fact]
     public void Analyze_ReturnsNetTcpBindingRisk_WhenEndpointUsesNetTcpBinding()
     {
+        var endpoints = new[]
+        {
+            new WcfEndpoint
+            {
+                ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Binding = "netTcpBinding",
+                Contract = "SampleLegacyApp.Contracts.ICustomerService"
+            }
+        };
+
         var analyzer = new ModernisationHintAnalyzer();
 
         var hints = analyzer.Analyze(
             Array.Empty<DiscoveredProject>(),
-            new[]
-            {
-                new WcfEndpoint
-                {
-                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
-                    ServiceName = "SampleLegacyApp.Services.CustomerService",
-                    Binding = "netTcpBinding",
-                    Contract = "SampleLegacyApp.Contracts.ICustomerService"
-                }
-            },
+            endpoints,
             Array.Empty<WcfServiceContract>(),
             Array.Empty<WcfBehaviour>(),
             Array.Empty<DiscoveredLegacyAspNetArtifact>(),
@@ -306,8 +308,8 @@ public sealed class ModernisationHintAnalyzerTests
         Assert.Contains(hints, x =>
             x.Severity == ModernisationHintSeverity.Risk &&
             x.Area == "WCF Binding" &&
-            x.Finding == "netTcpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService" &&
-            x.Reason == "netTcpBinding is WCF-specific and usually needs careful migration or replacement planning.");
+            x.Finding ==
+            "netTcpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerService");
     }
 
     [Fact]
@@ -371,19 +373,21 @@ public sealed class ModernisationHintAnalyzerTests
     [Fact]
     public void Analyze_ReturnsWcfBindingWarning_WhenEndpointHasNoBinding()
     {
+        var endpoints = new[]
+        {
+            new WcfEndpoint
+            {
+                ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Contract = "SampleLegacyApp.Contracts.ICustomerService"
+            }
+        };
+
         var analyzer = new ModernisationHintAnalyzer();
 
         var hints = analyzer.Analyze(
             Array.Empty<DiscoveredProject>(),
-            new[]
-            {
-                new WcfEndpoint
-                {
-                    ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
-                    ServiceName = "SampleLegacyApp.Services.CustomerService",
-                    Contract = "SampleLegacyApp.Contracts.ICustomerService"
-                }
-            },
+            endpoints,
             Array.Empty<WcfServiceContract>(),
             Array.Empty<WcfBehaviour>(),
             Array.Empty<DiscoveredLegacyAspNetArtifact>(),
@@ -392,8 +396,8 @@ public sealed class ModernisationHintAnalyzerTests
         Assert.Contains(hints, x =>
             x.Severity == ModernisationHintSeverity.Warning &&
             x.Area == "WCF Binding" &&
-            x.Finding == "SampleLegacyApp.Services.CustomerService has a WCF endpoint without a binding" &&
-            x.Reason == "Missing WCF binding information makes endpoint migration assessment harder.");
+            x.Finding ==
+            "SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerService has a WCF endpoint without a binding");
     }
 
     [Fact]
@@ -709,24 +713,27 @@ public sealed class ModernisationHintAnalyzerTests
     [Fact]
     public void Analyze_UsesUnknownService_WhenEndpointServiceNameIsMissing()
     {
-        var endpoint = new WcfEndpoint
+        var endpoints = new[]
         {
-            ConfigFilePath = "Web.config",
-            ServiceName = null,
-            Binding = "basicHttpBinding",
-            Contract = "LegacyApp.Contracts.ICustomerService"
+            new WcfEndpoint
+            {
+                ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                Binding = "basicHttpBinding"
+            }
         };
 
         var analyzer = new ModernisationHintAnalyzer();
 
         var hints = analyzer.Analyze(
             Array.Empty<DiscoveredProject>(),
-            new[] { endpoint },
+            endpoints,
             Array.Empty<WcfServiceContract>(),
+            Array.Empty<WcfBehaviour>(),
             Array.Empty<DiscoveredLegacyAspNetArtifact>(),
             Array.Empty<DiscoveredConfigFile>());
 
-        hints.Should().Contain(x =>
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
             x.Area == "WCF Binding" &&
             x.Finding == "basicHttpBinding endpoint discovered for Unknown service");
     }
@@ -1447,5 +1454,132 @@ public sealed class ModernisationHintAnalyzerTests
         Assert.Equal("SampleLegacyApp.Services.CustomerService", hint.EvidenceName);
         Assert.Equal(@"C:\Code\SampleLegacyApp.Web\Web.config", hint.EvidencePath);
         Assert.Equal(ModernisationHintConfidence.High, hint.Confidence);
+    }
+    
+    [Fact]
+    public void Analyze_DeduplicatesExactModernisationHints()
+    {
+        var projects = new[]
+        {
+            new DiscoveredProject
+            {
+                Name = "SampleLegacyApp.Web",
+                ProjectFilePath = @"C:\Code\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj",
+                TargetFramework = "net48",
+                PackageReferences = new List<string>
+                {
+                    "Newtonsoft.Json",
+                    "Newtonsoft.Json"
+                }
+            }
+        };
+
+        var analyzer = new ModernisationHintAnalyzer();
+
+        var hints = analyzer.Analyze(
+            projects,
+            Array.Empty<WcfEndpoint>(),
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<WcfBehaviour>(),
+            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+            Array.Empty<DiscoveredConfigFile>());
+
+        var newtonsoftHints = hints
+            .Where(x =>
+                x.Severity == ModernisationHintSeverity.Info &&
+                x.Area == "Packages" &&
+                x.Finding == "SampleLegacyApp.Web references Newtonsoft.Json")
+            .ToList();
+
+        Assert.Single(newtonsoftHints);
+    }
+    
+    [Fact]
+    public void Analyze_ReturnsDistinctWcfBindingHints_WhenEndpointsHaveDifferentContracts()
+    {
+        var endpoints = new[]
+        {
+            new WcfEndpoint
+            {
+                ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Binding = "basicHttpBinding",
+                Contract = "SampleLegacyApp.Contracts.ICustomerContract"
+            },
+            new WcfEndpoint
+            {
+                ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Binding = "basicHttpBinding",
+                Contract = "SampleLegacyApp.Contracts.ICustomerService",
+                BindingConfiguration = "CustomerBinding"
+            }
+        };
+
+        var analyzer = new ModernisationHintAnalyzer();
+
+        var hints = analyzer.Analyze(
+            Array.Empty<DiscoveredProject>(),
+            endpoints,
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<WcfBehaviour>(),
+            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+            Array.Empty<DiscoveredConfigFile>());
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Binding" &&
+            x.Finding ==
+            "basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerContract");
+
+        Assert.Contains(hints, x =>
+            x.Severity == ModernisationHintSeverity.Warning &&
+            x.Area == "WCF Binding" &&
+            x.Finding ==
+            "basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerService using binding configuration CustomerBinding");
+    }
+    
+    [Fact]
+    public void Analyze_DoesNotReturnDuplicateWcfBindingHints_WhenDuplicateEndpointsAreDiscovered()
+    {
+        var endpoints = new[]
+        {
+            new WcfEndpoint
+            {
+                ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Binding = "basicHttpBinding",
+                Contract = "SampleLegacyApp.Contracts.ICustomerService",
+                BindingConfiguration = "CustomerBinding"
+            },
+            new WcfEndpoint
+            {
+                ConfigFilePath = @"C:\Code\SampleLegacyApp.Web\Web.config",
+                ServiceName = "SampleLegacyApp.Services.CustomerService",
+                Binding = "basicHttpBinding",
+                Contract = "SampleLegacyApp.Contracts.ICustomerService",
+                BindingConfiguration = "CustomerBinding"
+            }
+        };
+
+        var analyzer = new ModernisationHintAnalyzer();
+
+        var hints = analyzer.Analyze(
+            Array.Empty<DiscoveredProject>(),
+            endpoints,
+            Array.Empty<WcfServiceContract>(),
+            Array.Empty<WcfBehaviour>(),
+            Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+            Array.Empty<DiscoveredConfigFile>());
+
+        var bindingHints = hints
+            .Where(x =>
+                x.Severity == ModernisationHintSeverity.Warning &&
+                x.Area == "WCF Binding" &&
+                x.Finding ==
+                "basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerService using binding configuration CustomerBinding")
+            .ToList();
+
+        Assert.Single(bindingHints);
     }
 }

@@ -48,7 +48,7 @@ public sealed class ModernisationHintAnalyzer
         AddLegacyAspNetArtifactHints(legacyAspNetArtifacts, hints);
         AddConfigHints(configFiles, hints);
 
-        return AddEvidenceMetadata(
+        var hintsWithEvidence = AddEvidenceMetadata(
             hints,
             projects,
             wcfEndpoints,
@@ -56,6 +56,34 @@ public sealed class ModernisationHintAnalyzer
             wcfBehaviours,
             legacyAspNetArtifacts,
             configFiles);
+
+        return DeduplicateHints(hintsWithEvidence);
+    }
+
+    private static IReadOnlyList<ModernisationHint> DeduplicateHints(
+        IReadOnlyList<ModernisationHint> hints)
+    {
+        return hints
+            .GroupBy(hint => new
+            {
+                hint.Severity,
+                Area = NormaliseForComparison(hint.Area),
+                Finding = NormaliseForComparison(hint.Finding),
+                Reason = NormaliseForComparison(hint.Reason),
+                EvidenceKind = NormaliseForComparison(hint.EvidenceKind),
+                EvidenceName = NormaliseForComparison(hint.EvidenceName),
+                EvidencePath = NormaliseForComparison(hint.EvidencePath),
+                hint.Confidence
+            })
+            .Select(group => group.First())
+            .ToList();
+    }
+
+    private static string NormaliseForComparison(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim();
     }
 
     private static IReadOnlyList<ModernisationHint> AddEvidenceMetadata(
@@ -810,7 +838,7 @@ public sealed class ModernisationHintAnalyzer
     {
         foreach (var endpoint in wcfEndpoints)
         {
-            var serviceName = GetServiceName(endpoint);
+            var endpointDescription = GetWcfEndpointDescription(endpoint);
 
             if (string.IsNullOrWhiteSpace(endpoint.Binding))
             {
@@ -818,7 +846,7 @@ public sealed class ModernisationHintAnalyzer
                 {
                     Severity = ModernisationHintSeverity.Warning,
                     Area = "WCF Binding",
-                    Finding = $"{serviceName} has a WCF endpoint without a binding",
+                    Finding = $"{endpointDescription} has a WCF endpoint without a binding",
                     Reason = "Missing WCF binding information makes endpoint migration assessment harder."
                 });
 
@@ -831,7 +859,7 @@ public sealed class ModernisationHintAnalyzer
                 {
                     Severity = ModernisationHintSeverity.Warning,
                     Area = "WCF Binding",
-                    Finding = $"basicHttpBinding endpoint discovered for {serviceName}",
+                    Finding = $"basicHttpBinding endpoint discovered for {endpointDescription}",
                     Reason =
                         "basicHttpBinding commonly indicates SOAP interoperability that may need replacement or compatibility planning."
                 });
@@ -845,7 +873,7 @@ public sealed class ModernisationHintAnalyzer
                 {
                     Severity = ModernisationHintSeverity.Risk,
                     Area = "WCF Binding",
-                    Finding = $"netTcpBinding endpoint discovered for {serviceName}",
+                    Finding = $"netTcpBinding endpoint discovered for {endpointDescription}",
                     Reason =
                         "netTcpBinding is WCF-specific and usually needs careful migration or replacement planning."
                 });
@@ -859,7 +887,7 @@ public sealed class ModernisationHintAnalyzer
                 {
                     Severity = ModernisationHintSeverity.Warning,
                     Area = "WCF Binding",
-                    Finding = $"wsHttpBinding endpoint discovered for {serviceName}",
+                    Finding = $"wsHttpBinding endpoint discovered for {endpointDescription}",
                     Reason = "wsHttpBinding may indicate SOAP and WS-* features that need modernisation assessment."
                 });
 
@@ -872,12 +900,29 @@ public sealed class ModernisationHintAnalyzer
                 {
                     Severity = ModernisationHintSeverity.Risk,
                     Area = "WCF Binding",
-                    Finding = $"netMsmqBinding endpoint discovered for {serviceName}",
+                    Finding = $"netMsmqBinding endpoint discovered for {endpointDescription}",
                     Reason =
                         "netMsmqBinding indicates queue-based WCF integration that needs separate migration planning."
                 });
             }
         }
+    }
+    
+    private static string GetWcfEndpointDescription(WcfEndpoint endpoint)
+    {
+        var description = GetServiceName(endpoint);
+
+        if (!string.IsNullOrWhiteSpace(endpoint.Contract))
+        {
+            description += $" contract {endpoint.Contract}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(endpoint.BindingConfiguration))
+        {
+            description += $" using binding configuration {endpoint.BindingConfiguration}";
+        }
+
+        return description;
     }
 
     private static void AddAssemblyReferenceHints(

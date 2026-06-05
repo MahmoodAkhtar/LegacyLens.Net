@@ -1855,6 +1855,10 @@ Current severity levels are:
 
 Modernisation hints also include evidence metadata where a clear source can be identified.
 
+Modernisation hints are de-duplicated after evidence metadata has been attached. This means exact duplicate findings are removed from the final hint list using the final visible hint details, including severity, area, finding, reason, evidence kind, evidence name, evidence path, and confidence.
+
+WCF endpoint-level binding hints include available contract and binding configuration details. This helps distinguish multiple endpoints on the same service that use the same binding but represent different contracts or named binding configurations.
+
 Current hint evidence fields are:
 
 | Field | Meaning |
@@ -1890,6 +1894,14 @@ Current WCF binding hints include:
 | `netTcpBinding` | `Risk` | WCF-specific communication that usually needs careful migration or replacement planning |
 | `netMsmqBinding` | `Risk` | Queue-based WCF integration that needs separate migration planning |
 
+For example, if two `basicHttpBinding` endpoints exist on the same service but use different contracts or binding configurations, the generated hints are intentionally distinct:
+
+```text
+basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerContract
+basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerService using binding configuration CustomerBinding
+```
+
+This avoids duplicate-looking findings while preserving the fact that both endpoints may need review.
 
 Current WCF endpoint detail hints include:
 
@@ -2146,6 +2158,8 @@ Current MVP functionality includes:
 - modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, timeout settings, message size and buffer limits, transfer modes, reader quotas, metadata exchange endpoints, service contracts, service behaviours, endpoint behaviours, metadata publishing settings, debug settings, throttling settings, and REST-style `webHttp` endpoint behaviours
 - modernisation hints for configuration-heavy applications
 - modernisation hint reporting with evidence, confidence, source, and reason in the generated Markdown report
+- modernisation hint de-duplication after evidence metadata has been attached
+- WCF binding hint wording that includes available endpoint contract and binding configuration details so multiple endpoints on the same service can be distinguished
 - modernisation review summary generation from detailed modernisation hints
 - modernisation review area ranking by highest severity and hint counts
 - modernisation review summary reporting in the generated Markdown report
@@ -2153,7 +2167,7 @@ Current MVP functionality includes:
 
 Remaining MVP refinements include:
 
-- harden the generated modernisation report by reducing duplicate or noisy hints, especially where multiple WCF endpoints or legacy ASP.NET artifacts produce the same finding
+- continue hardening the generated modernisation report where realistic sample reports show unclear, duplicated, misleading, or low-value findings
 - refine modernisation review prioritisation, evidence confidence rules, and source precision where it makes the report easier to trust and act on
 - fix WCF service contract and legacy ASP.NET source-level parsing gaps only where realistic legacy samples expose false positives or missed high-value discovery signals
 
@@ -2163,7 +2177,7 @@ The MVP should be considered good enough when the generated report gives a devel
 
 The MVP is intended to provide a useful first-pass static discovery report, not a complete migration assessment.
 
-For the first MVP release, remaining work should focus on report trust, duplicate/noisy hint reduction, evidence quality, and fixing realistic false positives or missed high-value signals.
+For the first MVP release, remaining work should focus on report trust, continued sample-driven hint hardening, evidence quality, and fixing realistic false positives or missed high-value signals.
 
 Broader discovery areas such as deeper WCF behaviour analysis, detailed ASP.NET authentication and authorization analysis, custom HTTP module parsing, route constraint extraction, concrete pipeline component type extraction, source spans, line numbers, and code snippets are considered post-MVP unless they are needed to fix a clear MVP report-quality issue.
 
@@ -2263,7 +2277,7 @@ Implemented:
 Remaining refinements:
 
 - Fix WCF endpoint, behaviour, or service contract parsing gaps only where realistic legacy samples expose false positives or missed high-value migration signals.
-- Reduce duplicate or noisy WCF hints where multiple endpoints produce the same finding for the same service.
+- Continue refining WCF hint wording only where realistic sample reports still show unclear, duplicated, or misleading endpoint-level findings.
 
 Post-MVP discovery ideas:
 
@@ -2327,6 +2341,8 @@ Implemented:
 - Identify custom configuration sections
 - Include modernisation hints in the generated Markdown report
 - Add evidence kind, evidence name, source path, and confidence metadata to modernisation hints
+- De-duplicate modernisation hints after evidence metadata is attached
+- Include available WCF endpoint contract and binding configuration details in WCF binding hint findings
 - Report modernisation hint evidence, confidence, and source in the generated Markdown report
 - Map modernisation hint evidence to projects, package references, assembly references, WCF endpoints, WCF service contracts, WCF behaviours, legacy ASP.NET artifacts, configuration files, or analysis summaries
 - Prefer the most specific matching legacy ASP.NET artifact evidence when multiple artifact names match a hint
@@ -2338,7 +2354,7 @@ Implemented:
 Remaining refinements:
 
 - Refine review area grouping and severity ranking where the generated report shows noisy, duplicated, or misleading prioritisation.
-- Refine evidence and confidence rules where the report can point to a more specific project, configuration file, source file, or discovered artifact.
+- Refine evidence and confidence rules only where the report can clearly point to a more specific project, configuration file, source file, endpoint, behaviour, contract, or discovered artifact.
 - Keep line numbers, source spans, and code snippets as post-MVP enhancements unless they are needed to fix report trust issues before the first MVP release.
 
 ---
