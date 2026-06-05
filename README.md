@@ -81,6 +81,16 @@ The current implementation can scan a folder containing .NET solutions and proje
 - ASP.NET Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - ASP.NET MVC filter configuration files such as `FilterConfig.cs`
+- ASP.NET MVC dependency resolver registration calls such as `DependencyResolver.SetResolver(...)`
+- ASP.NET MVC custom controller factory registration calls such as `ControllerBuilder.Current.SetControllerFactory(...)`
+- ASP.NET MVC global filter registrations such as `GlobalFilters.Filters.Add(...)`
+- ASP.NET MVC model binder registrations such as `ModelBinders.Binders`
+- ASP.NET MVC value provider factory registrations such as `ValueProviderFactories.Factories`
+- ASP.NET Web API dependency resolver configuration
+- ASP.NET Web API formatter configuration
+- ASP.NET Web API message handler registration
+- ASP.NET Web API filter registration
+- ASP.NET Web API CORS registration
 - evidence-backed modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC startup registration, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, ASP.NET Web API startup registration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, WCF service behaviours, WCF endpoint behaviours, WCF metadata publishing settings, WCF debug settings, WCF throttling settings, WCF REST-style `webHttp` endpoint behaviours, and configuration-heavy applications
 - modernisation hint evidence metadata, including evidence kind, evidence name, source path, and confidence
 - a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
@@ -403,6 +413,16 @@ Even if the solution does not build, it can still discover useful information fr
 - ASP.NET Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - ASP.NET MVC filter configuration files such as `FilterConfig.cs`
+- ASP.NET MVC dependency resolver registration calls such as `DependencyResolver.SetResolver(...)`
+- ASP.NET MVC custom controller factory registration calls such as `ControllerBuilder.Current.SetControllerFactory(...)`
+- ASP.NET MVC global filter registrations such as `GlobalFilters.Filters.Add(...)`
+- ASP.NET MVC model binder registrations such as `ModelBinders.Binders`
+- ASP.NET MVC value provider factory registrations such as `ValueProviderFactories.Factories`
+- ASP.NET Web API dependency resolver configuration
+- ASP.NET Web API formatter configuration
+- ASP.NET Web API message handler registration
+- ASP.NET Web API filter registration
+- ASP.NET Web API CORS registration
 - WCF configuration files
 - WCF endpoint binding configuration names
 - WCF endpoint security modes and credential types
@@ -619,6 +639,16 @@ Current legacy ASP.NET artifact discovery supports:
 - ASP.NET Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - ASP.NET MVC filter configuration files such as `FilterConfig.cs`
+- ASP.NET MVC dependency resolver registration calls such as `DependencyResolver.SetResolver(...)`
+- ASP.NET MVC custom controller factory registration calls such as `ControllerBuilder.Current.SetControllerFactory(...)`
+- ASP.NET MVC global filter registrations such as `GlobalFilters.Filters.Add(...)`
+- ASP.NET MVC model binder registrations such as `ModelBinders.Binders`
+- ASP.NET MVC value provider factory registrations such as `ValueProviderFactories.Factories`
+- ASP.NET Web API dependency resolver configuration
+- ASP.NET Web API formatter configuration
+- ASP.NET Web API message handler registration
+- ASP.NET Web API filter registration
+- ASP.NET Web API CORS registration
 
 Example files:
 
@@ -1084,6 +1114,16 @@ Current legacy ASP.NET artifact discovery work includes:
 - detecting ASP.NET Web API startup registration calls such as `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - detecting ASP.NET MVC bundle configuration files such as `BundleConfig.cs`
 - detecting ASP.NET MVC filter configuration files such as `FilterConfig.cs`
+- detecting ASP.NET MVC dependency resolver registration calls such as `DependencyResolver.SetResolver(...)`
+- detecting ASP.NET MVC custom controller factory registration calls such as `ControllerBuilder.Current.SetControllerFactory(...)`
+- detecting ASP.NET MVC global filter registrations such as `GlobalFilters.Filters.Add(...)`
+- detecting ASP.NET MVC model binder registrations such as `ModelBinders.Binders`
+- detecting ASP.NET MVC value provider factory registrations such as `ValueProviderFactories.Factories`
+- detecting ASP.NET Web API dependency resolver configuration
+- detecting ASP.NET Web API formatter configuration
+- detecting ASP.NET Web API message handler registration
+- detecting ASP.NET Web API filter registration
+- detecting ASP.NET Web API CORS registration
 - reporting discovered legacy ASP.NET artifacts in the Markdown discovery report
 - feeding discovered legacy ASP.NET artifacts into modernisation hint analysis
 
@@ -2246,6 +2286,16 @@ Current MVP functionality includes:
 - ASP.NET Web API startup registration call discovery for `GlobalConfiguration.Configure(...)` and `WebApiConfig.Register(...)`
 - ASP.NET MVC bundle configuration discovery from `BundleConfig.cs`
 - ASP.NET MVC filter configuration discovery from `FilterConfig.cs`
+- ASP.NET MVC dependency resolver registration discovery
+- ASP.NET MVC custom controller factory registration discovery
+- ASP.NET MVC global filter registration discovery
+- ASP.NET MVC model binder registration discovery
+- ASP.NET MVC value provider factory registration discovery
+- ASP.NET Web API dependency resolver configuration discovery
+- ASP.NET Web API formatter configuration discovery
+- ASP.NET Web API message handler registration discovery
+- ASP.NET Web API filter registration discovery
+- ASP.NET Web API CORS registration discovery
 - legacy ASP.NET artifact reporting in the generated Markdown report
 - configuration file discovery from `app.config` and `web.config`
 - `appSettings`, `connectionStrings`, and custom configuration section counting
@@ -2267,7 +2317,7 @@ Remaining MVP refinements include:
 
 - further service contract parsing improvements for more complex C# syntax beyond the currently supported static interface and operation contract patterns
 - additional WCF configuration indicators beyond the currently detected endpoints, named binding settings, service behaviours, endpoint behaviours, metadata publishing, debug, throttling, `webHttp`, timeout, size, transfer mode, reader quota, security, credential, and metadata exchange signals
-- additional legacy ASP.NET MVC and Web API bootstrap, request-pipeline, and behaviour indicators beyond the currently detected controller, action, routing, startup registration, bundle configuration, filter configuration, Web API configuration, and Web API route registration signals
+- targeted legacy ASP.NET MVC and Web API refinement where it improves migration triage, especially authentication, authorization, lifecycle, routing, custom HTTP module or handler registration, and request-pipeline behaviour not already covered by the current startup, routing, bundling, filtering, dependency resolver, controller factory, model binder, value provider, formatter, message handler, CORS, and Web API configuration signals
 - further refinement of severity classification, evidence confidence rules, source precision, and review area grouping as more discovery signals are added
 
 ---
@@ -2458,7 +2508,7 @@ Implemented:
 
 Remaining refinements:
 
-- Add more specific ASP.NET MVC and Web API bootstrap and request-pipeline indicators that are not yet detected, such as `DependencyResolver.SetResolver(...)`, custom controller factories, authentication and authorization setup, global filter registrations beyond the standard `FilterConfig.RegisterGlobalFilters(...)` call, Web API formatter configuration, Web API message handlers, exception filters, CORS setup, custom model binders, and custom value providers.
+- Add targeted ASP.NET MVC and Web API indicators that improve migration triage but are not yet detected, such as authentication setup, authorization configuration beyond attributes, custom HTTP module registrations, custom handler registrations, route constraints, concrete filter types, formatter types, message handler types, model binder types, value provider types, and application lifecycle events beyond `Application_Start`.
 - Improve source-level parsing so legacy ASP.NET discovery is less dependent on simple file names, inheritance patterns, method return types, and regular-expression based source matching.
 
 ---
