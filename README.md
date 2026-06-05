@@ -126,7 +126,7 @@ The generated report currently includes:
 - a modernisation review summary that ranks higher-level review areas by highest severity and hint counts
 - modernisation hints with severity, area, finding, evidence, confidence, source, and reason, including Legacy ASP.NET hints when `System.Web` assembly references or legacy ASP.NET artifacts are found
 
-The following sample output is illustrative. Exact counts and findings may change as the sample application evolves.
+The following console output is a representative excerpt. Exact counts, paths, and findings may change as the sample application evolves.
 
 Example console output:
 
@@ -134,27 +134,34 @@ Example console output:
 Projects discovered:
 - SampleLegacyApp.Contracts
   Target framework: net48
-
 - SampleLegacyApp.Data
   Target framework: net48
   Package reference: Dapper
   Package reference: EntityFramework
-
+  Package reference: Newtonsoft.Json
 - SampleLegacyApp.Services
   Target framework: net48
-  Project reference: ..\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj
   Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
-
+  Project reference: ..\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj
+  Assembly reference: System.ServiceModel
 - SampleLegacyApp.Web
   Target framework: net48
-  Project reference: ..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj
   Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
-  Assembly reference: System.Web
-  Assembly reference: System.Web.Mvc
-  Package reference: System.ServiceModel.Http
+  Project reference: ..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj
   Package reference: Newtonsoft.Json
+  Package reference: System.ServiceModel.Http
 
 WCF endpoints discovered:
+- SampleLegacyApp.Services.CustomerService
+  Address: mex
+  Binding: mexHttpBinding
+  Contract: IMetadataExchange
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+- SampleLegacyApp.Services.CustomerService
+  Address:
+  Binding: basicHttpBinding
+  Contract: SampleLegacyApp.Contracts.ICustomerContract
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
 - SampleLegacyApp.Services.CustomerService
   Address:
   Binding: basicHttpBinding
@@ -162,169 +169,62 @@ WCF endpoints discovered:
   Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
 
 WCF service contracts discovered:
-- ICustomerService
+- ICustomerContract
   Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
   Operation: GetCustomer
 
 WCF behaviours discovered:
 - ServiceBehaviour: CustomerServiceBehaviour
-  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
   Service metadata: True
-  HTTP metadata enabled: true
-  HTTPS metadata enabled: false
   Service debug: True
-  Include exception detail in faults: true
   Service throttling: True
-  Max concurrent calls: 100
-  Max concurrent sessions: 50
-  Max concurrent instances: 25
 - EndpointBehaviour: JsonEndpointBehaviour
-  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
   Web HTTP: True
-
-Configuration files discovered:
-- C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
-  App settings: 0
-  Connection strings: 0
-  Custom sections: 0
 
 Legacy ASP.NET artifacts discovered:
 - WebFormsPage: Default.aspx
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Default.aspx
-- WebFormsUserControl: CustomerSummary.ascx
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerSummary.ascx
-- MasterPage: Site.master
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Site.master
 - AsmxWebService: CustomerService.asmx
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerService.asmx
 - HttpHandler: Download.ashx
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Download.ashx
 - GlobalAsax: Global.asax
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax
 - MvcController: HomeController
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcAction: HomeController.Index
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcAction: HomeController.Save
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcAction: HomeController.Summary
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcRouteAttribute: HomeController [RoutePrefix]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcRouteAttribute: HomeController.Index [Route]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcRouteAttribute: HomeController.Save [Route]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcRouteAttribute: HomeController.Summary [Route]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcActionAttribute: HomeController.Index [HttpGet]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcActionAttribute: HomeController.Save [HttpPost]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcActionAttribute: HomeController.Save [ValidateAntiForgeryToken]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcActionAttribute: HomeController.Summary [AllowAnonymous]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- RouteConfig: RouteConfig.cs
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\RouteConfig.cs
-- AreaRegistration: AdminAreaRegistration
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Areas\Admin\AdminAreaRegistration.cs
-- MvcApplicationStartup: Global.asax.cs Application_Start
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcAreaRegistrationCall: AreaRegistration.RegisterAllAreas
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcRouteRegistrationCall: RouteConfig.RegisterRoutes
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcBundleRegistrationCall: BundleConfig.RegisterBundles
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcFilterRegistrationCall: FilterConfig.RegisterGlobalFilters
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcBundleConfig: BundleConfig.cs
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\BundleConfig.cs
-- MvcFilterConfig: FilterConfig.cs
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\FilterConfig.cs
 - WebApiController: CustomersApiController
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs
-- WebApiAction: CustomersApiController.Get
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs
-- WebApiAction: CustomersApiController.Create
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\CustomersApiController.cs
 - WebApiConfig: WebApiConfig.cs
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\WebApiConfig.cs
-- WebApiRouteRegistrationCall: MapHttpRoute
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\WebApiConfig.cs
-- WebApiGlobalConfigurationCall: GlobalConfiguration.Configure
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
+- WebApiCorsRegistration: config.EnableCors
 
 Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
 - [Risk] Target Framework: SampleLegacyApp.Data targets net48
 - [Risk] Target Framework: SampleLegacyApp.Services targets net48
 - [Risk] Target Framework: SampleLegacyApp.Web targets net48
-- [Warning] Packages: SampleLegacyApp.Data references EntityFramework
-- [Risk] Packages: SampleLegacyApp.Web references System.ServiceModel.Http
-- [Info] Packages: SampleLegacyApp.Web references Newtonsoft.Json
-- [Risk] WCF: 1 WCF endpoint(s) discovered
-- [Warning] WCF Binding: basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService
+- [Risk] WCF: 3 WCF endpoint(s) discovered
 - [Risk] WCF: 1 WCF service contract(s) discovered
-- [Risk] Legacy ASP.NET: SampleLegacyApp.Web references System.Web
-- [Warning] Legacy ASP.NET: SampleLegacyApp.Web references System.Web.Mvc
+- [Warning] WCF Binding: basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerContract
+- [Warning] WCF Reader Quotas: SampleLegacyApp.Services.CustomerService has explicit WCF reader quota settings
+- [Warning] WCF Transfer Mode: SampleLegacyApp.Services.CustomerService uses WCF transfer mode Streamed
 - [Risk] Legacy ASP.NET: Default.aspx is a WebForms page
-- [Warning] Legacy ASP.NET: CustomerSummary.ascx is a WebForms user control
-- [Warning] Legacy ASP.NET: Site.master is a WebForms master page
 - [Risk] Legacy ASP.NET: CustomerService.asmx is an ASMX web service
-- [Warning] Legacy ASP.NET: Download.ashx is an ASP.NET HTTP handler
-- [Info] Legacy ASP.NET: Global.asax is a Global.asax application file
-- [Warning] Legacy ASP.NET: HomeController is an ASP.NET MVC controller
-- [Info] Legacy ASP.NET: HomeController.Index is an ASP.NET MVC action
-- [Info] Legacy ASP.NET: HomeController.Save is an ASP.NET MVC action
-- [Info] Legacy ASP.NET: HomeController.Summary is an ASP.NET MVC action
-- [Info] Legacy ASP.NET Routing: HomeController [RoutePrefix] uses ASP.NET MVC attribute routing
-- [Info] Legacy ASP.NET Routing: HomeController.Index [Route] uses ASP.NET MVC attribute routing
-- [Info] Legacy ASP.NET Routing: HomeController.Save [Route] uses ASP.NET MVC attribute routing
-- [Info] Legacy ASP.NET Routing: HomeController.Summary [Route] uses ASP.NET MVC attribute routing
-- [Warning] Legacy ASP.NET MVC Attributes: HomeController.Index [HttpGet] uses an ASP.NET MVC action attribute
-- [Warning] Legacy ASP.NET MVC Attributes: HomeController.Save [HttpPost] uses an ASP.NET MVC action attribute
-- [Warning] Legacy ASP.NET MVC Attributes: HomeController.Save [ValidateAntiForgeryToken] uses an ASP.NET MVC action attribute
-- [Warning] Legacy ASP.NET MVC Attributes: HomeController.Summary [AllowAnonymous] uses an ASP.NET MVC action attribute
-- [Info] Legacy ASP.NET: RouteConfig.cs is an ASP.NET route configuration file
-- [Info] Legacy ASP.NET: AdminAreaRegistration is an ASP.NET MVC area registration
-- [Info] Legacy ASP.NET Startup: Global.asax.cs Application_Start contains ASP.NET application startup code
-- [Info] Legacy ASP.NET Startup: AreaRegistration.RegisterAllAreas registers ASP.NET MVC areas
-- [Info] Legacy ASP.NET Routing: RouteConfig.RegisterRoutes registers ASP.NET routes
-- [Warning] Legacy ASP.NET Bundling: BundleConfig.cs is an ASP.NET MVC bundle configuration file
-- [Warning] Legacy ASP.NET Bundling: BundleConfig.RegisterBundles registers ASP.NET MVC bundles
-- [Warning] Legacy ASP.NET Filters: FilterConfig.cs is an ASP.NET MVC filter configuration file
-- [Warning] Legacy ASP.NET Filters: FilterConfig.RegisterGlobalFilters registers ASP.NET MVC global filters
-- [Warning] Legacy ASP.NET Web API: CustomersApiController is an ASP.NET Web API controller
-- [Info] Legacy ASP.NET Web API: CustomersApiController.Get is an ASP.NET Web API action
-- [Info] Legacy ASP.NET Web API: CustomersApiController.Create is an ASP.NET Web API action
-- [Info] Legacy ASP.NET Web API Routing: CustomersApiController [RoutePrefix] uses ASP.NET Web API attribute routing
-- [Info] Legacy ASP.NET Web API Routing: CustomersApiController.Get [Route] uses ASP.NET Web API attribute routing
-- [Info] Legacy ASP.NET Web API Routing: CustomersApiController.Create [Route] uses ASP.NET Web API attribute routing
-- [Warning] Legacy ASP.NET Web API Attributes: CustomersApiController.Get [HttpGet] uses an ASP.NET Web API action attribute
-- [Warning] Legacy ASP.NET Web API Attributes: CustomersApiController.Create [HttpPost] uses an ASP.NET Web API action attribute
-- [Info] Legacy ASP.NET Web API: WebApiConfig.cs is an ASP.NET Web API configuration file
-- [Info] Legacy ASP.NET Web API Routing: MapHttpRoute registers ASP.NET Web API routes
-- [Info] Legacy ASP.NET Web API Startup: GlobalConfiguration.Configure registers ASP.NET Web API startup configuration
+- [Warning] Legacy ASP.NET Web API Pipeline: config.EnableCors enables ASP.NET Web API CORS configuration
+- [Warning] Packages: SampleLegacyApp.Data references EntityFramework
 
 Modernisation review summary:
-- 1. WCF migration
+- 1. Target framework review
   Highest severity: Risk
-  Risks: 2
-  Warnings: 4
-  Info: 5
-  Summary: 2 risk, 4 warning, 5 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach.
-- 2. Legacy ASP.NET migration
+  Risks: 4
+  Warnings: 0
+  Info: 0
+- 2. WCF migration
   Highest severity: Risk
   Risks: 3
-  Warnings: 6
-  Info: 6
-  Summary: 3 risk, 6 warning, 6 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration.
+  Warnings: 7
+  Info: 8
+- 3. Legacy ASP.NET migration
+  Highest severity: Risk
+  Risks: 2
+  Warnings: 3
+  Info: 8
 
 Solutions discovered:
 - SampleLegacyApp
-  Solution file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.sln
   Projects: 4
 
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
@@ -461,6 +361,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: WCF behaviour discovery currently reads selected service behaviour and endpoint behaviour settings from `app.config` and `web.config` files, including service metadata, service debug, service throttling, and endpoint `webHttp` behaviour indicators. The codebase uses the British spelling `Behaviour` for model and report names, while WCF XML uses the standard WCF element names `<behaviors>`, `<serviceBehaviors>`, `<endpointBehaviors>`, and `<behavior>`.
 
 > Note: legacy ASP.NET artifact discovery currently detects file-based classic ASP.NET artifacts such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`, as well as selected source-level ASP.NET MVC and Web API indicators such as MVC controllers, MVC action methods, MVC route attributes, MVC action attributes, MVC area registrations, Web API controllers, Web API action methods, Web API route attributes, Web API action attributes, `RouteConfig.cs`, `WebApiConfig.cs`, `Application_Start`, MVC startup registration calls, Web API startup registration calls, `BundleConfig.cs`, and `FilterConfig.cs`. These are static discovery signals and do not require the application to build or run.
+
+> Note: Legacy ASP.NET and WCF source-level discovery is intentionally static and heuristic. The MVP aims to identify high-value migration signals, not to provide a complete semantic analysis of every possible framework usage pattern.
 
 > Note: modernisation review summary generation groups the detailed modernisation hints into higher-level review areas. This is intended to help developers quickly identify where to look first while still preserving the detailed hint table as supporting evidence.
 
@@ -891,8 +793,6 @@ These are reported in the generated Markdown report:
 | Kind | Name | File |
 |---|---|---|
 | WebFormsPage | Default.aspx | `...\SampleLegacyApp.Web\Default.aspx` |
-| WebFormsUserControl | CustomerSummary.ascx | `...\SampleLegacyApp.Web\CustomerSummary.ascx` |
-| MasterPage | Site.master | `...\SampleLegacyApp.Web\Site.master` |
 | AsmxWebService | CustomerService.asmx | `...\SampleLegacyApp.Web\CustomerService.asmx` |
 | HttpHandler | Download.ashx | `...\SampleLegacyApp.Web\Download.ashx` |
 | GlobalAsax | Global.asax | `...\SampleLegacyApp.Web\Global.asax` |
@@ -1281,33 +1181,40 @@ Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
 
 ## Sample Console Output
 
-The following sample output is illustrative. Exact counts and findings may change as the sample application evolves.
+The following console output is a representative excerpt. Exact counts, paths, and findings may change as the sample application evolves. The `Modernisation hints discovered` section is intentionally short and does not attempt to duplicate every row from the generated report.
 
 ```text
 Projects discovered:
 - SampleLegacyApp.Contracts
   Target framework: net48
-
 - SampleLegacyApp.Data
   Target framework: net48
   Package reference: Dapper
   Package reference: EntityFramework
-
+  Package reference: Newtonsoft.Json
 - SampleLegacyApp.Services
   Target framework: net48
-  Project reference: ..\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj
   Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
-
+  Project reference: ..\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj
+  Assembly reference: System.ServiceModel
 - SampleLegacyApp.Web
   Target framework: net48
-  Project reference: ..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj
   Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
-  Assembly reference: System.Web
-  Assembly reference: System.Web.Mvc
-  Package reference: System.ServiceModel.Http
+  Project reference: ..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj
   Package reference: Newtonsoft.Json
+  Package reference: System.ServiceModel.Http
 
 WCF endpoints discovered:
+- SampleLegacyApp.Services.CustomerService
+  Address: mex
+  Binding: mexHttpBinding
+  Contract: IMetadataExchange
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+- SampleLegacyApp.Services.CustomerService
+  Address:
+  Binding: basicHttpBinding
+  Contract: SampleLegacyApp.Contracts.ICustomerContract
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
 - SampleLegacyApp.Services.CustomerService
   Address:
   Binding: basicHttpBinding
@@ -1315,132 +1222,62 @@ WCF endpoints discovered:
   Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
 
 WCF service contracts discovered:
-- ICustomerService
+- ICustomerContract
   Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
   Operation: GetCustomer
 
 WCF behaviours discovered:
 - ServiceBehaviour: CustomerServiceBehaviour
-  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
   Service metadata: True
-  HTTP metadata enabled: true
-  HTTPS metadata enabled: false
   Service debug: True
-  Include exception detail in faults: true
   Service throttling: True
-  Max concurrent calls: 100
-  Max concurrent sessions: 50
-  Max concurrent instances: 25
 - EndpointBehaviour: JsonEndpointBehaviour
-  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
   Web HTTP: True
-
-Configuration files discovered:
-- C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
-  App settings: 0
-  Connection strings: 0
-  Custom sections: 0
 
 Legacy ASP.NET artifacts discovered:
 - WebFormsPage: Default.aspx
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Default.aspx
-- WebFormsUserControl: CustomerSummary.ascx
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerSummary.ascx
-- MasterPage: Site.master
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Site.master
 - AsmxWebService: CustomerService.asmx
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\CustomerService.asmx
 - HttpHandler: Download.ashx
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Download.ashx
 - GlobalAsax: Global.asax
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax
 - MvcController: HomeController
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcAction: HomeController.Index
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcAction: HomeController.Save
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcAction: HomeController.Summary
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcRouteAttribute: HomeController [RoutePrefix]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcRouteAttribute: HomeController.Index [Route]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcRouteAttribute: HomeController.Save [Route]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcRouteAttribute: HomeController.Summary [Route]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcActionAttribute: HomeController.Index [HttpGet]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcActionAttribute: HomeController.Save [HttpPost]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcActionAttribute: HomeController.Save [ValidateAntiForgeryToken]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- MvcActionAttribute: HomeController.Summary [AllowAnonymous]
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Controllers\HomeController.cs
-- RouteConfig: RouteConfig.cs
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\RouteConfig.cs
-- AreaRegistration: AdminAreaRegistration
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Areas\Admin\AdminAreaRegistration.cs
-- MvcApplicationStartup: Global.asax.cs Application_Start
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcAreaRegistrationCall: AreaRegistration.RegisterAllAreas
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcRouteRegistrationCall: RouteConfig.RegisterRoutes
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcBundleRegistrationCall: BundleConfig.RegisterBundles
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcFilterRegistrationCall: FilterConfig.RegisterGlobalFilters
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Global.asax.cs
-- MvcBundleConfig: BundleConfig.cs
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\BundleConfig.cs
-- MvcFilterConfig: FilterConfig.cs
-  File: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\App_Start\FilterConfig.cs
+- WebApiController: CustomersApiController
+- WebApiConfig: WebApiConfig.cs
+- WebApiCorsRegistration: config.EnableCors
 
 Modernisation hints discovered:
 - [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
 - [Risk] Target Framework: SampleLegacyApp.Data targets net48
 - [Risk] Target Framework: SampleLegacyApp.Services targets net48
 - [Risk] Target Framework: SampleLegacyApp.Web targets net48
-- [Warning] Packages: SampleLegacyApp.Data references EntityFramework
-- [Risk] Packages: SampleLegacyApp.Web references System.ServiceModel.Http
-- [Info] Packages: SampleLegacyApp.Web references Newtonsoft.Json
-- [Risk] WCF: 1 WCF endpoint(s) discovered
-- [Warning] WCF Binding: basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService
+- [Risk] WCF: 3 WCF endpoint(s) discovered
 - [Risk] WCF: 1 WCF service contract(s) discovered
-- [Risk] Legacy ASP.NET: SampleLegacyApp.Web references System.Web
-- [Warning] Legacy ASP.NET: SampleLegacyApp.Web references System.Web.Mvc
+- [Warning] WCF Binding: basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerContract
+- [Warning] WCF Reader Quotas: SampleLegacyApp.Services.CustomerService has explicit WCF reader quota settings
+- [Warning] WCF Transfer Mode: SampleLegacyApp.Services.CustomerService uses WCF transfer mode Streamed
 - [Risk] Legacy ASP.NET: Default.aspx is a WebForms page
-- [Warning] Legacy ASP.NET: CustomerSummary.ascx is a WebForms user control
-- [Warning] Legacy ASP.NET: Site.master is a WebForms master page
 - [Risk] Legacy ASP.NET: CustomerService.asmx is an ASMX web service
-- [Warning] Legacy ASP.NET: Download.ashx is an ASP.NET HTTP handler
-- [Info] Legacy ASP.NET: Global.asax is a Global.asax application file
-- [Warning] Legacy ASP.NET: HomeController is an ASP.NET MVC controller
-- [Info] Legacy ASP.NET: HomeController.Index is an ASP.NET MVC action
-- [Info] Legacy ASP.NET: HomeController.Save is an ASP.NET MVC action
-- [Info] Legacy ASP.NET: HomeController.Summary is an ASP.NET MVC action
-- [Info] Legacy ASP.NET Routing: HomeController [RoutePrefix] uses ASP.NET MVC attribute routing
-- [Info] Legacy ASP.NET Routing: HomeController.Index [Route] uses ASP.NET MVC attribute routing
-- [Info] Legacy ASP.NET Routing: HomeController.Save [Route] uses ASP.NET MVC attribute routing
-- [Info] Legacy ASP.NET Routing: HomeController.Summary [Route] uses ASP.NET MVC attribute routing
-- [Warning] Legacy ASP.NET MVC Attributes: HomeController.Index [HttpGet] uses an ASP.NET MVC action attribute
-- [Warning] Legacy ASP.NET MVC Attributes: HomeController.Save [HttpPost] uses an ASP.NET MVC action attribute
-- [Warning] Legacy ASP.NET MVC Attributes: HomeController.Save [ValidateAntiForgeryToken] uses an ASP.NET MVC action attribute
-- [Warning] Legacy ASP.NET MVC Attributes: HomeController.Summary [AllowAnonymous] uses an ASP.NET MVC action attribute
-- [Info] Legacy ASP.NET: RouteConfig.cs is an ASP.NET route configuration file
-- [Info] Legacy ASP.NET: AdminAreaRegistration is an ASP.NET MVC area registration
-- [Info] Legacy ASP.NET Startup: Global.asax.cs Application_Start contains ASP.NET application startup code
-- [Info] Legacy ASP.NET Startup: AreaRegistration.RegisterAllAreas registers ASP.NET MVC areas
-- [Info] Legacy ASP.NET Routing: RouteConfig.RegisterRoutes registers ASP.NET routes
-- [Warning] Legacy ASP.NET Bundling: BundleConfig.cs is an ASP.NET MVC bundle configuration file
-- [Warning] Legacy ASP.NET Bundling: BundleConfig.RegisterBundles registers ASP.NET MVC bundles
-- [Warning] Legacy ASP.NET Filters: FilterConfig.cs is an ASP.NET MVC filter configuration file
-- [Warning] Legacy ASP.NET Filters: FilterConfig.RegisterGlobalFilters registers ASP.NET MVC global filters
+- [Warning] Legacy ASP.NET Web API Pipeline: config.EnableCors enables ASP.NET Web API CORS configuration
+- [Warning] Packages: SampleLegacyApp.Data references EntityFramework
+
+Modernisation review summary:
+- 1. Target framework review
+  Highest severity: Risk
+  Risks: 4
+  Warnings: 0
+  Info: 0
+- 2. WCF migration
+  Highest severity: Risk
+  Risks: 3
+  Warnings: 7
+  Info: 8
+- 3. Legacy ASP.NET migration
+  Highest severity: Risk
+  Risks: 2
+  Warnings: 3
+  Info: 8
 
 Solutions discovered:
 - SampleLegacyApp
-  Solution file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.sln
   Projects: 4
 
 Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
@@ -2167,11 +2004,13 @@ Current MVP functionality includes:
 
 Remaining MVP refinements include:
 
-- continue hardening the generated modernisation report where realistic sample reports show unclear, duplicated, misleading, or low-value findings
-- refine modernisation review prioritisation, evidence confidence rules, and source precision where it makes the report easier to trust and act on
+- harden the generated modernisation report where realistic sample reports show unclear, duplicated, misleading, or low-value findings
+- refine modernisation review prioritisation, evidence confidence rules, and source precision only where it makes the report easier to trust and act on
 - fix WCF service contract and legacy ASP.NET source-level parsing gaps only where realistic legacy samples expose false positives or missed high-value discovery signals
 
-The MVP should be considered good enough when the generated report gives a developer a trustworthy first-pass view of solution structure, project dependencies, legacy framework usage, WCF usage, legacy ASP.NET usage, configuration indicators, evidence-backed findings, and prioritised review areas without requiring the target solution to build.
+The MVP should be considered complete when the generated report gives a developer a trustworthy first-pass view of solution structure, project dependencies, legacy framework usage, WCF usage, legacy ASP.NET usage, configuration indicators, evidence-backed findings, and prioritised review areas without requiring the target solution to build.
+
+Further discovery depth should be treated as post-MVP unless it is needed to fix a clear report-quality issue found in realistic sample output.
 
 ### MVP Boundary
 
