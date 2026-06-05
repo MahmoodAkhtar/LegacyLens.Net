@@ -37,5 +37,7 @@ public enum LegacyAspNetArtifactKind
     WebApiFormatterConfiguration,
     WebApiMessageHandlerRegistration,
     WebApiFilterRegistration,
-    WebApiCorsRegistration
+    WebApiCorsRegistration,
+    HttpModuleRegistration,
+    HttpHandlerRegistration
 }

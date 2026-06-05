@@ -1,3 +1,4 @@
+using FluentAssertions;
 using LegacyLens.Core.LegacyAspNet;
 
 namespace LegacyLens.Core.Tests.LegacyAspNet;
@@ -38,11 +39,15 @@ public sealed class LegacyAspNetArtifactScannerTests
 
             var artifacts = scanner.Scan(rootPath);
 
-            Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.WebFormsPage && x.Name == "Default.aspx");
-            Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.WebFormsUserControl && x.Name == "CustomerSummary.ascx");
+            Assert.Contains(artifacts,
+                x => x.Kind == LegacyAspNetArtifactKind.WebFormsPage && x.Name == "Default.aspx");
+            Assert.Contains(artifacts,
+                x => x.Kind == LegacyAspNetArtifactKind.WebFormsUserControl && x.Name == "CustomerSummary.ascx");
             Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.MasterPage && x.Name == "Site.master");
-            Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.AsmxWebService && x.Name == "CustomerService.asmx");
-            Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.HttpHandler && x.Name == "Download.ashx");
+            Assert.Contains(artifacts,
+                x => x.Kind == LegacyAspNetArtifactKind.AsmxWebService && x.Name == "CustomerService.asmx");
+            Assert.Contains(artifacts,
+                x => x.Kind == LegacyAspNetArtifactKind.HttpHandler && x.Name == "Download.ashx");
             Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.GlobalAsax && x.Name == "Global.asax");
         }
         finally
@@ -125,9 +130,12 @@ public sealed class LegacyAspNetArtifactScannerTests
 
             var artifacts = scanner.Scan(rootPath);
 
-            Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.MvcAction && x.Name == "HomeController.Index");
-            Assert.Contains(artifacts, x => x.Kind == LegacyAspNetArtifactKind.MvcAction && x.Name == "HomeController.Summary");
-            Assert.DoesNotContain(artifacts, x => x.Kind == LegacyAspNetArtifactKind.MvcAction && x.Name == "HomeController.OnException");
+            Assert.Contains(artifacts,
+                x => x.Kind == LegacyAspNetArtifactKind.MvcAction && x.Name == "HomeController.Index");
+            Assert.Contains(artifacts,
+                x => x.Kind == LegacyAspNetArtifactKind.MvcAction && x.Name == "HomeController.Summary");
+            Assert.DoesNotContain(artifacts,
+                x => x.Kind == LegacyAspNetArtifactKind.MvcAction && x.Name == "HomeController.OnException");
         }
         finally
         {
@@ -803,6 +811,154 @@ public sealed class LegacyAspNetArtifactScannerTests
                 x.Kind == LegacyAspNetArtifactKind.WebApiGlobalConfigurationCall &&
                 x.Name == "GlobalConfiguration.Configure" &&
                 x.FilePath == globalAsaxCodeBehindPath);
+        }
+        finally
+        {
+            Directory.Delete(rootPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Scan_ReturnsHttpModuleRegistration_WhenSystemWebHttpModuleExists()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var webConfigPath = Path.Combine(rootPath, "Web.config");
+
+            File.WriteAllText(
+                webConfigPath,
+                """
+                <?xml version="1.0" encoding="utf-8"?>
+                <configuration>
+                  <system.web>
+                    <httpModules>
+                      <add name="LegacyAuthModule" type="SampleLegacyApp.Web.LegacyAuthModule, SampleLegacyApp.Web" />
+                    </httpModules>
+                  </system.web>
+                </configuration>
+                """);
+
+            var scanner = new LegacyAspNetArtifactScanner();
+
+            var artifacts = scanner.Scan(rootPath);
+
+            artifacts.Should().ContainSingle(x =>
+                x.Kind == LegacyAspNetArtifactKind.HttpModuleRegistration &&
+                x.Name == "LegacyAuthModule" &&
+                x.FilePath == webConfigPath);
+        }
+        finally
+        {
+            Directory.Delete(rootPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Scan_ReturnsHttpHandlerRegistration_WhenSystemWebHttpHandlerExists()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var webConfigPath = Path.Combine(rootPath, "Web.config");
+
+            File.WriteAllText(
+                webConfigPath,
+                """
+                <?xml version="1.0" encoding="utf-8"?>
+                <configuration>
+                  <system.web>
+                    <httpHandlers>
+                      <add path="*.legacy" verb="*" type="SampleLegacyApp.Web.LegacyHandler, SampleLegacyApp.Web" />
+                    </httpHandlers>
+                  </system.web>
+                </configuration>
+                """);
+
+            var scanner = new LegacyAspNetArtifactScanner();
+
+            var artifacts = scanner.Scan(rootPath);
+
+            artifacts.Should().ContainSingle(x =>
+                x.Kind == LegacyAspNetArtifactKind.HttpHandlerRegistration &&
+                x.Name == "*.legacy" &&
+                x.FilePath == webConfigPath);
+        }
+        finally
+        {
+            Directory.Delete(rootPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Scan_ReturnsHttpModuleRegistration_WhenSystemWebServerModuleExists()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var webConfigPath = Path.Combine(rootPath, "Web.config");
+
+            File.WriteAllText(
+                webConfigPath,
+                """
+                <?xml version="1.0" encoding="utf-8"?>
+                <configuration>
+                  <system.webServer>
+                    <modules>
+                      <add name="IntegratedLegacyModule" type="SampleLegacyApp.Web.IntegratedLegacyModule, SampleLegacyApp.Web" />
+                    </modules>
+                  </system.webServer>
+                </configuration>
+                """);
+
+            var scanner = new LegacyAspNetArtifactScanner();
+
+            var artifacts = scanner.Scan(rootPath);
+
+            artifacts.Should().ContainSingle(x =>
+                x.Kind == LegacyAspNetArtifactKind.HttpModuleRegistration &&
+                x.Name == "IntegratedLegacyModule" &&
+                x.FilePath == webConfigPath);
+        }
+        finally
+        {
+            Directory.Delete(rootPath, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Scan_ReturnsHttpHandlerRegistration_WhenSystemWebServerHandlerExists()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var webConfigPath = Path.Combine(rootPath, "Web.config");
+
+            File.WriteAllText(
+                webConfigPath,
+                """
+                <?xml version="1.0" encoding="utf-8"?>
+                <configuration>
+                  <system.webServer>
+                    <handlers>
+                      <add name="IntegratedLegacyHandler" path="legacy.axd" verb="*" type="SampleLegacyApp.Web.IntegratedLegacyHandler, SampleLegacyApp.Web" />
+                    </handlers>
+                  </system.webServer>
+                </configuration>
+                """);
+
+            var scanner = new LegacyAspNetArtifactScanner();
+
+            var artifacts = scanner.Scan(rootPath);
+
+            artifacts.Should().ContainSingle(x =>
+                x.Kind == LegacyAspNetArtifactKind.HttpHandlerRegistration &&
+                x.Name == "IntegratedLegacyHandler" &&
+                x.FilePath == webConfigPath);
         }
         finally
         {

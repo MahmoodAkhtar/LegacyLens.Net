@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace LegacyLens.Core.LegacyAspNet;
 
@@ -95,7 +96,7 @@ public sealed class LegacyAspNetArtifactScanner
     private static readonly Regex WebApiCorsRegistrationRegex = new(
         @"\bconfig\s*\.\s*EnableCors\s*\(",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
-    
+
     private static readonly HashSet<string> MvcActionReturnTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "ActionResult",
@@ -205,6 +206,7 @@ public sealed class LegacyAspNetArtifactScanner
         var artifacts = new List<DiscoveredLegacyAspNetArtifact>();
 
         AddFileBasedArtifacts(rootPath, artifacts);
+        AddConfigBasedArtifacts(rootPath, artifacts);
         AddSourceLevelArtifacts(rootPath, artifacts);
 
         return artifacts
@@ -212,6 +214,133 @@ public sealed class LegacyAspNetArtifactScanner
             .ThenBy(x => x.FilePath)
             .ThenBy(x => x.Name)
             .ToList();
+    }
+
+    private static void AddConfigBasedArtifacts(
+        string rootPath,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        foreach (var configFilePath in Directory.GetFiles(rootPath, "*.config", SearchOption.AllDirectories))
+        {
+            if (!Path.GetFileName(configFilePath).Equals("web.config", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            XDocument document;
+
+            try
+            {
+                document = XDocument.Load(configFilePath);
+            }
+            catch
+            {
+                continue;
+            }
+
+            AddHttpModuleRegistrationArtifacts(configFilePath, document, artifacts);
+            AddHttpHandlerRegistrationArtifacts(configFilePath, document, artifacts);
+        }
+    }
+
+    private static void AddHttpModuleRegistrationArtifacts(
+        string configFilePath,
+        XDocument document,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        var moduleElements = document
+            .Descendants()
+            .Where(x =>
+                x.Name.LocalName == "add" &&
+                IsUnderParent(x, "httpModules") ||
+                x.Name.LocalName == "add" &&
+                IsUnderParent(x, "modules") &&
+                IsUnderAncestor(x, "system.webServer"));
+
+        foreach (var moduleElement in moduleElements)
+        {
+            var name = GetFirstNonEmptyAttributeValue(
+                moduleElement,
+                "name",
+                "type");
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.HttpModuleRegistration,
+                FilePath = configFilePath,
+                Name = name
+            });
+        }
+    }
+
+    private static void AddHttpHandlerRegistrationArtifacts(
+        string configFilePath,
+        XDocument document,
+        List<DiscoveredLegacyAspNetArtifact> artifacts)
+    {
+        var handlerElements = document
+            .Descendants()
+            .Where(x =>
+                x.Name.LocalName == "add" &&
+                IsUnderParent(x, "httpHandlers") ||
+                x.Name.LocalName == "add" &&
+                IsUnderParent(x, "handlers") &&
+                IsUnderAncestor(x, "system.webServer"));
+
+        foreach (var handlerElement in handlerElements)
+        {
+            var name = GetFirstNonEmptyAttributeValue(
+                handlerElement,
+                "name",
+                "path",
+                "type");
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            artifacts.Add(new DiscoveredLegacyAspNetArtifact
+            {
+                Kind = LegacyAspNetArtifactKind.HttpHandlerRegistration,
+                FilePath = configFilePath,
+                Name = name
+            });
+        }
+    }
+
+    private static bool IsUnderParent(XElement element, string parentName)
+    {
+        return element.Parent?.Name.LocalName.Equals(parentName, StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static bool IsUnderAncestor(XElement element, string ancestorName)
+    {
+        return element
+            .Ancestors()
+            .Any(x => x.Name.LocalName.Equals(ancestorName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string? GetFirstNonEmptyAttributeValue(
+        XElement element,
+        params string[] attributeNames)
+    {
+        foreach (var attributeName in attributeNames)
+        {
+            var value = element.Attribute(attributeName)?.Value;
+
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+        }
+
+        return null;
     }
 
     private static void AddFileBasedArtifacts(
@@ -771,7 +900,7 @@ public sealed class LegacyAspNetArtifactScanner
             sourceFilePath));
     }
 
-        private static void AddMvcRequestPipelineArtifacts(
+    private static void AddMvcRequestPipelineArtifacts(
         string sourceFilePath,
         string source,
         List<DiscoveredLegacyAspNetArtifact> artifacts)
@@ -882,7 +1011,7 @@ public sealed class LegacyAspNetArtifactScanner
             });
         }
     }
-    
+
     private static string GetClassBody(string source, Match classMatch)
     {
         var openingBraceIndex = source.IndexOf('{', classMatch.Index);

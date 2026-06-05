@@ -1365,6 +1365,28 @@ public sealed class ModernisationHintAnalyzer
                             "CORS configuration affects browser clients and cross-origin API access and should be mapped explicitly when migrating to ASP.NET Core."
                     });
                     break;
+                
+                case LegacyAspNetArtifactKind.HttpModuleRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Request Pipeline",
+                        Finding = $"{name} registers an ASP.NET HTTP module",
+                        Reason =
+                            "HTTP modules can affect authentication, authorization, logging, headers, errors, or request lifecycle behaviour and may need mapping to ASP.NET Core middleware."
+                    });
+                    break;
+
+                case LegacyAspNetArtifactKind.HttpHandlerRegistration:
+                    hints.Add(new ModernisationHint
+                    {
+                        Severity = ModernisationHintSeverity.Warning,
+                        Area = "Legacy ASP.NET Request Pipeline",
+                        Finding = $"{name} registers an ASP.NET HTTP handler",
+                        Reason =
+                            "HTTP handler registrations can route requests to custom processing code and may need mapping to ASP.NET Core middleware, endpoints, or controllers."
+                    });
+                    break;
             }
         }
     }
