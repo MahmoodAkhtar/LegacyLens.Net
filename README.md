@@ -2172,46 +2172,67 @@ Current MVP functionality includes:
 - modernisation review summary reporting in the generated Markdown report
 - output file generation under the `output/` directory
 
-Remaining MVP refinements include:
 
-- harden the generated modernisation report where realistic sample reports show unclear, duplicated, misleading, or low-value findings
-- refine modernisation review grouping, evidence confidence rules, and source precision only where realistic reports show unclear, duplicated, misleading, or low-value findings
-- fix WCF service contract and legacy ASP.NET source/config parsing gaps only where realistic legacy samples expose false positives or missed high-value discovery signals
+## MVP Exit Criteria
 
-The MVP should be considered complete when the generated report gives a developer a trustworthy first-pass view of solution structure, project dependencies, legacy framework usage, WCF usage, legacy ASP.NET usage, configuration indicators, evidence-backed findings, and prioritised review areas without requiring the target solution to build.
+The MVP should be considered complete when the tool can produce a useful static discovery report for the sample legacy solution without requiring that solution to build.
 
-Further discovery depth should be treated as post-MVP unless it is needed to fix a clear report-quality issue found in realistic sample output.
+The MVP exit criteria are:
 
-### MVP Boundary
+- The CLI can scan the sample legacy solution successfully.
+- The generated Markdown report includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections.
+- The report identifies the main modernisation review areas clearly enough for a developer to decide where to investigate first.
+- Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.
+- The report does not contain known duplicated, misleading, or materially low-value findings that would confuse a reader.
+- Existing automated tests pass.
+- The README reflects the actual current report output and does not describe speculative MVP behaviour as already implemented.
 
-The MVP is intended to provide a useful first-pass static discovery report, not a complete migration assessment.
+Further discovery refinements are post-MVP unless the current sample report exposes a clear false positive, false negative, duplicated finding, misleading evidence source, or confusing prioritisation issue that materially reduces report usefulness.
 
-For the first MVP release, remaining work should focus on report trust, continued sample-driven hint hardening, evidence quality, and fixing realistic false positives or missed high-value signals.
+## Not MVP Blockers
 
-Broader discovery areas such as deeper WCF behaviour analysis, detailed ASP.NET authentication and authorization analysis, detailed HTTP module/handler type analysis beyond registration discovery, route constraint extraction, concrete pipeline component type extraction, source spans, line numbers, and code snippets are considered post-MVP unless they are needed to fix a clear MVP report-quality issue.
+The following are not blockers for the MVP:
 
----
+- deeper semantic parsing of every possible WCF usage pattern
+- deeper HTTP module or HTTP handler implementation analysis
+- exhaustive ASP.NET MVC or Web API behaviour analysis
+- full migration recommendations or automated migration planning
+- HTML report output
+- support for every possible legacy project or configuration edge case
+- deeper analysis that is not required to fix a clear report-quality issue in the current sample output
 
-## Post-MVP Discovery Ideas
+These items may be valuable later, but they should be treated as post-MVP improvements unless a realistic sample report proves that one of them is needed to avoid a materially misleading MVP report.
 
-Post-MVP ideas are not required for the first usable MVP. They may be considered after the discovery report is stable, useful, and trusted against realistic legacy samples.
+## MVP Completion Statement
 
-Potential post-MVP ideas include:
+The MVP is not intended to be a complete migration analyser.
 
-- deeper WCF diagnostics, custom binding, client endpoint, hosting activation, credential behaviour, authorization behaviour, message inspector, and custom behaviour extension discovery
-- deeper ASP.NET authentication and authorization discovery
-- deeper HTTP module and handler analysis, such as concrete type extraction, pipeline mode distinctions, preconditions, verb/path matching details, and migration mapping guidance
-- route constraint extraction
-- concrete filter, formatter, message handler, model binder, and value provider type extraction
-- application lifecycle event discovery beyond `Application_Start`
-- line number, source span, or code snippet reporting where it improves report trust
-- optional OWIN/Katana startup discovery if real-world samples justify it
+The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce a readable Markdown report that helps a developer identify the main structure, dependencies, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
----
+Once that is achieved, further work should be treated as post-MVP unless it fixes a specific report-quality defect.
 
 ## Development Roadmap
 
-The roadmap is maintained as a forward-looking plan. Remaining work items should avoid repeating capabilities that are already implemented and should instead describe the next specific discovery, analysis, reporting, or prioritisation improvements that would make LegacyLens.NET more useful in real-world legacy codebase reviews.
+The roadmap is maintained as a forward-looking plan. It separates implemented discovery capability from conditional MVP quality gates and post-MVP ideas so future work does not become an endless blocker to the first release.
+
+### Post-MVP Refinement Rules
+
+After the MVP exit criteria are met, additional discovery work should be prioritised only when it satisfies at least one of these rules:
+
+- It fixes a confirmed false positive in a generated report.
+- It fixes a confirmed false negative for a high-value migration signal.
+- It improves evidence precision where the current evidence would send a reader to the wrong source.
+- It reduces duplicated or noisy findings that make the report harder to use.
+- It improves prioritisation where the review summary ranks less actionable areas above clearly higher-value migration risks.
+- It adds support for a realistic legacy pattern found in an external sample application or real-world codebase.
+
+Ideas that do not satisfy one of these rules should remain post-MVP backlog items.
+
+### Conditional MVP Quality Gates
+
+Additional discovery, analysis, or reporting work should block the MVP only when the current generated report proves there is a specific, material report-quality defect.
+
+The MVP should not remain open merely because deeper analysis could be added later. Further work is required before MVP only when it fixes a clear false positive, false negative, duplicated finding, misleading evidence source, or confusing prioritisation issue in the current sample output.
 
 ### Step 1: Static solution and project discovery
 
@@ -2258,7 +2279,7 @@ Status: Implemented
 
 ### Step 4: WCF configuration and service contract discovery
 
-Status: Implemented with remaining refinements
+Status: Implemented with conditional quality gates
 
 Implemented:
 
@@ -2285,18 +2306,13 @@ Implemented:
 - Scope detected WCF operations to their containing service contract interface
 - Report contract name, operation names, and source file path
 
-Remaining refinements:
-
-- Fix WCF endpoint, behaviour, or service contract parsing gaps only where realistic legacy samples expose false positives or missed high-value migration signals.
-- Continue refining WCF hint wording only where realistic sample reports still show unclear, duplicated, or misleading endpoint-level findings.
-
-Post-MVP discovery ideas:
+Post-MVP ideas:
 
 - Deeper WCF configuration analysis, such as diagnostics, custom bindings, client endpoint configuration, service hosting activation details, credential behaviours, authorization behaviours, message inspectors, and custom behaviour extension details.
 
 ### Step 5: Risk and modernisation hints
 
-Status: Implemented with remaining refinements
+Status: Implemented with conditional quality gates
 
 Implemented:
 
@@ -2364,17 +2380,11 @@ Implemented:
 - Report prioritised modernisation review areas in the generated Markdown report
 - Print prioritised modernisation review areas in the CLI output
 
-Remaining refinements:
-
-- Refine review area grouping and priority weighting only where generated reports show noisy, duplicated, or misleading prioritisation on realistic samples.
-- Refine evidence and confidence rules only where the report can clearly point to a more specific project, configuration file, source file, endpoint, behaviour, contract, or discovered artifact.
-- Keep line numbers, source spans, and code snippets as post-MVP enhancements unless they are needed to fix report trust issues before the first MVP release.
-
 ---
 
 ### Step 6: Legacy ASP.NET artifact discovery
 
-Status: Implemented with remaining refinements
+Status: Implemented with conditional quality gates
 
 Implemented:
 
@@ -2418,12 +2428,7 @@ Implemented:
 - Report discovered legacy ASP.NET artifacts in the generated Markdown report
 - Include discovered legacy ASP.NET artifacts in modernisation hint analysis
 
-Remaining refinements:
-
-- Fix legacy ASP.NET source-level or config-level parsing gaps only where realistic legacy samples expose false positives or missed high-value discovery signals.
-- Reduce duplicate or noisy legacy ASP.NET hints where multiple discovered artifacts point to the same migration concern.
-
-Post-MVP discovery ideas:
+Post-MVP ideas:
 
 - Deeper ASP.NET authentication and authorization discovery.
 - Deeper HTTP module and handler analysis beyond registration discovery, such as concrete type extraction, pipeline mode distinctions, preconditions, verb/path matching details, and migration mapping guidance.
