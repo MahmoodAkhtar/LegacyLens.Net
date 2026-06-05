@@ -21,7 +21,7 @@ The aim is to help a developer who is new to a codebase answer questions such as
 - What configuration files, settings, connection strings, or custom sections exist?
 - What modernisation risks or review areas should be looked at first?
 - Which discovered file, project, package, assembly reference, artifact, configuration entry, WCF endpoint, WCF behaviour, or WCF service contract supports each modernisation hint?
-- Which modernisation review areas should be prioritised first based on severity and hint counts?
+- Which modernisation review areas should be prioritised first based on severity, review-area priority, and hint counts?
 - What diagrams or reports can help explain the system to others?
 
 LegacyLens.NET is designed to work through static analysis, meaning it can provide useful information even when the target solution cannot currently be built.
@@ -126,7 +126,7 @@ The generated report currently includes:
 - WCF service contract and operation information
 - legacy ASP.NET artifact information, including file-based artifacts, config-based HTTP module and handler registrations, MVC controllers, MVC actions, MVC route attributes, MVC action attributes, MVC area registrations, route configuration, MVC and Web API startup registration, bundle configuration, filter configuration, dependency resolver setup, controller factory setup, model binder setup, value provider setup, Web API controllers, Web API actions, Web API route attributes, Web API action attributes, Web API configuration, Web API formatter configuration, Web API message handler registration, Web API filter registration, Web API CORS registration, artifact kind, name, and file path
 - configuration file information, including `appSettings`, `connectionStrings`, and custom configuration section counts
-- a modernisation review summary that ranks higher-level review areas by highest severity and hint counts
+- a modernisation review summary that ranks higher-level review areas by highest severity, review-area priority, and hint counts
 - modernisation hints with severity, area, finding, evidence, confidence, source, and reason, including Legacy ASP.NET hints when `System.Web` assembly references or legacy ASP.NET artifacts are found
 
 The following console output is a representative excerpt. Exact counts, paths, and findings may change as the sample application evolves.
@@ -224,26 +224,48 @@ Modernisation hints discovered:
 - [Warning] Packages: SampleLegacyApp.Data references EntityFramework
 
 Modernisation review summary:
-- 1. Target framework review
-  Highest severity: Risk
-  Risks: 4
-  Warnings: 0
-  Info: 0
-- 2. WCF migration
+- 1. WCF migration
   Highest severity: Risk
   Risks: 3
   Warnings: 7
   Info: 8
-- 3. Legacy ASP.NET migration
+  Summary: 3 risk, 7 warning, 8 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach.
+- 2. Legacy ASP.NET migration
   Highest severity: Risk
   Risks: 2
   Warnings: 3
   Info: 8
-- 6. Configuration review
+  Summary: 2 risk, 3 warning, 8 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration.
+- 3. Target framework review
+  Highest severity: Risk
+  Risks: 4
+  Warnings: 0
+  Info: 0
+  Summary: 4 risk, 0 warning, 0 info hint(s). Review target frameworks to understand upgrade paths, .NET Framework dependencies, and modern .NET migration constraints.
+- 4. Startup and request pipeline review
+  Highest severity: Warning
+  Risks: 0
+  Warnings: 24
+  Info: 3
+  Summary: 0 risk, 24 warning, 3 info hint(s). Review application startup, dependency resolver setup, controller factories, global filters, action attributes, formatters, message handlers, CORS, model binding, value providers, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents.
+- 5. Configuration review
   Highest severity: Warning
   Risks: 0
   Warnings: 1
   Info: 1
+  Summary: 0 risk, 1 warning, 1 info hint(s). Review appSettings, connection strings, and custom configuration sections for runtime behaviour and external dependencies.
+- 6. Dependency review
+  Highest severity: Warning
+  Risks: 0
+  Warnings: 1
+  Info: 2
+  Summary: 0 risk, 1 warning, 2 info hint(s). Review package dependencies that may affect migration, replacement, compatibility, or framework upgrade planning.
+- 7. Routing review
+  Highest severity: Info
+  Risks: 0
+  Warnings: 0
+  Info: 10
+  Summary: 0 risk, 0 warning, 10 info hint(s). Review conventional routes, attribute routes, area routes, and Web API route registrations to preserve URL and client compatibility.
 
 Solutions discovered:
 - SampleLegacyApp
@@ -390,7 +412,7 @@ This makes it useful for old or broken solutions where restoring packages, insta
 
 > Note: Legacy ASP.NET and WCF source-level discovery is intentionally static and heuristic. The MVP aims to identify high-value migration signals, not to provide a complete semantic analysis of every possible framework usage pattern.
 
-> Note: modernisation review summary generation groups the detailed modernisation hints into higher-level review areas. This is intended to help developers quickly identify where to look first while still preserving the detailed hint table as supporting evidence.
+> Note: modernisation review summary generation groups the detailed modernisation hints into higher-level review areas. Review areas are ranked using highest discovered severity, a lightweight review-area priority, and hint counts. This is intended to help developers quickly identify where to look first while still preserving the detailed hint table as supporting evidence. The priority weighting prevents generic baseline findings, such as multiple projects targeting .NET Framework, from always outranking more actionable migration areas such as WCF or Legacy ASP.NET when they have the same highest severity.
 
 > Note: modernisation hints include evidence metadata where a clear source can be identified. Evidence may point to a project, package reference, assembly reference, WCF endpoint, WCF service contract, WCF behaviour, legacy ASP.NET artifact, configuration file, or analysis summary. The generated report includes the evidence kind, evidence name, confidence, source path where available, and the reason for the hint. Legacy ASP.NET artifact evidence prefers the most specific matching artifact name so, for example, an action attribute hint can point to `HomeController.Index [HttpGet]` rather than only `HomeController`.
 
@@ -971,7 +993,7 @@ Current analysis work includes:
 - modelling modernisation hint evidence, source path, and confidence metadata
 - classifying hints by severity: `Info`, `Warning`, and `Risk`
 - grouping detailed modernisation hints into prioritised review areas
-- ranking review areas by highest discovered severity and hint counts
+- ranking review areas by highest discovered severity, review-area priority, and hint counts
 - summarising review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 - identifying old .NET Framework target frameworks such as `net48`
 - identifying missing target framework declarations
@@ -1349,26 +1371,48 @@ Modernisation hints discovered:
 - [Warning] Packages: SampleLegacyApp.Data references EntityFramework
 
 Modernisation review summary:
-- 1. Target framework review
-  Highest severity: Risk
-  Risks: 4
-  Warnings: 0
-  Info: 0
-- 2. WCF migration
+- 1. WCF migration
   Highest severity: Risk
   Risks: 3
   Warnings: 7
   Info: 8
-- 3. Legacy ASP.NET migration
+  Summary: 3 risk, 7 warning, 8 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach.
+- 2. Legacy ASP.NET migration
   Highest severity: Risk
   Risks: 2
   Warnings: 3
   Info: 8
-- 6. Configuration review
+  Summary: 2 risk, 3 warning, 8 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration.
+- 3. Target framework review
+  Highest severity: Risk
+  Risks: 4
+  Warnings: 0
+  Info: 0
+  Summary: 4 risk, 0 warning, 0 info hint(s). Review target frameworks to understand upgrade paths, .NET Framework dependencies, and modern .NET migration constraints.
+- 4. Startup and request pipeline review
+  Highest severity: Warning
+  Risks: 0
+  Warnings: 24
+  Info: 3
+  Summary: 0 risk, 24 warning, 3 info hint(s). Review application startup, dependency resolver setup, controller factories, global filters, action attributes, formatters, message handlers, CORS, model binding, value providers, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents.
+- 5. Configuration review
   Highest severity: Warning
   Risks: 0
   Warnings: 1
   Info: 1
+  Summary: 0 risk, 1 warning, 1 info hint(s). Review appSettings, connection strings, and custom configuration sections for runtime behaviour and external dependencies.
+- 6. Dependency review
+  Highest severity: Warning
+  Risks: 0
+  Warnings: 1
+  Info: 2
+  Summary: 0 risk, 1 warning, 2 info hint(s). Review package dependencies that may affect migration, replacement, compatibility, or framework upgrade planning.
+- 7. Routing review
+  Highest severity: Info
+  Risks: 0
+  Warnings: 0
+  Info: 10
+  Summary: 0 risk, 0 warning, 10 info hint(s). Review conventional routes, attribute routes, area routes, and Web API route registrations to preserve URL and client compatibility.
 
 Solutions discovered:
 - SampleLegacyApp
@@ -1464,11 +1508,13 @@ Representative excerpt:
 
 | Priority | Review Area | Highest Severity | Risks | Warnings | Info | Summary |
 |---:|---|---|---:|---:|---:|---|
-| 1 | Target framework review | Risk | 4 | 0 | 0 | 4 risk, 0 warning, 0 info hint(s). Review target frameworks to understand upgrade paths, .NET Framework dependencies, and modern .NET migration constraints. |
-| 2 | WCF migration | Risk | 3 | 7 | 8 | 3 risk, 7 warning, 8 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach. |
-| 3 | Legacy ASP.NET migration | Risk | 2 | 3 | 8 | 2 risk, 3 warning, 8 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration. |
+| 1 | WCF migration | Risk | 3 | 7 | 8 | 3 risk, 7 warning, 8 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach. |
+| 2 | Legacy ASP.NET migration | Risk | 2 | 3 | 8 | 2 risk, 3 warning, 8 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration. |
+| 3 | Target framework review | Risk | 4 | 0 | 0 | 4 risk, 0 warning, 0 info hint(s). Review target frameworks to understand upgrade paths, .NET Framework dependencies, and modern .NET migration constraints. |
 | 4 | Startup and request pipeline review | Warning | 0 | 24 | 3 | 0 risk, 24 warning, 3 info hint(s). Review application startup, dependency resolver setup, controller factories, global filters, action attributes, formatters, message handlers, CORS, model binding, value providers, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents. |
-| 6 | Configuration review | Warning | 0 | 1 | 1 | 0 risk, 1 warning, 1 info hint(s). Review appSettings, connection strings, and custom configuration sections for runtime behaviour and external dependencies. |
+| 5 | Configuration review | Warning | 0 | 1 | 1 | 0 risk, 1 warning, 1 info hint(s). Review appSettings, connection strings, and custom configuration sections for runtime behaviour and external dependencies. |
+| 6 | Dependency review | Warning | 0 | 1 | 2 | 0 risk, 1 warning, 2 info hint(s). Review package dependencies that may affect migration, replacement, compatibility, or framework upgrade planning. |
+| 7 | Routing review | Info | 0 | 0 | 10 | 0 risk, 0 warning, 10 info hint(s). Review conventional routes, attribute routes, area routes, and Web API route registrations to preserve URL and client compatibility. |
 
 ## Modernisation Hints
 
@@ -2001,10 +2047,13 @@ Current review summary areas include:
 Review areas are ranked by:
 
 - highest discovered severity
+- review-area priority
 - number of risk hints
 - number of warning hints
 - number of informational hints
 - review area name
+
+Review-area priority is intentionally lightweight. It helps actionable migration areas such as WCF migration and Legacy ASP.NET migration appear above generic baseline findings such as target framework review when they have the same highest severity.
 
 Example report output:
 
@@ -2013,8 +2062,13 @@ Example report output:
 
 | Priority | Review Area | Highest Severity | Risks | Warnings | Info | Summary |
 |---:|---|---|---:|---:|---:|---|
-| 1 | WCF migration | Risk | 2 | 4 | 5 | 2 risk, 4 warning, 5 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach. |
-| 2 | Legacy ASP.NET migration | Risk | 3 | 6 | 6 | 3 risk, 6 warning, 6 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration. |
+| 1 | WCF migration | Risk | 3 | 7 | 8 | 3 risk, 7 warning, 8 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach. |
+| 2 | Legacy ASP.NET migration | Risk | 2 | 3 | 8 | 2 risk, 3 warning, 8 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration. |
+| 3 | Target framework review | Risk | 4 | 0 | 0 | 4 risk, 0 warning, 0 info hint(s). Review target frameworks to understand upgrade paths, .NET Framework dependencies, and modern .NET migration constraints. |
+| 4 | Startup and request pipeline review | Warning | 0 | 24 | 3 | 0 risk, 24 warning, 3 info hint(s). Review application startup, dependency resolver setup, controller factories, global filters, action attributes, formatters, message handlers, CORS, model binding, value providers, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents. |
+| 5 | Configuration review | Warning | 0 | 1 | 1 | 0 risk, 1 warning, 1 info hint(s). Review appSettings, connection strings, and custom configuration sections for runtime behaviour and external dependencies. |
+| 6 | Dependency review | Warning | 0 | 1 | 2 | 0 risk, 1 warning, 2 info hint(s). Review package dependencies that may affect migration, replacement, compatibility, or framework upgrade planning. |
+| 7 | Routing review | Info | 0 | 0 | 10 | 0 risk, 0 warning, 10 info hint(s). Review conventional routes, attribute routes, area routes, and Web API route registrations to preserve URL and client compatibility. |
 ```
 
 The review summary is intentionally lightweight. It does not replace the detailed hint table; it gives a prioritised overview so developers can decide which areas deserve attention first.
@@ -2114,14 +2168,14 @@ Current MVP functionality includes:
 - modernisation hint de-duplication after evidence metadata has been attached
 - WCF binding hint wording that includes available endpoint contract and binding configuration details so multiple endpoints on the same service can be distinguished
 - modernisation review summary generation from detailed modernisation hints
-- modernisation review area ranking by highest severity and hint counts
+- modernisation review summary prioritisation using highest severity, review-area priority, hint counts, and review area name
 - modernisation review summary reporting in the generated Markdown report
 - output file generation under the `output/` directory
 
 Remaining MVP refinements include:
 
 - harden the generated modernisation report where realistic sample reports show unclear, duplicated, misleading, or low-value findings
-- refine modernisation review prioritisation, evidence confidence rules, and source precision only where it makes the report easier to trust and act on
+- refine modernisation review grouping, evidence confidence rules, and source precision only where realistic reports show unclear, duplicated, misleading, or low-value findings
 - fix WCF service contract and legacy ASP.NET source/config parsing gaps only where realistic legacy samples expose false positives or missed high-value discovery signals
 
 The MVP should be considered complete when the generated report gives a developer a trustworthy first-pass view of solution structure, project dependencies, legacy framework usage, WCF usage, legacy ASP.NET usage, configuration indicators, evidence-backed findings, and prioritised review areas without requiring the target solution to build.
@@ -2306,13 +2360,13 @@ Implemented:
 - Map modernisation hint evidence to projects, package references, assembly references, WCF endpoints, WCF service contracts, WCF behaviours, legacy ASP.NET artifacts, configuration files, or analysis summaries
 - Prefer the most specific matching legacy ASP.NET artifact evidence when multiple artifact names match a hint
 - Group detailed modernisation hints into higher-level modernisation review areas
-- Rank modernisation review areas by highest severity and hint counts
+- Rank modernisation review areas by highest severity, review-area priority, and hint counts
 - Report prioritised modernisation review areas in the generated Markdown report
 - Print prioritised modernisation review areas in the CLI output
 
 Remaining refinements:
 
-- Refine review area grouping and severity ranking where the generated report shows noisy, duplicated, or misleading prioritisation.
+- Refine review area grouping and priority weighting only where generated reports show noisy, duplicated, or misleading prioritisation on realistic samples.
 - Refine evidence and confidence rules only where the report can clearly point to a more specific project, configuration file, source file, endpoint, behaviour, contract, or discovered artifact.
 - Keep line numbers, source spans, and code snippets as post-MVP enhancements unless they are needed to fix report trust issues before the first MVP release.
 

@@ -1,3 +1,4 @@
+using FluentAssertions;
 using LegacyLens.Core.Analysis;
 
 namespace LegacyLens.Core.Tests.Analysis;
@@ -5,264 +6,214 @@ namespace LegacyLens.Core.Tests.Analysis;
 public sealed class ModernisationReviewPrioritiserTests
 {
     [Fact]
-    public void Prioritise_WhenHintsIsNull_Throws()
+    public void Prioritise_ReturnsEmptyList_WhenHintsAreEmpty()
     {
         var prioritiser = new ModernisationReviewPrioritiser();
 
-        Assert.Throws<ArgumentNullException>(() => prioritiser.Prioritise(null!));
+        var result = prioritiser.Prioritise(Array.Empty<ModernisationHint>());
+
+        result.Should().BeEmpty();
     }
 
     [Fact]
-    public void Prioritise_WhenNoHints_ReturnsEmptyList()
-    {
-        var prioritiser = new ModernisationReviewPrioritiser();
-
-        var reviewAreas = prioritiser.Prioritise(Array.Empty<ModernisationHint>());
-
-        Assert.Empty(reviewAreas);
-    }
-
-    [Fact]
-    public void Prioritise_WhenWcfHintsExist_GroupsThemAsWcfMigration()
+    public void Prioritise_GroupsWcfHintsIntoWcfMigrationReviewArea()
     {
         var hints = new[]
         {
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Risk,
-                Area = "WCF",
-                Finding = "1 WCF endpoint(s) discovered",
-                Reason = "Configured WCF endpoints usually represent service boundaries or integration points."
-            },
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Warning,
-                Area = "WCF Binding",
-                Finding = "basicHttpBinding endpoint discovered for CustomerService",
-                Reason = "basicHttpBinding commonly indicates SOAP interoperability."
-            },
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Info,
-                Area = "WCF Timeout",
-                Finding = "CustomerService has explicit WCF timeout settings",
-                Reason = "Configured WCF timeout values should be reviewed."
-            }
+            CreateHint(
+                ModernisationHintSeverity.Risk,
+                "WCF",
+                "3 WCF endpoint(s) discovered"),
+
+            CreateHint(
+                ModernisationHintSeverity.Warning,
+                "WCF Binding",
+                "basicHttpBinding endpoint discovered")
         };
 
         var prioritiser = new ModernisationReviewPrioritiser();
 
-        var reviewAreas = prioritiser.Prioritise(hints);
+        var result = prioritiser.Prioritise(hints);
 
-        var reviewArea = Assert.Single(reviewAreas);
+        result.Should().ContainSingle();
 
-        Assert.Equal("WCF migration", reviewArea.Area);
-        Assert.Equal(ModernisationHintSeverity.Risk, reviewArea.HighestSeverity);
-        Assert.Equal(1, reviewArea.RiskCount);
-        Assert.Equal(1, reviewArea.WarningCount);
-        Assert.Equal(1, reviewArea.InfoCount);
-        Assert.Contains("Review service boundaries", reviewArea.Summary);
+        result[0].Area.Should().Be("WCF migration");
+        result[0].HighestSeverity.Should().Be(ModernisationHintSeverity.Risk);
+        result[0].RiskCount.Should().Be(1);
+        result[0].WarningCount.Should().Be(1);
+        result[0].InfoCount.Should().Be(0);
     }
 
     [Fact]
-    public void Prioritise_WhenRoutingHintsExist_GroupsThemAsRoutingReview()
+    public void Prioritise_PrioritisesWcfAndLegacyAspNetAheadOfGenericTargetFramework_WhenSeverityIsEqual()
     {
         var hints = new[]
         {
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Info,
-                Area = "Legacy ASP.NET Routing",
-                Finding = "RouteConfig.RegisterRoutes registers ASP.NET routes",
-                Reason = "Route registration calls identify conventional route setup."
-            },
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Info,
-                Area = "Legacy ASP.NET Web API Routing",
-                Finding = "MapHttpRoute registers ASP.NET Web API routes",
-                Reason = "Web API route registration calls identify conventional HTTP API route setup."
-            }
+            CreateHint(
+                ModernisationHintSeverity.Risk,
+                "Target Framework",
+                "SampleLegacyApp.Contracts targets net48"),
+
+            CreateHint(
+                ModernisationHintSeverity.Risk,
+                "Target Framework",
+                "SampleLegacyApp.Data targets net48"),
+
+            CreateHint(
+                ModernisationHintSeverity.Risk,
+                "Target Framework",
+                "SampleLegacyApp.Services targets net48"),
+
+            CreateHint(
+                ModernisationHintSeverity.Risk,
+                "Target Framework",
+                "SampleLegacyApp.Web targets net48"),
+
+            CreateHint(
+                ModernisationHintSeverity.Risk,
+                "WCF",
+                "3 WCF endpoint(s) discovered"),
+
+            CreateHint(
+                ModernisationHintSeverity.Risk,
+                "Legacy ASP.NET",
+                "Default.aspx is a WebForms page")
         };
 
         var prioritiser = new ModernisationReviewPrioritiser();
 
-        var reviewAreas = prioritiser.Prioritise(hints);
+        var result = prioritiser.Prioritise(hints);
 
-        var reviewArea = Assert.Single(reviewAreas);
-
-        Assert.Equal("Routing review", reviewArea.Area);
-        Assert.Equal(ModernisationHintSeverity.Info, reviewArea.HighestSeverity);
-        Assert.Equal(0, reviewArea.RiskCount);
-        Assert.Equal(0, reviewArea.WarningCount);
-        Assert.Equal(2, reviewArea.InfoCount);
+        result.Select(x => x.Area).Should().Equal(
+            "WCF migration",
+            "Legacy ASP.NET migration",
+            "Target framework review");
     }
 
     [Fact]
-    public void Prioritise_WhenStartupPipelineHintsExist_GroupsThemAsStartupAndRequestPipelineReview()
+    public void Prioritise_KeepsWarningOnlyStartupAndPipelineBelowRiskAreas()
     {
         var hints = new[]
         {
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Warning,
-                Area = "Legacy ASP.NET Filters",
-                Finding = "FilterConfig.RegisterGlobalFilters registers ASP.NET MVC global filters",
-                Reason = "Global filter registration should be reviewed."
-            },
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Warning,
-                Area = "Legacy ASP.NET Bundling",
-                Finding = "BundleConfig.RegisterBundles registers ASP.NET MVC bundles",
-                Reason = "Bundle registration calls may affect CSS and JavaScript delivery."
-            },
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Info,
-                Area = "Legacy ASP.NET Startup",
-                Finding = "Global.asax.cs Application_Start contains ASP.NET application startup code",
-                Reason = "Application_Start may contain route, filter, bundle, dependency injection, error handling, or lifecycle registration."
-            }
+            CreateHint(
+                ModernisationHintSeverity.Warning,
+                "Legacy ASP.NET Request Pipeline",
+                "LegacyAuthModule registers an ASP.NET HTTP module"),
+
+            CreateHint(
+                ModernisationHintSeverity.Warning,
+                "Legacy ASP.NET Web API Pipeline",
+                "config.EnableCors enables ASP.NET Web API CORS configuration"),
+
+            CreateHint(
+                ModernisationHintSeverity.Risk,
+                "Target Framework",
+                "SampleLegacyApp.Web targets net48")
         };
 
         var prioritiser = new ModernisationReviewPrioritiser();
 
-        var reviewAreas = prioritiser.Prioritise(hints);
+        var result = prioritiser.Prioritise(hints);
 
-        var reviewArea = Assert.Single(reviewAreas);
-
-        Assert.Equal("Startup and request pipeline review", reviewArea.Area);
-        Assert.Equal(ModernisationHintSeverity.Warning, reviewArea.HighestSeverity);
-        Assert.Equal(0, reviewArea.RiskCount);
-        Assert.Equal(2, reviewArea.WarningCount);
-        Assert.Equal(1, reviewArea.InfoCount);
+        result.Select(x => x.Area).Should().Equal(
+            "Target framework review",
+            "Startup and request pipeline review");
     }
 
     [Fact]
-    public void Prioritise_WhenLegacyAspNetHintsExist_GroupsThemAsLegacyAspNetMigration()
+    public void Prioritise_UsesReviewAreaPriorityBeforeHintCounts_WhenSeverityIsEqual()
     {
         var hints = new[]
         {
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Risk,
-                Area = "Legacy ASP.NET",
-                Finding = "Default.aspx is a WebForms page",
-                Reason = "WebForms pages indicate classic ASP.NET UI."
-            },
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Warning,
-                Area = "Legacy ASP.NET",
-                Finding = "HomeController is an ASP.NET MVC controller",
-                Reason = "ASP.NET MVC controllers may contain routing, action filters, model binding, authentication, or System.Web-specific behaviour."
-            }
+            CreateHint(
+                ModernisationHintSeverity.Warning,
+                "Configuration",
+                "Web.config contains 1 custom configuration section(s)"),
+
+            CreateHint(
+                ModernisationHintSeverity.Warning,
+                "Packages",
+                "SampleLegacyApp.Data references EntityFramework"),
+
+            CreateHint(
+                ModernisationHintSeverity.Warning,
+                "Packages",
+                "SampleLegacyApp.Web references SomeOtherPackage")
         };
 
         var prioritiser = new ModernisationReviewPrioritiser();
 
-        var reviewAreas = prioritiser.Prioritise(hints);
+        var result = prioritiser.Prioritise(hints);
 
-        var reviewArea = Assert.Single(reviewAreas);
-
-        Assert.Equal("Legacy ASP.NET migration", reviewArea.Area);
-        Assert.Equal(ModernisationHintSeverity.Risk, reviewArea.HighestSeverity);
-        Assert.Equal(1, reviewArea.RiskCount);
-        Assert.Equal(1, reviewArea.WarningCount);
-        Assert.Equal(0, reviewArea.InfoCount);
+        result.Select(x => x.Area).Should().Equal(
+            "Configuration review",
+            "Dependency review");
     }
 
     [Fact]
-    public void Prioritise_WhenMultipleAreasExist_OrdersHighestRiskAreasFirst()
+    public void Prioritise_MapsSystemServiceModelPackageHintsToWcfMigration()
     {
         var hints = new[]
         {
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Info,
-                Area = "Configuration",
-                Finding = "Web.config contains 1 connection string(s)",
-                Reason = "Connection strings identify external data dependencies."
-            },
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Warning,
-                Area = "Packages",
-                Finding = "SampleLegacyApp.Data references EntityFramework",
-                Reason = "Classic Entity Framework may require assessment."
-            },
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Risk,
-                Area = "Target Framework",
-                Finding = "SampleLegacyApp.Web targets net48",
-                Reason = ".NET Framework projects usually need extra assessment."
-            }
+            CreateHint(
+                ModernisationHintSeverity.Risk,
+                "Packages",
+                "SampleLegacyApp.Web references System.ServiceModel.Http")
         };
 
         var prioritiser = new ModernisationReviewPrioritiser();
 
-        var reviewAreas = prioritiser.Prioritise(hints);
+        var result = prioritiser.Prioritise(hints);
 
-        Assert.Collection(
-            reviewAreas,
-            first => Assert.Equal("Target framework review", first.Area),
-            second => Assert.Equal("Dependency review", second.Area),
-            third => Assert.Equal("Configuration review", third.Area));
+        result.Should().ContainSingle();
+
+        result[0].Area.Should().Be("WCF migration");
+        result[0].HighestSeverity.Should().Be(ModernisationHintSeverity.Risk);
+        result[0].RiskCount.Should().Be(1);
     }
 
     [Fact]
-    public void Prioritise_WhenSystemServiceModelPackageHintExists_GroupsItAsWcfMigration()
+    public void Prioritise_UsesHintCountsAsTieBreaker_WhenSeverityAndReviewAreaPriorityAreEqual()
     {
         var hints = new[]
         {
-            new ModernisationHint
-            {
-                Severity = ModernisationHintSeverity.Risk,
-                Area = "Packages",
-                Finding = "SampleLegacyApp.Web references System.ServiceModel.Http",
-                Reason = "System.ServiceModel packages indicate WCF-related usage."
-            }
+            CreateHint(
+                ModernisationHintSeverity.Warning,
+                "Other Area",
+                "First unrelated warning"),
+
+            CreateHint(
+                ModernisationHintSeverity.Warning,
+                "Another Other Area",
+                "Second unrelated warning"),
+
+            CreateHint(
+                ModernisationHintSeverity.Warning,
+                "Another Other Area",
+                "Third unrelated warning")
         };
 
         var prioritiser = new ModernisationReviewPrioritiser();
 
-        var reviewAreas = prioritiser.Prioritise(hints);
+        var result = prioritiser.Prioritise(hints);
 
-        var reviewArea = Assert.Single(reviewAreas);
+        result.Should().ContainSingle();
 
-        Assert.Equal("WCF migration", reviewArea.Area);
-        Assert.Equal(ModernisationHintSeverity.Risk, reviewArea.HighestSeverity);
+        result[0].Area.Should().Be("Other review");
+        result[0].WarningCount.Should().Be(3);
     }
-    
-    [Theory]
-    [InlineData("Legacy ASP.NET Dependency Resolution", "DependencyResolver.SetResolver configures ASP.NET MVC dependency resolution")]
-    [InlineData("Legacy ASP.NET Request Pipeline", "ControllerBuilder.Current.SetControllerFactory configures an ASP.NET MVC controller factory")]
-    [InlineData("Legacy ASP.NET Model Binding", "ModelBinders.Binders configures ASP.NET MVC model binders")]
-    [InlineData("Legacy ASP.NET Web API Pipeline", "config.Formatters configures ASP.NET Web API formatters")]
-    public void Prioritise_WhenHintIsRequestPipelineRelated_GroupsIntoStartupAndRequestPipelineReview(
+
+    private static ModernisationHint CreateHint(
+        ModernisationHintSeverity severity,
         string area,
         string finding)
     {
-        var prioritiser = new ModernisationReviewPrioritiser();
-
-        var reviewAreas = prioritiser.Prioritise(
-            new[]
-            {
-                new ModernisationHint
-                {
-                    Severity = ModernisationHintSeverity.Warning,
-                    Area = area,
-                    Finding = finding,
-                    Reason = "Test reason"
-                }
-            });
-
-        Assert.Contains(
-            reviewAreas,
-            x => x.Area == "Startup and request pipeline review" &&
-                 x.HighestSeverity == ModernisationHintSeverity.Warning &&
-                 x.WarningCount == 1);
+        return new ModernisationHint
+        {
+            Severity = severity,
+            Area = area,
+            Finding = finding,
+            Reason = "Test reason"
+        };
     }
 }

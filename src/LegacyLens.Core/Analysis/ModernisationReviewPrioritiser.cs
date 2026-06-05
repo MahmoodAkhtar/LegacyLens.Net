@@ -11,6 +11,7 @@ public sealed class ModernisationReviewPrioritiser
             .GroupBy(GetReviewArea, StringComparer.OrdinalIgnoreCase)
             .Select(CreateReviewArea)
             .OrderByDescending(x => GetSeverityRank(x.HighestSeverity))
+            .ThenByDescending(x => GetReviewAreaPriorityRank(x.Area))
             .ThenByDescending(x => x.RiskCount)
             .ThenByDescending(x => x.WarningCount)
             .ThenByDescending(x => x.InfoCount)
@@ -155,7 +156,7 @@ public sealed class ModernisationReviewPrioritiser
 
             "Startup and request pipeline review" =>
                 $"{countSummary}. Review application startup, dependency resolver setup, controller factories, global filters, action attributes, formatters, message handlers, CORS, model binding, value providers, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents.",
-            
+
             "Configuration review" =>
                 $"{countSummary}. Review appSettings, connection strings, and custom configuration sections for runtime behaviour and external dependencies.",
 
@@ -181,6 +182,22 @@ public sealed class ModernisationReviewPrioritiser
             ModernisationHintSeverity.Warning => 2,
             ModernisationHintSeverity.Info => 1,
             _ => 0
+        };
+    }
+
+    private static int GetReviewAreaPriorityRank(string area)
+    {
+        return area switch
+        {
+            "WCF migration" => 100,
+            "Legacy ASP.NET migration" => 90,
+            "Startup and request pipeline review" => 80,
+            "Routing review" => 70,
+            "Configuration review" => 60,
+            "Dependency review" => 50,
+            "Target framework review" => 40,
+            "Project dependency review" => 30,
+            _ => 10
         };
     }
 }
