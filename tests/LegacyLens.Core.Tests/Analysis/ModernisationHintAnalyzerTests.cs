@@ -1319,12 +1319,12 @@ public sealed class ModernisationHintAnalyzerTests
             Array.Empty<DiscoveredLegacyAspNetArtifact>(),
             Array.Empty<DiscoveredConfigFile>());
 
-        var hint = Assert.Single(hints.Where(x =>
+        var hint = Assert.Single(hints, x =>
             x.Severity == ModernisationHintSeverity.Info &&
             x.Area == "WCF Timeout" &&
             x.Finding == "SampleLegacyApp.Services.CustomerService has explicit WCF timeout settings" &&
             x.Reason ==
-            "Configured WCF timeout values should be reviewed when replacing endpoints because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ."));
+            "Configured WCF timeout values should be reviewed when replacing endpoints because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ.");
 
         Assert.Equal("WcfEndpoint", hint.EvidenceKind);
         Assert.Equal("SampleLegacyApp.Services.CustomerService", hint.EvidenceName);
@@ -1373,12 +1373,12 @@ public sealed class ModernisationHintAnalyzerTests
             Array.Empty<DiscoveredLegacyAspNetArtifact>(),
             Array.Empty<DiscoveredConfigFile>());
 
-        var hint = Assert.Single(hints.Where(x =>
+        var hint = Assert.Single(hints, x =>
             x.Severity == ModernisationHintSeverity.Info &&
             x.Area == "WCF Behaviour" &&
             x.Finding == "CustomerServiceBehaviour is a WCF service behaviour" &&
             x.Reason ==
-            "WCF service behaviours can contain metadata, debug, throttling, credential, authorization, and runtime settings that need migration review."));
+            "WCF service behaviours can contain metadata, debug, throttling, credential, authorization, and runtime settings that need migration review.");
 
         Assert.Equal("WcfBehaviour", hint.EvidenceKind);
         Assert.Equal("CustomerServiceBehaviour", hint.EvidenceName);
@@ -1427,12 +1427,12 @@ public sealed class ModernisationHintAnalyzerTests
             Array.Empty<DiscoveredLegacyAspNetArtifact>(),
             Array.Empty<DiscoveredConfigFile>());
 
-        var hint = Assert.Single(hints.Where(x =>
+        var hint = Assert.Single(hints, x =>
             x.Severity == ModernisationHintSeverity.Info &&
             x.Area == "WCF Behaviour" &&
             x.Finding == "JsonEndpointBehaviour is a WCF endpoint behaviour" &&
             x.Reason ==
-            "WCF endpoint behaviours can affect request handling, serialization, dispatch, message inspection, and REST-style endpoint behaviour."));
+            "WCF endpoint behaviours can affect request handling, serialization, dispatch, message inspection, and REST-style endpoint behaviour.");
 
         Assert.Equal("WcfBehaviour", hint.EvidenceKind);
         Assert.Equal("JsonEndpointBehaviour", hint.EvidenceName);
@@ -1472,12 +1472,12 @@ public sealed class ModernisationHintAnalyzerTests
             Array.Empty<DiscoveredLegacyAspNetArtifact>(),
             Array.Empty<DiscoveredConfigFile>());
 
-        var hint = Assert.Single(hints.Where(x =>
+        var hint = Assert.Single(hints, x =>
             x.Severity == ModernisationHintSeverity.Info &&
             x.Area == "WCF Timeout" &&
             x.Finding == "SampleLegacyApp.Services.CustomerService has explicit WCF timeout settings" &&
             x.Reason ==
-            "Configured WCF timeout values should be reviewed when replacing endpoints because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ."));
+            "Configured WCF timeout values should be reviewed when replacing endpoints because modern HTTP, JSON, gRPC, hosting, gateway, and client timeout behaviour may differ.");
 
         Assert.Equal("WcfEndpoint", hint.EvidenceKind);
         Assert.Equal("SampleLegacyApp.Services.CustomerService", hint.EvidenceName);
