@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Test
+        run: dotnet test --configuration Release --no-restore
+
+      - name: Publish Windows x64
+        run: >
+          dotnet publish .\src\LegacyLens.Cli\LegacyLens.Cli.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          /p:PublishSingleFile=true
+          /p:PublishTrimmed=false
+          /p:DebugType=None
+          /p:DebugSymbols=false
+
+      - name: Create release package
+        shell: pwsh
+        run: |
+          $publishDir = ".\src\LegacyLens.Cli\bin\Release\net10.0\win-x64\publish"
+          $packageDir = ".\artifacts\legacylens-win-x64"
+
+          New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
+
+          Copy-Item "$publishDir\legacylens.exe" "$packageDir\legacylens.exe"
+
+          @'
+          LegacyLens.NET
+
+          LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
+
+          It scans .NET solution and project folders and generates a Markdown discovery report containing project structure, target frameworks, dependencies, WCF usage, legacy ASP.NET signals, configuration usage, modernisation hints, and prioritised review areas.
+
+          Usage:
+            legacylens scan <path> [options]
+
+          Examples:
+            legacylens scan .
+            legacylens scan C:\Repos\LegacyApp
+            legacylens scan . --output .\reports\legacy-report.md
+            legacylens scan . --output-dir .\reports
+            legacylens scan . --quiet
+            legacylens scan . --verbose
+
+          Default output:
+            <scan-path>\output\discovery-report.md
+
+          Options:
+            -o, --output <file>    Markdown report file to create.
+            --output-dir <dir>     Directory where discovery-report.md should be written.
+            --format <format>      Report format. Currently only markdown is supported.
+            --quiet                Only print essential output.
+            --verbose              Print detailed discovery output.
+            -h, --help             Show help.
+            --version              Show version.
+
+          Notes:
+            LegacyLens.NET uses static analysis and does not require the scanned solution to build.
+            The current release supports Markdown report output only.
+            HTML, JSON, SARIF, GitHub scanning, and GitLab scanning are not included in this release.
+
+          Quick start:
+            1. Extract this zip file.
+            2. Open PowerShell or Windows Terminal.
+            3. Run:
+                 .\legacylens.exe scan C:\Path\To\Your\DotNet\Codebase
+            4. Open the generated discovery-report.md file.
+
+          Project:
+            LegacyLens.NET
+          '@ | Set-Content "$packageDir\README.txt" -Encoding UTF8
+
+          Compress-Archive -Path "$packageDir\*" -DestinationPath ".\artifacts\legacylens-win-x64.zip" -Force
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/legacylens-win-x64.zip
+          generate_release_notes: true
