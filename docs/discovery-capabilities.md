@@ -73,11 +73,14 @@ Even if the solution does not build, it can still discover useful information fr
 - project references
 - assembly references
 - package references
+- package compatibility review metadata for upgrade planning
 - prioritised modernisation review areas derived from discovered hints
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
 > Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
+
+> Note: package compatibility review is now MVP scope. It should remain static and evidence-backed: package name, version where available, package source format, project target framework, package target framework where available, source path, and possible compatibility concerns. It should not claim to perform NuGet restore, transitive dependency resolution, package asset inspection, or guaranteed compatibility checks against a destination framework.
 
 > Note: assembly reference discovery currently supports `<Reference Include="..." />` entries in `.csproj` files. Version metadata is removed so references such as `System.Web.Mvc, Version=5.2.9.0` are reported as `System.Web.Mvc`.
 
@@ -142,7 +145,13 @@ LegacyLens.NET can discover NuGet package references from both modern and legacy
 Current package discovery supports:
 
 - SDK-style `<PackageReference />` entries inside `.csproj` files
+- SDK-style package versions from `Version` attributes where available
+- SDK-style package versions from nested `<Version>` elements where available
 - legacy `packages.config` files located in the same folder as the project file
+- legacy `packages.config` package versions from the `version` attribute
+- legacy `packages.config` package target frameworks from the `targetFramework` attribute
+- package source format identification, such as `PackageReference` or `packages.config`
+- source path tracking so the report can point back to the `.csproj` or `packages.config` file that supplied the package evidence
 
 Example SDK-style package reference:
 
@@ -162,9 +171,50 @@ Example legacy `packages.config` file:
 </packages>
 ```
 
-Package names discovered from both sources are merged into the project package reference list. Duplicate package names are removed case-insensitively.
+Package names discovered from both sources are merged into the project package reference list. Duplicate package names are removed case-insensitively for summary purposes, while the richer package compatibility review should preserve useful metadata such as version, package target framework, source format, and source path where available.
 
 This helps LegacyLens.NET identify important legacy dependencies even when older .NET Framework projects do not use SDK-style package references.
+
+### Package Compatibility Review
+
+Package compatibility review is an MVP-scope extension of package reference discovery.
+
+The purpose is to help a developer preparing an upgrade see which packages may need attention before choosing an upgrade path. The review should use static evidence only and should be worded as possible compatibility concerns, not definitive migration advice.
+
+The package compatibility review should report:
+
+| Field | Description |
+|---|---|
+| Project | Project containing the package reference |
+| Project target framework | Target framework or target frameworks declared by the project |
+| Package | NuGet package id |
+| Version | Package version where available |
+| Package target framework | `packages.config` target framework where available |
+| Source | `PackageReference` or `packages.config` |
+| Source path | `.csproj` or `packages.config` file path |
+| Concern | Static compatibility concern, or a clear indication that no specific concern was detected by the MVP rules |
+
+Initial MVP concern rules should include:
+
+- `System.ServiceModel.*` packages as WCF-related upgrade planning concerns
+- `EntityFramework` as classic Entity Framework review before EF Core or modern .NET migration
+- `Newtonsoft.Json` as an informational serialization behaviour review item
+- packages with missing versions as package restore and upgrade planning concerns
+- `packages.config` package target frameworks that differ from the project target framework as review concerns
+- packages tied to old `.NET Framework` project targets as dependency review inputs
+
+Example report output:
+
+```markdown
+## Package Compatibility Review
+
+| Project | Project Target Framework | Package | Version | Package Target Framework | Source | Concern |
+|---|---|---|---|---|---|---|
+| SampleLegacyApp.Data | net48 | EntityFramework | 6.4.4 | net48 | packages.config | Classic Entity Framework should be reviewed before migration to EF Core or modern .NET. |
+| SampleLegacyApp.Web | net48 | System.ServiceModel.Http | unknown |  | PackageReference | WCF-related package. Review WCF usage and replacement strategy before upgrading. |
+```
+
+The review should not claim to know whether a package is compatible with .NET 8, .NET 9, .NET 10, or any other destination framework unless future implementation adds package metadata lookup or package asset inspection.
 
 ---
 
@@ -1033,7 +1083,7 @@ Example report output:
 | Severity | Area | Finding | Reason |
 |---|---|---|---|
 | Risk | Target Framework | SampleLegacyApp.Web targets net48 | .NET Framework projects usually need extra assessment before migration to modern .NET. |
-| Risk | Packages | SampleLegacyApp.Web references System.ServiceModel.Http | System.ServiceModel packages indicate WCF-related usage, which is important for modernisation planning. |
+| Risk | Packages | SampleLegacyApp.Web references System.ServiceModel.Http | System.ServiceModel packages indicate WCF-related usage, which is important for package compatibility and modernisation planning. |
 | Risk | WCF | 1 WCF endpoint(s) discovered | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
 | Info | WCF Configuration | SampleLegacyApp.Services.CustomerService uses binding configuration CustomerBinding | Named WCF binding configurations may contain security, timeout, size, protocol, or credential settings that need migration review. |
 | Warning | WCF Security | SampleLegacyApp.Services.CustomerService uses WCF security mode Transport | WCF security settings need explicit review when replacing WCF endpoints with modern HTTP, JSON, gRPC, or other service endpoints. |

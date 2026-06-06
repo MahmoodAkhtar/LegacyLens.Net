@@ -4,7 +4,7 @@ This document defines the MVP boundary for LegacyLens.NET.
 
 ## MVP Functionality
 
-Current MVP functionality includes:
+Current MVP functionality includes implemented capabilities and newly required MVP-scope additions. Newly required additions should not be described as shipped behaviour until the code and report output are updated:
 
 - standalone `legacylens scan <path>` CLI command
 - `--output` and `-o` report file selection
@@ -24,9 +24,15 @@ Current MVP functionality includes:
 - project-to-project reference discovery
 - assembly reference discovery from `<Reference />` entries
 - NuGet package reference discovery from `<PackageReference />` entries and legacy `packages.config` files
+- package version discovery from `<PackageReference />` entries where available
+- package version discovery from legacy `packages.config` files where available
+- package target framework discovery from legacy `packages.config` files where available
+- package source format and source path reporting for package references
+- static package compatibility review for upgrade planning, including possible compatibility concerns based on package, version, project target framework, and package target framework evidence
 - Markdown discovery report generation
 - target framework summary reporting in the generated Markdown report
 - package reference summary reporting in the generated Markdown report
+- package compatibility review reporting in the generated Markdown report
 - Mermaid project dependency diagram generation
 - WCF endpoint discovery from configuration files
 - WCF binding configuration discovery from named endpoint binding configurations
@@ -96,6 +102,7 @@ Current MVP functionality includes:
 - modernisation hints for old .NET Framework target frameworks
 - modernisation hints for missing target framework declarations
 - modernisation hints for selected legacy or review-worthy packages
+- modernisation hints for package compatibility concerns that may affect upgrade planning
 - modernisation hints for legacy ASP.NET, `System.Web` assembly references, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC application startup, ASP.NET MVC startup registration calls, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET MVC dependency resolver registration, ASP.NET MVC controller factory registration, ASP.NET MVC global filter registration, ASP.NET MVC model binder registration, ASP.NET MVC value provider factory registration, ASP.NET HTTP module registrations, ASP.NET HTTP handler registrations, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, ASP.NET Web API startup registration, ASP.NET Web API dependency resolver configuration, ASP.NET Web API formatter configuration, ASP.NET Web API message handler registration, ASP.NET Web API filter registration, and ASP.NET Web API CORS registration
 - modernisation hints for WCF endpoints, selected WCF binding types, endpoint binding configurations, security modes, transport credential types, timeout settings, message size and buffer limits, transfer modes, reader quotas, metadata exchange endpoints, service contracts, service behaviours, endpoint behaviours, metadata publishing settings, debug settings, throttling settings, and REST-style `webHttp` endpoint behaviours
 - modernisation hints for configuration-heavy applications
@@ -114,8 +121,9 @@ The MVP should be considered complete when the tool can produce a useful static 
 The MVP exit criteria are:
 
 - The CLI can scan the sample legacy solution successfully.
-- The generated Markdown report includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections.
+- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections.
 - The report identifies the main modernisation review areas clearly enough for a developer to decide where to investigate first.
+- The package compatibility review shows package name, version where available, project target framework, package target framework where available, source format, source path, and possible compatibility concern without claiming to perform full NuGet compatibility resolution.
 - Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.
 - The report does not contain known duplicated, misleading, or materially low-value findings that would confuse a reader.
 - Existing automated tests pass.
@@ -148,6 +156,7 @@ The following are not blockers for the MVP:
 - deeper HTTP module or HTTP handler implementation analysis
 - exhaustive ASP.NET MVC or Web API behaviour analysis
 - full migration recommendations or automated migration planning
+- full NuGet restore, transitive dependency resolution, package asset inspection, or guaranteed package compatibility checks
 - HTML report output
 - support for every possible legacy project or configuration edge case
 - deeper analysis that is not required to fix a clear report-quality issue in the current sample output

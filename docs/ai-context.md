@@ -6,7 +6,7 @@ This file is intended to be used as concise context for AI-assisted development 
 
 LegacyLens.NET is a standalone static discovery CLI for unfamiliar, legacy, and modern .NET codebases.
 
-It scans source and configuration files to produce a Markdown discovery report that helps a developer understand structure, dependencies, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+It scans source and configuration files to produce a Markdown discovery report that helps a developer understand structure, dependencies, package compatibility review signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 ## Usage model
 
@@ -43,7 +43,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections.
+The report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope now includes adding a package compatibility review section for upgrade planning.
 
 ## Current implemented capability summary
 
@@ -61,6 +61,10 @@ LegacyLens.NET currently discovers:
 - evidence-backed modernisation hints
 - prioritised modernisation review areas
 
+## MVP package compatibility review addition
+
+Package compatibility review is now MVP scope. It should enrich package discovery with package version, project target framework, package target framework where available, source format, source path, and possible compatibility concerns. It should remain static and evidence-backed, and it should not be described as full NuGet restore, transitive dependency resolution, online package lookup, package asset inspection, or guaranteed compatibility checking against a destination framework.
+
 ## Design constraints
 
 - Static-first discovery.
@@ -72,9 +76,11 @@ LegacyLens.NET currently discovers:
 
 ## MVP definition
 
-The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce a readable Markdown report that helps a developer identify the main structure, dependencies, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce a readable Markdown report that helps a developer identify the main structure, dependencies, package compatibility review signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 Further work should be treated as post-MVP unless it fixes a specific report-quality defect.
+
+Package compatibility review is now MVP scope, but it should remain static and evidence-backed. It should not be described as full NuGet restore, transitive dependency resolution, online package lookup, package asset inspection, or guaranteed compatibility checking against a destination framework.
 
 ## Recommended AI prompt context bundle
 

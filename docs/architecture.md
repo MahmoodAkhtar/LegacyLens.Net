@@ -75,6 +75,7 @@ Current analysis work includes:
 - identifying WCF-related package usage such as `System.ServiceModel.*`
 - identifying classic Entity Framework package usage
 - identifying `Newtonsoft.Json` usage as an informational review item
+- identifying package compatibility review concerns for upgrade planning, including missing versions, legacy package formats, package target framework mismatches, and selected package-specific migration concerns
 - identifying legacy ASP.NET indicators from `System.Web` assembly references
 - identifying `System.Web.*` assembly references as legacy ASP.NET review items
 - identifying WebForms pages as legacy ASP.NET migration risk indicators
@@ -124,7 +125,7 @@ Current analysis work includes:
 - identifying connection strings as external data dependency indicators
 - identifying custom configuration sections as migration review items
 - enriching modernisation hints with evidence metadata where a clear source can be matched
-- mapping package hints to `PackageReference` evidence and project files
+- mapping package hints to `PackageReference` evidence, package version metadata, package source format, package target framework where available, and source files
 - mapping assembly-reference hints to `AssemblyReference` evidence and project files
 - mapping project-level hints to `Project` evidence and project files
 - mapping WCF endpoint hints to `WcfEndpoint` evidence and configuration files
@@ -157,7 +158,10 @@ Current discovery work includes:
 - source file discovery
 - discovered project modelling
 - package reference discovery from `<PackageReference />` entries
+- package version discovery from `<PackageReference Version="..." />` attributes and nested `<Version>` elements where available
 - package reference discovery from legacy `packages.config` files
+- package version and package target framework discovery from legacy `packages.config` files
+- package source format and source path tracking for package compatibility review
 - assembly reference discovery from `<Reference />` entries
 
 ### LegacyAspNet
@@ -211,11 +215,25 @@ Current dependency work includes:
 
 - project reference scanning
 - package reference scanning
+- package compatibility review metadata extraction, including package id, version, source format, source path, and package target framework where available
 - assembly reference scanning
 
 ### Models
 
 Contains shared models used to represent scan results, projects, solutions, and dependencies.
+
+The package compatibility review requires the package model to become richer than a package-name-only string. A suitable MVP model should capture at least:
+
+| Property | Purpose |
+|---|---|
+| `Name` | NuGet package id |
+| `Version` | Version discovered from `PackageReference` or `packages.config`, where available |
+| `Source` | `PackageReference` or `packages.config` |
+| `SourcePath` | `.csproj` or `packages.config` file containing the package reference |
+| `PackageTargetFramework` | `packages.config` `targetFramework`, where available |
+| `ProjectTargetFramework` | Target framework or target frameworks declared by the containing project |
+
+`DiscoveredProject.PackageReferences` may need to become a collection of richer package reference objects, or a new package compatibility collection can be added while preserving the existing package-name summary behaviour.
 
 ### WCF
 
@@ -279,6 +297,7 @@ The Markdown report currently includes:
 - target frameworks
 - target framework summary grouped by discovered target framework
 - package reference summary grouped by discovered package
+- package compatibility review section for upgrade planning
 - project dependency diagram
 - project references
 - assembly references

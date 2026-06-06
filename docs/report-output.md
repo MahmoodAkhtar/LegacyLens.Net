@@ -52,9 +52,9 @@ Projects discovered:
   Target framework: net48
 - SampleLegacyApp.Data
   Target framework: net48
-  Package reference: Dapper
-  Package reference: EntityFramework
-  Package reference: Newtonsoft.Json
+  Package reference: Dapper 2.1.66 (source: PackageReference)
+  Package reference: EntityFramework 6.4.4 (source: packages.config, package target framework: net48)
+  Package reference: Newtonsoft.Json 13.0.3 (source: packages.config, package target framework: net48)
 - SampleLegacyApp.Services
   Target framework: net48
   Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
@@ -64,8 +64,8 @@ Projects discovered:
   Target framework: net48
   Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
   Project reference: ..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj
-  Package reference: Newtonsoft.Json
-  Package reference: System.ServiceModel.Http
+  Package reference: Newtonsoft.Json 13.0.3 (source: PackageReference)
+  Package reference: System.ServiceModel.Http unknown (source: PackageReference)
 
 WCF endpoints discovered:
 - SampleLegacyApp.Services.CustomerService
@@ -134,7 +134,7 @@ Modernisation hints discovered:
 - [Info] Configuration: Web.config contains 1 connection string(s)
 - [Warning] Legacy ASP.NET Request Pipeline: LegacyAuthModule registers an ASP.NET HTTP module
 - [Warning] Legacy ASP.NET Request Pipeline: IntegratedLegacyHandler registers an ASP.NET HTTP handler
-- [Warning] Packages: SampleLegacyApp.Data references EntityFramework
+- [Warning] Packages: SampleLegacyApp.Data references EntityFramework 6.4.4
 
 Modernisation review summary:
 - 1. WCF migration
@@ -199,6 +199,8 @@ output/discovery-report.md
 
 The following generated report excerpt is illustrative. Exact counts and findings may change as the sample application evolves.
 
+Package compatibility review is an MVP-scope addition. Until implemented in code, examples for that section should be treated as the intended report shape rather than the current generated output.
+
 The current report sections include:
 
 - Summary
@@ -210,6 +212,7 @@ The current report sections include:
 - Project References
 - Assembly References
 - Package References
+- Package Compatibility Review, once the MVP package compatibility review addition is implemented
 - WCF Endpoints
 - WCF Binding Details
 - WCF Reader Quotas
@@ -236,6 +239,15 @@ Representative excerpt:
 - WCF behaviours discovered: 2
 - Legacy ASP.NET artifacts discovered: 50
 - Assembly references discovered: 2
+
+## Package Compatibility Review
+
+| Project | Project Target Framework | Package | Version | Package Target Framework | Source | Source File | Concern |
+|---|---|---|---|---|---|---|---|
+| SampleLegacyApp.Data | net48 | Dapper | 2.1.66 |  | PackageReference | `...\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj` | No specific compatibility concern detected by the static MVP rules. |
+| SampleLegacyApp.Data | net48 | EntityFramework | 6.4.4 | net48 | packages.config | `...\SampleLegacyApp.Data\packages.config` | Classic Entity Framework should be reviewed before migration to EF Core or modern .NET. |
+| SampleLegacyApp.Data | net48 | Newtonsoft.Json | 13.0.3 | net48 | packages.config | `...\SampleLegacyApp.Data\packages.config` | Common package, but serialization behaviour may need review during ASP.NET Core migration. |
+| SampleLegacyApp.Web | net48 | System.ServiceModel.Http | unknown |  | PackageReference | `...\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj` | WCF-related package. Review WCF usage and replacement strategy before upgrading. |
 
 ## WCF Endpoints
 

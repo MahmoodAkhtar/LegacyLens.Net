@@ -92,16 +92,26 @@ Use either `--output` or `--output-dir`, not both.
 
 Default output prints a concise scan summary, including discovered solution/project counts, dependency counts, WCF counts, legacy ASP.NET artifact counts, configuration file counts, modernisation hint counts, and the top review areas.
 
+As part of the MVP scope, the generated Markdown report should include package compatibility review information for upgrade planning. This enriches package discovery with package version, project target framework, package target framework where available, package source format, and possible compatibility concerns. No separate command is required; the review should be part of the normal `scan` output once implemented.
+
 Quiet mode prints only the essential report output:
 
 ```bash
 legacylens scan <path> --quiet
 ```
 
-Verbose mode prints detailed discovery output:
+Verbose mode prints detailed discovery output. As package compatibility review is added to the MVP, verbose output should show package versions and package source details where available rather than only package names:
 
 ```bash
 legacylens scan <path> --verbose
+```
+
+Representative package lines:
+
+```text
+Package reference: EntityFramework 6.4.4 (source: packages.config, package target framework: net48)
+Package reference: Dapper 2.1.66 (source: PackageReference)
+Package compatibility concern: Classic Entity Framework should be reviewed before migration to EF Core or modern .NET.
 ```
 
 Use either `--quiet` or `--verbose`, not both.

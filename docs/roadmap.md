@@ -38,6 +38,9 @@ Status: Implemented
 - Read project references
 - Read assembly references from `<Reference />` entries
 - Read package references from `<PackageReference />` entries and legacy `packages.config` files
+- Read package versions where available
+- Read package target framework metadata from `packages.config` where available
+- Track package source format and source path for package compatibility review
 
 ### Step 2: Markdown report generation
 
@@ -50,9 +53,11 @@ Status: Implemented
 - Include project table
 - Include target framework summary
 - Include package reference summary
+- Include package compatibility review section
 - Include project references
 - Include assembly references
 - Include package references
+- Include package compatibility review information
 - Include legacy ASP.NET artifact information in the generated Markdown report
 - Include config-based ASP.NET HTTP module and handler registrations in the legacy ASP.NET artifact report section
 - Include configuration file details
@@ -103,7 +108,7 @@ Post-MVP ideas:
 
 ### Step 5: Risk and modernisation hints
 
-Status: Implemented with conditional quality gates
+Status: Implemented with conditional quality gates; package compatibility review is an MVP-scope addition to complete.
 
 Implemented:
 
@@ -170,6 +175,31 @@ Implemented:
 - Rank modernisation review areas by highest severity, review-area priority, and hint counts
 - Report prioritised modernisation review areas in the generated Markdown report
 - Print prioritised modernisation review areas in the CLI output
+
+---
+
+### Step 5a: Package compatibility review for upgrade planning
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Preserve package id, version, source format, source path, and package target framework where available.
+- Report project target framework alongside each package reference.
+- Add a `Package Compatibility Review` section to the Markdown report.
+- Include possible compatibility concerns for selected package patterns such as `System.ServiceModel.*`, `EntityFramework`, `Newtonsoft.Json`, missing package versions, and mismatches between project target framework and `packages.config` package target framework.
+- Feed package compatibility findings into the existing dependency review area.
+- Map package compatibility evidence to package references with package id, version, source path, source format, and package target framework where available.
+- Keep wording evidence-backed and static: the tool should say that a package may need review, not that it is definitely compatible or incompatible with a destination framework.
+
+Out of scope for MVP:
+
+- NuGet restore.
+- Transitive dependency resolution.
+- Online package lookup.
+- Package asset inspection.
+- Automated upgrade recommendations.
+- Guaranteed compatibility checks against .NET 8, .NET 9, .NET 10, or any future destination framework.
 
 ---
 
