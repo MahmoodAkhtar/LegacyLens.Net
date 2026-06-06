@@ -1,262 +1,53 @@
-﻿using LegacyLens.Core.Analysis;
-using LegacyLens.Core.Configuration;
-using LegacyLens.Core.Discovery;
-using LegacyLens.Core.LegacyAspNet;
-using LegacyLens.Core.Wcf;
-using LegacyLens.Reporting.Markdown;
+using LegacyLens.Cli.Commands;
+using LegacyLens.Cli.Parsing;
+using LegacyLens.Cli.Writers;
 
-var path = args.Length > 0 ? args[0] : Directory.GetCurrentDirectory();
+var parser = new CliParser();
+var consoleWriter = new ScanConsoleWriter();
 
-var discoveryService = new ProjectDiscoveryService();
-
-var projects = discoveryService.DiscoverProjects(path);
-var wcfConfigScanner = new WcfConfigScanner();
-var wcfEndpoints = wcfConfigScanner.Scan(path);
-var wcfBehaviours = wcfConfigScanner.ScanBehaviours(path);
-
-Console.WriteLine("Projects discovered:");
-
-foreach (var project in projects)
+try
 {
-    Console.WriteLine($"- {project.Name}");
+    var parseResult = parser.Parse(args);
 
-    if (!string.IsNullOrWhiteSpace(project.TargetFramework))
+    switch (parseResult.Kind)
     {
-        Console.WriteLine($"  Target framework: {project.TargetFramework}");
-    }
+        case CliParseResultKind.Help:
+            consoleWriter.WriteHelp();
+            return 0;
 
-    foreach (var reference in project.ProjectReferences)
-    {
-        Console.WriteLine($"  Project reference: {reference}");
-    }
+        case CliParseResultKind.Version:
+            consoleWriter.WriteVersion();
+            return 0;
 
-    foreach (var assemblyReference in project.AssemblyReferences)
-    {
-        Console.WriteLine($"  Assembly reference: {assemblyReference}");
-    }
+        case CliParseResultKind.Error:
+            consoleWriter.WriteError(parseResult.Message ?? "Invalid command.");
+            consoleWriter.WriteError("Use 'legacylens --help' for usage.");
+            return 2;
 
-    foreach (var package in project.PackageReferences)
-    {
-        Console.WriteLine($"  Package reference: {package}");
+        case CliParseResultKind.Scan:
+            var command = new ScanCommand();
+            var result = command.Execute(parseResult.Options!);
+            consoleWriter.Write(result, parseResult.Options!);
+            return 0;
+
+        default:
+            consoleWriter.WriteError("Invalid command.");
+            return 2;
     }
 }
-
-Console.WriteLine();
-Console.WriteLine("WCF endpoints discovered:");
-
-if (wcfEndpoints.Count == 0)
+catch (DirectoryNotFoundException exception)
 {
-    Console.WriteLine("- None");
+    consoleWriter.WriteError(exception.Message);
+    return 2;
 }
-else
+catch (ArgumentException exception)
 {
-    foreach (var endpoint in wcfEndpoints)
-    {
-        Console.WriteLine($"- {endpoint.ServiceName ?? "Unknown service"}");
-        Console.WriteLine($"  Address: {endpoint.Address ?? ""}");
-        Console.WriteLine($"  Binding: {endpoint.Binding ?? ""}");
-        Console.WriteLine($"  Contract: {endpoint.Contract ?? ""}");
-        Console.WriteLine($"  Config file: {endpoint.ConfigFilePath}");
-    }
+    consoleWriter.WriteError(exception.Message);
+    return 2;
 }
-
-var wcfServiceContractScanner = new WcfServiceContractScanner();
-var wcfServiceContracts = wcfServiceContractScanner.Scan(path);
-
-Console.WriteLine();
-Console.WriteLine("WCF service contracts discovered:");
-
-if (wcfServiceContracts.Count == 0)
+catch (Exception exception)
 {
-    Console.WriteLine("- None");
+    consoleWriter.WriteError("Unexpected error while running LegacyLens.NET.");
+    consoleWriter.WriteError(exception.Message);
+    return 1;
 }
-else
-{
-    foreach (var contract in wcfServiceContracts)
-    {
-        Console.WriteLine($"- {contract.Name}");
-        Console.WriteLine($"  Source file: {contract.SourceFilePath}");
-
-        foreach (var operation in contract.Operations)
-        {
-            Console.WriteLine($"  Operation: {operation}");
-        }
-    }
-}
-
-Console.WriteLine();
-Console.WriteLine("WCF behaviours discovered:");
-
-if (wcfBehaviours.Count == 0)
-{
-    Console.WriteLine("- None");
-}
-else
-{
-    foreach (var behaviour in wcfBehaviours)
-    {
-        Console.WriteLine($"- {behaviour.Kind}: {behaviour.Name ?? "Unnamed"}");
-        Console.WriteLine($"  Config file: {behaviour.ConfigFilePath}");
-
-        if (behaviour.HasServiceMetadata)
-        {
-            Console.WriteLine("  Service metadata: True");
-            Console.WriteLine($"  HTTP metadata enabled: {behaviour.ServiceMetadataHttpGetEnabled ?? ""}");
-            Console.WriteLine($"  HTTPS metadata enabled: {behaviour.ServiceMetadataHttpsGetEnabled ?? ""}");
-        }
-
-        if (behaviour.HasServiceDebug)
-        {
-            Console.WriteLine("  Service debug: True");
-            Console.WriteLine($"  Include exception detail in faults: {behaviour.IncludeExceptionDetailInFaults ?? ""}");
-        }
-
-        if (behaviour.HasServiceThrottling)
-        {
-            Console.WriteLine("  Service throttling: True");
-            Console.WriteLine($"  Max concurrent calls: {behaviour.MaxConcurrentCalls ?? ""}");
-            Console.WriteLine($"  Max concurrent sessions: {behaviour.MaxConcurrentSessions ?? ""}");
-            Console.WriteLine($"  Max concurrent instances: {behaviour.MaxConcurrentInstances ?? ""}");
-        }
-
-        if (behaviour.HasWebHttp)
-        {
-            Console.WriteLine("  Web HTTP: True");
-        }
-    }
-}
-
-var configFileScanner = new ConfigFileScanner();
-var configFiles = configFileScanner.Scan(path);
-
-Console.WriteLine();
-Console.WriteLine("Configuration files discovered:");
-
-if (configFiles.Count == 0)
-{
-    Console.WriteLine("- None");
-}
-else
-{
-    foreach (var configFile in configFiles)
-    {
-        Console.WriteLine($"- {configFile.FilePath}");
-        Console.WriteLine($"  App settings: {configFile.AppSettingsCount}");
-        Console.WriteLine($"  Connection strings: {configFile.ConnectionStringsCount}");
-        Console.WriteLine($"  Custom sections: {configFile.CustomSectionCount}");
-    }
-}
-
-var legacyAspNetArtifactScanner = new LegacyAspNetArtifactScanner();
-var legacyAspNetArtifacts = legacyAspNetArtifactScanner.Scan(path);
-
-Console.WriteLine();
-Console.WriteLine("Legacy ASP.NET artifacts discovered:");
-
-if (legacyAspNetArtifacts.Count == 0)
-{
-    Console.WriteLine("- None");
-}
-else
-{
-    foreach (var artifact in legacyAspNetArtifacts)
-    {
-        Console.WriteLine($"- {artifact.Kind}: {artifact.Name ?? Path.GetFileName(artifact.FilePath)}");
-        Console.WriteLine($"  File: {artifact.FilePath}");
-    }
-}
-
-var modernisationHintAnalyzer = new ModernisationHintAnalyzer();
-
-var modernisationHints = modernisationHintAnalyzer.Analyze(
-    projects,
-    wcfEndpoints,
-    wcfServiceContracts,
-    wcfBehaviours,
-    legacyAspNetArtifacts,
-    configFiles);
-
-Console.WriteLine();
-Console.WriteLine("Modernisation hints discovered:");
-
-if (modernisationHints.Count == 0)
-{
-    Console.WriteLine("- None");
-}
-else
-{
-    foreach (var hint in modernisationHints)
-    {
-        Console.WriteLine($"- [{hint.Severity}] {hint.Area}: {hint.Finding}");
-    }
-}
-
-var modernisationReviewPrioritiser = new ModernisationReviewPrioritiser();
-var modernisationReviewAreas = modernisationReviewPrioritiser.Prioritise(modernisationHints);
-
-Console.WriteLine();
-Console.WriteLine("Modernisation review summary:");
-
-if (modernisationReviewAreas.Count == 0)
-{
-    Console.WriteLine("- None");
-}
-else
-{
-    var priority = 1;
-
-    foreach (var reviewArea in modernisationReviewAreas)
-    {
-        Console.WriteLine($"- {priority}. {reviewArea.Area}");
-        Console.WriteLine($"  Highest severity: {reviewArea.HighestSeverity}");
-        Console.WriteLine($"  Risks: {reviewArea.RiskCount}");
-        Console.WriteLine($"  Warnings: {reviewArea.WarningCount}");
-        Console.WriteLine($"  Info: {reviewArea.InfoCount}");
-        Console.WriteLine($"  Summary: {reviewArea.Summary}");
-
-        priority++;
-    }
-}
-
-var solutionDiscoveryService = new SolutionDiscoveryService();
-var solutions = solutionDiscoveryService.DiscoverSolutions(path);
-
-Console.WriteLine();
-Console.WriteLine("Solutions discovered:");
-
-if (solutions.Count == 0)
-{
-    Console.WriteLine("- None");
-}
-else
-{
-    foreach (var solution in solutions)
-    {
-        Console.WriteLine($"- {solution.Name}");
-        Console.WriteLine($"  Solution file: {solution.SolutionFilePath}");
-        Console.WriteLine($"  Projects: {solution.ProjectFilePaths.Count}");
-    }
-}
-
-Console.WriteLine();
-
-var outputPath = Path.Combine(
-    Directory.GetCurrentDirectory(),
-    "output",
-    "discovery-report.md");
-
-var reportWriter = new MarkdownReportWriter();
-
-reportWriter.Write(
-    outputPath,
-    solutions,
-    projects,
-    wcfEndpoints,
-    wcfServiceContracts,
-    wcfBehaviours,
-    legacyAspNetArtifacts,
-    modernisationHints,
-    configFiles);
-
-Console.WriteLine();
-Console.WriteLine($"Markdown report generated: {outputPath}");
