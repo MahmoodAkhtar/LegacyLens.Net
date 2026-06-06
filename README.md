@@ -1,5 +1,9 @@
 # LegacyLens.NET
 
+<p align="center">
+  <img src="assets/legacylens-128x128.png" alt="LegacyLens.NET logo" width="128" height="128" />
+</p>
+
 LegacyLens.NET is a static discovery tool for unfamiliar, legacy, and modern .NET codebases.
 
 It helps developers quickly understand the structure of a .NET solution by scanning solution files, project files, C# source files, configuration files, and selected legacy ASP.NET artifacts, including file-based artifacts, source-level ASP.NET MVC/Web API signals, and custom HTTP module/handler registrations from `web.config`, then reporting useful information such as solutions, projects, target frameworks, project references, assembly references, package references, WCF endpoint configuration, WCF binding, security, timeout, message size, buffer, transfer mode, reader quota, service behaviour, endpoint behaviour, metadata publishing, debug, throttling, and REST-style `webHttp` behaviour details, WCF service contracts, service-related configuration, legacy ASP.NET artifact and source-level ASP.NET MVC usage, ASP.NET Web API usage, ASP.NET MVC and Web API startup registration usage, general configuration file usage, evidence-backed modernisation hints, and a prioritised modernisation review summary.
@@ -32,7 +36,7 @@ LegacyLens.NET is designed to work through static analysis, meaning it can provi
 
 LegacyLens.NET is currently in late MVP development and is focused on hardening the first usable discovery baseline.
 
-The current MVP already produces a static discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary.
+The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary.
 
 The current implementation can scan a folder containing .NET solutions and projects and discover:
 
@@ -102,10 +106,10 @@ The current implementation can scan a folder containing .NET solutions and proje
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 
-It can also generate a Markdown discovery report at:
+It can also generate a Markdown discovery report at the default scan output path:
 
 ```text
-output/discovery-report.md
+<scan-path>/output/discovery-report.md
 ```
 
 The generated report currently includes:
@@ -271,7 +275,7 @@ Solutions discovered:
 - SampleLegacyApp
   Projects: 4
 
-Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
+Markdown report generated: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\output\discovery-report.md
 ```
 
 If no solutions, WCF endpoints, WCF service contracts, WCF behaviours, configuration files, legacy ASP.NET artifacts, or modernisation hints are found, the console output shows:
@@ -301,6 +305,127 @@ Modernisation review summary:
 Solutions discovered:
 - None
 ```
+
+---
+
+
+## Command Line Usage
+
+LegacyLens.NET is intended to be used as a standalone command-line discovery utility.
+
+The normal usage model is:
+
+```text
+download exe
+open terminal
+run scan
+get markdown report
+```
+
+Usage:
+
+```text
+legacylens scan <path> [options]
+```
+
+Arguments:
+
+```text
+<path>                 Folder containing one or more .NET solutions or projects.
+```
+
+Options:
+
+```text
+-o, --output <file>    Markdown report file to create.
+--output-dir <dir>     Directory where discovery-report.md should be written.
+--format <format>      Report format. Currently only markdown is supported.
+--quiet                Only print essential output.
+--verbose              Print detailed discovery output.
+-h, --help             Show help.
+--version              Show version.
+```
+
+Examples:
+
+```bash
+legacylens scan .
+legacylens scan C:\Repos\LegacyApp
+legacylens scan C:\Repos\LegacyApp --output C:\Reports\legacy-discovery.md
+legacylens scan C:\Repos\LegacyApp -o C:\Reports\legacy-discovery.md
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports
+legacylens scan C:\Repos\LegacyApp --format markdown
+legacylens scan C:\Repos\LegacyApp --quiet
+legacylens scan C:\Repos\LegacyApp --verbose
+legacylens --help
+legacylens --version
+```
+
+### Report Output
+
+By default, LegacyLens.NET writes the Markdown report to:
+
+```text
+<scan-path>/output/discovery-report.md
+```
+
+A specific file can be selected with:
+
+```bash
+legacylens scan <path> --output <file>
+```
+
+or:
+
+```bash
+legacylens scan <path> -o <file>
+```
+
+A directory can be selected with:
+
+```bash
+legacylens scan <path> --output-dir <dir>
+```
+
+When `--output-dir` is used, the report file is written as:
+
+```text
+<dir>/discovery-report.md
+```
+
+Use either `--output` or `--output-dir`, not both.
+
+### Console Output Modes
+
+Default output prints a concise scan summary, including discovered solution/project counts, dependency counts, WCF counts, legacy ASP.NET artifact counts, configuration file counts, modernisation hint counts, and the top review areas.
+
+Quiet mode prints only the essential report output:
+
+```bash
+legacylens scan <path> --quiet
+```
+
+Verbose mode prints detailed discovery output:
+
+```bash
+legacylens scan <path> --verbose
+```
+
+Use either `--quiet` or `--verbose`, not both.
+
+### CLI Validation
+
+The CLI currently validates the following:
+
+- a command is required
+- the supported command is `scan`
+- a scan path is required
+- unknown options are rejected
+- option values are required for `--output`, `-o`, `--output-dir`, and `--format`
+- only `markdown` is currently supported for `--format`
+- `--output` and `--output-dir` cannot be used together
+- `--quiet` and `--verbose` cannot be used together
+- a missing scan directory returns a command error
 
 ---
 
@@ -951,7 +1076,7 @@ LegacyLens.Net/
 
 | Project | Purpose |
 |---|---|
-| `LegacyLens.Cli` | Command-line entry point for running scans |
+| `LegacyLens.Cli` | Standalone command-line executable for running `legacylens scan <path>` and writing the Markdown discovery report |
 | `LegacyLens.Core` | Core discovery and analysis logic |
 | `LegacyLens.Reporting` | Report generation functionality |
 | `SampleLegacyApp` | Sample legacy-style .NET application used for testing discovery features |
@@ -1250,35 +1375,100 @@ This may later be used to generate richer browser-based reports.
 
 ## Running the Tool
 
-From the repository root, run:
+For normal use, run the published executable:
 
-```powershell
-dotnet run --project src/LegacyLens.Cli -- .\samples\SampleLegacyApp\
+```bash
+legacylens scan <path>
 ```
 
 Example:
 
 ```powershell
-PS C:\Users\YourName\RiderProjects\LegacyLens.Net> dotnet run --project src/LegacyLens.Cli -- .\samples\SampleLegacyApp\
+PS C:\Repos> legacylens scan .\LegacyApp\
 ```
 
-This scans the sample application, prints discovered solution, project, assembly reference, WCF, configuration file, legacy ASP.NET artifact, modernisation hint, and modernisation review summary information to the console, and generates a Markdown report at:
+This scans the selected folder, prints a concise discovery summary to the console, and generates a Markdown report at the resolved report output path.
+
+By default, the report is written to:
 
 ```text
-output/discovery-report.md
+<scan-path>/output/discovery-report.md
 ```
 
-Example final console line:
+Example final console lines:
 
 ```text
-Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
 ```
+
+For detailed discovery output, use:
+
+```bash
+legacylens scan <path> --verbose
+```
+
+For only the essential generated report path, use:
+
+```bash
+legacylens scan <path> --quiet
+```
+
+## Development Usage
+
+For local development, the CLI project can still be run through `dotnet run` from the repository root:
+
+```powershell
+dotnet run --project src/LegacyLens.Cli -- scan .\samples\SampleLegacyApp\
+```
+
+This development workflow exercises the same `scan` command contract as the published executable.
 
 ---
 
 ## Sample Console Output
 
-The following console output is a representative excerpt. Exact counts, paths, and findings may change as the sample application evolves. The `Modernisation hints discovered` section is intentionally short and does not attempt to duplicate every row from the generated report.
+The normal `legacylens scan <path>` output is intentionally concise.
+
+Example default console output:
+
+```text
+LegacyLens.NET
+
+Scan path: C:\Path\To\LegacyApp
+Report: C:\Path\To\LegacyApp\output\discovery-report.md
+
+Summary:
+- Solutions discovered: 1
+- Projects discovered: 4
+- Project references discovered: 4
+- Package references discovered: 5
+- Assembly references discovered: 2
+- WCF endpoints discovered: 3
+- WCF service contracts discovered: 1
+- WCF behaviours discovered: 2
+- Legacy ASP.NET artifacts discovered: 50
+- Configuration files discovered: 1
+- Modernisation hints discovered: 77
+
+Top review areas:
+1. WCF migration
+2. Legacy ASP.NET migration
+3. Target framework review
+
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
+```
+
+The latest sample report confirms the current sample output shape: 1 solution, 4 projects, 4 project references, 5 package references, 2 assembly references, 3 WCF endpoints, 1 WCF service contract, 2 WCF behaviours, 50 legacy ASP.NET artifacts, and 1 configuration file. The modernisation review summary currently totals 77 modernisation hints across the prioritised review areas.
+
+For detailed discovery output, use:
+
+```bash
+legacylens scan <path> --verbose
+```
+
+The following verbose console output is a representative excerpt. Exact counts, paths, and findings may change as the sample application evolves. The `Modernisation hints discovered` section is intentionally short and does not attempt to duplicate every row from the generated report.
 
 ```text
 Projects discovered:
@@ -1418,7 +1608,7 @@ Solutions discovered:
 - SampleLegacyApp
   Projects: 4
 
-Markdown report generated: C:\Path\To\LegacyLens.Net\output\discovery-report.md
+Markdown report generated: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\output\discovery-report.md
 ```
 
 ---
@@ -2079,6 +2269,14 @@ The review summary is intentionally lightweight. It does not replace the detaile
 
 Current MVP functionality includes:
 
+- standalone `legacylens scan <path>` CLI command
+- `--output` and `-o` report file selection
+- `--output-dir` report directory selection
+- `--format markdown` command option
+- `--quiet` console output mode
+- `--verbose` console output mode
+- `--help`, `-h`, and `--version` command support
+- CLI validation for missing commands, missing scan paths, unknown options, unsupported formats, and invalid option combinations
 - static `.sln` discovery
 - solution name discovery
 - solution project membership discovery
@@ -2186,6 +2384,23 @@ The MVP exit criteria are:
 - The report does not contain known duplicated, misleading, or materially low-value findings that would confuse a reader.
 - Existing automated tests pass.
 - The README reflects the actual current report output and does not describe speculative MVP behaviour as already implemented.
+
+### CLI command contract
+
+Status: Implemented
+
+- Provide a standalone `legacylens` command
+- Support `legacylens scan <path>`
+- Support `--output` and `-o` for writing to a specific Markdown file
+- Support `--output-dir` for writing `discovery-report.md` to a selected directory
+- Support `--format markdown`
+- Reject unsupported formats
+- Support `--quiet`
+- Support `--verbose`
+- Support `--help` and `-h`
+- Support `--version`
+- Reject invalid combinations such as `--output` with `--output-dir`
+- Reject invalid combinations such as `--quiet` with `--verbose`
 
 Further discovery refinements are post-MVP unless the current sample report exposes a clear false positive, false negative, duplicated finding, misleading evidence source, or confusing prioritisation issue that materially reduces report usefulness.
 
