@@ -250,6 +250,64 @@ public sealed class MarkdownReportWriterTests
     }
 
     [Fact]
+    public void Write_IncludesPackageCompatibilityReviewSection()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var projectFilePath = Path.Combine(rootPath, "SampleLegacyApp.Data", "SampleLegacyApp.Data.csproj");
+            var packagesConfigPath = Path.Combine(rootPath, "SampleLegacyApp.Data", "packages.config");
+            var outputPath = Path.Combine(rootPath, "discovery-report.md");
+
+            var project = new DiscoveredProject
+            {
+                Name = "SampleLegacyApp.Data",
+                ProjectFilePath = projectFilePath,
+                TargetFramework = "net48",
+                PackageReferences =
+                {
+                    "EntityFramework"
+                },
+                PackageReferenceDetails =
+                {
+                    new DiscoveredPackageReference
+                    {
+                        Name = "EntityFramework",
+                        Version = "6.4.4",
+                        SourceFormat = "packages.config",
+                        SourcePath = packagesConfigPath,
+                        PackageTargetFramework = "net48"
+                    }
+                }
+            };
+
+            var writer = new MarkdownReportWriter();
+
+            writer.Write(
+                outputPath,
+                Array.Empty<DiscoveredSolution>(),
+                new[] { project },
+                Array.Empty<WcfEndpoint>(),
+                Array.Empty<WcfServiceContract>(),
+                Array.Empty<DiscoveredLegacyAspNetArtifact>(),
+                Array.Empty<ModernisationHint>(),
+                Array.Empty<DiscoveredConfigFile>());
+
+            var markdown = File.ReadAllText(outputPath);
+
+            markdown.Should().Contain("## Package Compatibility Review");
+            markdown.Should().Contain("| Project | Project Target Framework | Package | Version | Package Target Framework | Source | Source File | Concern |");
+            markdown.Should().Contain($"| SampleLegacyApp.Data | net48 | EntityFramework | 6.4.4 | net48 | packages.config | `{packagesConfigPath}` |");
+            markdown.Should().Contain("Classic Entity Framework should be reviewed before migration to EF Core or modern .NET.");
+        }
+        finally
+        {
+            DeleteDirectory(rootPath);
+        }
+    }
+
+    [Fact]
     public void Write_IncludesProjectDependencyDiagram()
     {
         var rootPath = CreateTemporaryDirectory();

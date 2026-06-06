@@ -115,6 +115,20 @@ public sealed class ModernisationHintAnalyzer
     {
         foreach (var project in projects)
         {
+            foreach (var package in project.PackageReferenceDetails)
+            {
+                if (hint.Finding.Contains(project.Name, StringComparison.OrdinalIgnoreCase) &&
+                    hint.Finding.Contains(package.Name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return WithEvidence(
+                        hint,
+                        "PackageReference",
+                        BuildPackageEvidenceName(package),
+                        package.SourcePath,
+                        ModernisationHintConfidence.High);
+                }
+            }
+
             foreach (var package in project.PackageReferences)
             {
                 if (hint.Finding.Contains(project.Name, StringComparison.OrdinalIgnoreCase) &&
@@ -131,6 +145,15 @@ public sealed class ModernisationHintAnalyzer
         }
 
         return null;
+    }
+
+    private static string BuildPackageEvidenceName(DiscoveredPackageReference package)
+    {
+        var version = string.IsNullOrWhiteSpace(package.Version)
+            ? "unknown"
+            : package.Version;
+
+        return $"{package.Name} {version} ({package.SourceFormat})";
     }
 
     private static ModernisationHint? TryAddAssemblyReferenceEvidence(
@@ -517,7 +540,35 @@ public sealed class ModernisationHintAnalyzer
         IReadOnlyList<DiscoveredProject> projects,
         List<ModernisationHint> hints)
     {
-        foreach (var project in projects)
+        AddLegacyPackageNameHints(projects, hints);
+
+        var compatibilityReviewer = new PackageCompatibilityReviewer();
+        var compatibilityReviewItems = compatibilityReviewer.Review(projects);
+
+        foreach (var item in compatibilityReviewItems)
+        {
+            if (item.Concern.Equals(
+                    "No specific compatibility concern detected by the static MVP rules.",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            hints.Add(new ModernisationHint
+            {
+                Severity = GetPackageCompatibilitySeverity(item),
+                Area = "Packages",
+                Finding = $"{item.ProjectName} references {item.PackageName} {item.Version ?? "unknown"}",
+                Reason = item.Concern
+            });
+        }
+    }
+
+    private static void AddLegacyPackageNameHints(
+        IReadOnlyList<DiscoveredProject> projects,
+        List<ModernisationHint> hints)
+    {
+        foreach (var project in projects.Where(x => x.PackageReferenceDetails.Count == 0))
         {
             foreach (var package in project.PackageReferences)
             {
@@ -558,6 +609,24 @@ public sealed class ModernisationHintAnalyzer
                 }
             }
         }
+    }
+
+    private static ModernisationHintSeverity GetPackageCompatibilitySeverity(
+        PackageCompatibilityReviewItem item)
+    {
+        if (item.PackageName.StartsWith("System.ServiceModel", StringComparison.OrdinalIgnoreCase))
+        {
+            return ModernisationHintSeverity.Risk;
+        }
+
+        if (item.PackageName.Equals("EntityFramework", StringComparison.OrdinalIgnoreCase) ||
+            item.Concern.Contains("target framework differs", StringComparison.OrdinalIgnoreCase) ||
+            item.Concern.Contains("version was not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return ModernisationHintSeverity.Warning;
+        }
+
+        return ModernisationHintSeverity.Info;
     }
 
     private static void AddWcfHints(

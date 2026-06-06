@@ -25,24 +25,17 @@ public sealed class ProjectDiscoveryService
             var document = XDocument.Load(projectFile);
 
             var projectName = Path.GetFileNameWithoutExtension(projectFile);
-
-            var targetFramework = document
-                .Descendants()
-                .FirstOrDefault(x => x.Name.LocalName == "TargetFramework")
-                ?.Value;
-
-            var projectReferences = document
-                .Descendants()
-                .Where(x => x.Name.LocalName == "ProjectReference")
-                .Select(x => x.Attribute("Include")?.Value)
+            var targetFramework = ReadTargetFramework(document);
+            var projectReferences = ReadProjectReferences(document);
+            var packageReferenceDetails = ReadPackageReferenceDetails(document, projectFile);
+            var packageReferences = packageReferenceDetails
+                .Select(x => x.Name)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x => x!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
                 .ToList();
-
-            var packageReferences = ReadPackageReferences(document, projectFile);
-
             var assemblyReferences = ReadAssemblyReferences(document);
-            
+
             projects.Add(new DiscoveredProject
             {
                 Name = projectName,
@@ -50,6 +43,7 @@ public sealed class ProjectDiscoveryService
                 TargetFramework = targetFramework,
                 ProjectReferences = projectReferences,
                 PackageReferences = packageReferences,
+                PackageReferenceDetails = packageReferenceDetails,
                 AssemblyReferences = assemblyReferences
             });
         }
@@ -57,38 +51,107 @@ public sealed class ProjectDiscoveryService
         return projects;
     }
 
-    private static List<string> ReadPackageReferences(XDocument projectDocument, string projectFile)
+    private static string? ReadTargetFramework(XDocument projectDocument)
     {
-        var projectPackageReferences = projectDocument
+        var targetFramework = projectDocument
             .Descendants()
-            .Where(x => x.Name.LocalName == "PackageReference")
+            .FirstOrDefault(x => x.Name.LocalName == "TargetFramework")
+            ?.Value;
+
+        if (!string.IsNullOrWhiteSpace(targetFramework))
+        {
+            return targetFramework.Trim();
+        }
+
+        var targetFrameworks = projectDocument
+            .Descendants()
+            .FirstOrDefault(x => x.Name.LocalName == "TargetFrameworks")
+            ?.Value;
+
+        return string.IsNullOrWhiteSpace(targetFrameworks)
+            ? null
+            : targetFrameworks.Trim();
+    }
+
+    private static List<string> ReadProjectReferences(XDocument projectDocument)
+    {
+        return projectDocument
+            .Descendants()
+            .Where(x => x.Name.LocalName == "ProjectReference")
             .Select(x => x.Attribute("Include")?.Value)
             .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x!);
-
-        var packagesConfigReferences = ReadPackagesConfigReferences(projectFile);
-
-        return projectPackageReferences
-            .Concat(packagesConfigReferences)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(x => x)
+            .Select(x => x!)
             .ToList();
     }
 
-    private static List<string> ReadPackagesConfigReferences(string projectFile)
+    private static List<DiscoveredPackageReference> ReadPackageReferenceDetails(
+        XDocument projectDocument,
+        string projectFile)
+    {
+        var packageReferences = projectDocument
+            .Descendants()
+            .Where(x => x.Name.LocalName == "PackageReference")
+            .Select(x => CreatePackageReference(x, projectFile))
+            .Where(x => x is not null)
+            .Select(x => x!)
+            .ToList();
+
+        packageReferences.AddRange(ReadPackagesConfigReferences(projectFile));
+
+        return packageReferences
+            .OrderBy(x => x.Name)
+            .ThenBy(x => x.SourceFormat)
+            .ThenBy(x => x.Version)
+            .ToList();
+    }
+
+    private static DiscoveredPackageReference? CreatePackageReference(
+        XElement packageReferenceElement,
+        string projectFile)
+    {
+        var name = GetFirstNonEmptyAttributeValue(
+            packageReferenceElement,
+            "Include",
+            "Update");
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return null;
+        }
+
+        var version = packageReferenceElement.Attribute("Version")?.Value;
+
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            version = packageReferenceElement
+                .Elements()
+                .FirstOrDefault(x => x.Name.LocalName == "Version")
+                ?.Value;
+        }
+
+        return new DiscoveredPackageReference
+        {
+            Name = name.Trim(),
+            Version = NormalizeOptional(version),
+            SourceFormat = "PackageReference",
+            SourcePath = projectFile
+        };
+    }
+
+    private static List<DiscoveredPackageReference> ReadPackagesConfigReferences(string projectFile)
     {
         var projectDirectory = Path.GetDirectoryName(projectFile);
 
         if (string.IsNullOrWhiteSpace(projectDirectory))
         {
-            return new List<string>();
+            return new List<DiscoveredPackageReference>();
         }
 
         var packagesConfigPath = Path.Combine(projectDirectory, "packages.config");
 
         if (!File.Exists(packagesConfigPath))
         {
-            return new List<string>();
+            return new List<DiscoveredPackageReference>();
         }
 
         XDocument document;
@@ -99,17 +162,32 @@ public sealed class ProjectDiscoveryService
         }
         catch
         {
-            return new List<string>();
+            return new List<DiscoveredPackageReference>();
         }
 
         return document
             .Descendants()
             .Where(x => x.Name.LocalName == "package")
-            .Select(x => x.Attribute("id")?.Value)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x =>
+            {
+                var name = x.Attribute("id")?.Value;
+
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return null;
+                }
+
+                return new DiscoveredPackageReference
+                {
+                    Name = name.Trim(),
+                    Version = NormalizeOptional(x.Attribute("version")?.Value),
+                    SourceFormat = "packages.config",
+                    SourcePath = packagesConfigPath,
+                    PackageTargetFramework = NormalizeOptional(x.Attribute("targetFramework")?.Value)
+                };
+            })
+            .Where(x => x is not null)
             .Select(x => x!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(x => x)
             .ToList();
     }
     
@@ -126,5 +204,29 @@ public sealed class ProjectDiscoveryService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x)
             .ToList();
+    }
+
+    private static string? GetFirstNonEmptyAttributeValue(
+        XElement element,
+        params string[] attributeNames)
+    {
+        foreach (var attributeName in attributeNames)
+        {
+            var value = element.Attribute(attributeName)?.Value;
+
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                return value;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
     }
 }

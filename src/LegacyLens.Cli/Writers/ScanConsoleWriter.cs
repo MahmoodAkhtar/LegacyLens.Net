@@ -164,9 +164,26 @@ public sealed class ScanConsoleWriter
                 Console.WriteLine($"  Assembly reference: {assemblyReference}");
             }
 
-            foreach (var package in project.PackageReferences)
+            foreach (var package in project.PackageReferenceDetails)
             {
-                Console.WriteLine($"  Package reference: {package}");
+                var version = string.IsNullOrWhiteSpace(package.Version)
+                    ? "unknown"
+                    : package.Version;
+
+                var packageTargetFramework = string.IsNullOrWhiteSpace(package.PackageTargetFramework)
+                    ? string.Empty
+                    : $", package target framework: {package.PackageTargetFramework}";
+
+                Console.WriteLine(
+                    $"  Package reference: {package.Name} {version} (source: {package.SourceFormat}{packageTargetFramework})");
+            }
+
+            if (project.PackageReferenceDetails.Count == 0)
+            {
+                foreach (var package in project.PackageReferences)
+                {
+                    Console.WriteLine($"  Package reference: {package}");
+                }
             }
         }
 

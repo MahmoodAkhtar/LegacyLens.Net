@@ -113,6 +113,7 @@ public sealed class MarkdownReportWriter
         AppendProjectReferences(builder, projects);
         AppendAssemblyReferences(builder, projects);
         AppendPackageReferences(builder, projects);
+        AppendPackageCompatibilityReview(builder, projects);
         AppendWcfEndpoints(builder, wcfEndpoints);
         AppendWcfBindingDetails(builder, wcfEndpoints);
         AppendWcfReaderQuotas(builder, wcfEndpoints);
@@ -372,6 +373,34 @@ public sealed class MarkdownReportWriter
         if (!hasPackages)
         {
             builder.AppendLine("| None | None |");
+        }
+
+        builder.AppendLine();
+    }
+
+    private static void AppendPackageCompatibilityReview(
+        StringBuilder builder,
+        IReadOnlyList<DiscoveredProject> projects)
+    {
+        builder.AppendLine("## Package Compatibility Review");
+        builder.AppendLine();
+        builder.AppendLine("| Project | Project Target Framework | Package | Version | Package Target Framework | Source | Source File | Concern |");
+        builder.AppendLine("|---|---|---|---|---|---|---|---|");
+
+        var reviewer = new PackageCompatibilityReviewer();
+        var reviewItems = reviewer.Review(projects);
+
+        if (reviewItems.Count == 0)
+        {
+            builder.AppendLine("| None | None | None | None | None | None | None | None |");
+            builder.AppendLine();
+            return;
+        }
+
+        foreach (var item in reviewItems)
+        {
+            builder.AppendLine(
+                $"| {Escape(item.ProjectName)} | {Escape(item.ProjectTargetFramework ?? "Unknown")} | {Escape(item.PackageName)} | {Escape(item.Version ?? "unknown")} | {Escape(item.PackageTargetFramework ?? "")} | {Escape(item.SourceFormat)} | `{Escape(item.SourcePath)}` | {Escape(item.Concern)} |");
         }
 
         builder.AppendLine();

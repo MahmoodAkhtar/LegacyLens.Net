@@ -7,5 +7,6 @@ public sealed class DiscoveredProject
     public string? TargetFramework { get; init; }
     public List<string> ProjectReferences { get; init; } = new();
     public List<string> PackageReferences { get; init; } = new();
+    public List<DiscoveredPackageReference> PackageReferenceDetails { get; init; } = new();
     public List<string> AssemblyReferences { get; init; } = new();
 }

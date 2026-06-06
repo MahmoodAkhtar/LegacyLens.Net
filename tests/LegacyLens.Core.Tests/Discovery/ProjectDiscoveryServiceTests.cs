@@ -188,6 +188,73 @@ public sealed class ProjectDiscoveryServiceTests
         }
     }
 
+    [Fact]
+    public void DiscoverProjects_ShouldCapturePackageCompatibilityMetadata()
+    {
+        var rootPath = CreateTemporaryDirectory();
+
+        try
+        {
+            var projectDirectory = Path.Combine(rootPath, "SampleLegacyApp.Data");
+            Directory.CreateDirectory(projectDirectory);
+
+            var projectFilePath = Path.Combine(projectDirectory, "SampleLegacyApp.Data.csproj");
+
+            File.WriteAllText(projectFilePath, """
+                <Project Sdk="Microsoft.NET.Sdk">
+                  <PropertyGroup>
+                    <TargetFramework>net48</TargetFramework>
+                  </PropertyGroup>
+                  <ItemGroup>
+                    <PackageReference Include="Dapper" Version="2.1.66" />
+                    <PackageReference Include="System.ServiceModel.Http">
+                      <Version>4.10.3</Version>
+                    </PackageReference>
+                  </ItemGroup>
+                </Project>
+                """);
+
+            var packagesConfigPath = Path.Combine(projectDirectory, "packages.config");
+
+            File.WriteAllText(packagesConfigPath, """
+                <?xml version="1.0" encoding="utf-8"?>
+                <packages>
+                  <package id="EntityFramework" version="6.4.4" targetFramework="net48" />
+                </packages>
+                """);
+
+            var service = new ProjectDiscoveryService();
+
+            var projects = service.DiscoverProjects(rootPath);
+
+            var project = Assert.Single(projects);
+
+            Assert.Contains(project.PackageReferenceDetails, x =>
+                x.Name == "Dapper" &&
+                x.Version == "2.1.66" &&
+                x.SourceFormat == "PackageReference" &&
+                x.SourcePath == projectFilePath &&
+                x.PackageTargetFramework is null);
+
+            Assert.Contains(project.PackageReferenceDetails, x =>
+                x.Name == "System.ServiceModel.Http" &&
+                x.Version == "4.10.3" &&
+                x.SourceFormat == "PackageReference" &&
+                x.SourcePath == projectFilePath);
+
+            Assert.Contains(project.PackageReferenceDetails, x =>
+                x.Name == "EntityFramework" &&
+                x.Version == "6.4.4" &&
+                x.SourceFormat == "packages.config" &&
+                x.SourcePath == packagesConfigPath &&
+                x.PackageTargetFramework == "net48");
+        }
+        finally
+        {
+            DeleteTemporaryDirectory(rootPath);
+        }
+    }
+
     private static string CreateTemporaryDirectory()
     {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
