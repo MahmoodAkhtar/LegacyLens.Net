@@ -45,6 +45,8 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  --version              Show version.");
         Console.WriteLine("  --artifacts <value>     Optional artifact selection. Currently supports upgrade-readiness.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness wording.");
+        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness and upgrade-blockers.");
+        Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.");
     }
 
     public void WriteVersion()
@@ -70,6 +72,16 @@ public sealed class ScanConsoleWriter
     private static void WriteQuiet(ScanResult result)
     {
         Console.WriteLine($"Markdown report generated: {result.OutputPath}");
+
+        if (!string.IsNullOrWhiteSpace(result.UpgradeReadinessOutputPath))
+        {
+            Console.WriteLine($"Upgrade readiness report generated: {result.UpgradeReadinessOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.UpgradeBlockersOutputPath))
+        {
+            Console.WriteLine($"Upgrade blockers report generated: {result.UpgradeBlockersOutputPath}");
+        }
     }
 
     private static void WriteNormal(ScanResult result)
@@ -118,6 +130,13 @@ public sealed class ScanConsoleWriter
             Console.WriteLine();
             Console.WriteLine("Upgrade readiness report generated:");
             Console.WriteLine(result.UpgradeReadinessOutputPath);
+        }
+        
+        if (!string.IsNullOrWhiteSpace(result.UpgradeBlockersOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Upgrade blockers report generated:");
+            Console.WriteLine(result.UpgradeBlockersOutputPath);
         }
     }
 

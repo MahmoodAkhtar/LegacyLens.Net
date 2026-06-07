@@ -14,4 +14,7 @@ public sealed class ScanOptions
 
     public bool ShouldWriteUpgradeReadiness =>
         string.Equals(Artifacts, "upgrade-readiness", StringComparison.OrdinalIgnoreCase);
+    
+    public bool ShouldWriteUpgradeBlockers =>
+        string.Equals(Artifacts, "upgrade-blockers", StringComparison.OrdinalIgnoreCase);
 }

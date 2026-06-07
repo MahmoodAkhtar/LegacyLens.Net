@@ -22,6 +22,8 @@ public sealed class ScanResult
     public required IReadOnlyList<ModernisationReviewArea> ModernisationReviewAreas { get; init; }
     public string? UpgradeReadinessOutputPath { get; init; }
     public UpgradeReadinessReport? UpgradeReadinessReport { get; init; }
+    public string? UpgradeBlockersOutputPath { get; init; }
+    public UpgradeBlockersReport? UpgradeBlockersReport { get; init; }
 
     public int ProjectReferenceCount => Projects.Sum(x => x.ProjectReferences.Count);
     public int PackageReferenceCount => Projects.Sum(x => x.PackageReferences.Count);

@@ -88,6 +88,29 @@ public sealed class ScanCommand
             upgradeReadinessWriter.Write(upgradeReadinessOutputPath, upgradeReadinessReport);
         }
         
+        string? upgradeBlockersOutputPath = null;
+        UpgradeBlockersReport? upgradeBlockersReport = null;
+
+        if (options.ShouldWriteUpgradeBlockers)
+        {
+            var upgradeBlockersAnalyzer = new UpgradeBlockersAnalyzer();
+
+            upgradeBlockersReport = upgradeBlockersAnalyzer.Analyze(
+                projects,
+                wcfEndpoints,
+                wcfServiceContracts,
+                wcfBehaviours,
+                legacyAspNetArtifacts,
+                configFiles,
+                modernisationHints,
+                options.UpgradeTarget);
+
+            upgradeBlockersOutputPath = ResolveUpgradeBlockersOutputPath(scanPath, options);
+
+            var upgradeBlockersWriter = new UpgradeBlockersMarkdownReportWriter();
+            upgradeBlockersWriter.Write(upgradeBlockersOutputPath, upgradeBlockersReport);
+        }
+        
         return new ScanResult
         {
             ScanPath = scanPath,
@@ -102,10 +125,34 @@ public sealed class ScanCommand
             ModernisationHints = modernisationHints,
             ModernisationReviewAreas = modernisationReviewAreas,
             UpgradeReadinessOutputPath = upgradeReadinessOutputPath,
-            UpgradeReadinessReport = upgradeReadinessReport
+            UpgradeReadinessReport = upgradeReadinessReport,
+            UpgradeBlockersOutputPath = upgradeBlockersOutputPath,
+            UpgradeBlockersReport = upgradeBlockersReport
         };
     }
 
+    private static string ResolveUpgradeBlockersOutputPath(string scanPath, ScanOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
+        {
+            return Path.Combine(
+                Path.GetFullPath(options.OutputDirectory),
+                "upgrade-blockers.md");
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Output))
+        {
+            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
+
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                return Path.Combine(outputDirectory, "upgrade-blockers.md");
+            }
+        }
+
+        return Path.Combine(scanPath, "output", "upgrade-blockers.md");
+    }
+    
     private static string ResolveUpgradeReadinessOutputPath(string scanPath, ScanOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.OutputDirectory))

@@ -151,15 +151,16 @@ public sealed class CliParser
         }
         
         if (!string.IsNullOrWhiteSpace(artifacts) &&
-            !artifacts.Equals("upgrade-readiness", StringComparison.OrdinalIgnoreCase))
+            !artifacts.Equals("upgrade-readiness", StringComparison.OrdinalIgnoreCase) &&
+            !artifacts.Equals("upgrade-blockers", StringComparison.OrdinalIgnoreCase))
         {
-            return CliParseResult.Error("Only the upgrade-readiness artifact is currently supported.");
+            return CliParseResult.Error("Only the upgrade-readiness and upgrade-blockers artifacts are currently supported.");
         }
 
         if (!string.IsNullOrWhiteSpace(upgradeTarget) &&
             string.IsNullOrWhiteSpace(artifacts))
         {
-            return CliParseResult.Error("Use --upgrade-target with --artifacts upgrade-readiness.");
+            return CliParseResult.Error("Use --upgrade-target with --artifacts upgrade-readiness or --artifacts upgrade-blockers.");
         }
 
         return CliParseResult.Scan(new ScanOptions
