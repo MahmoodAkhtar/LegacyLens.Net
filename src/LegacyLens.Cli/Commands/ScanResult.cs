@@ -20,6 +20,8 @@ public sealed class ScanResult
     public required IReadOnlyList<DiscoveredConfigFile> ConfigFiles { get; init; }
     public required IReadOnlyList<ModernisationHint> ModernisationHints { get; init; }
     public required IReadOnlyList<ModernisationReviewArea> ModernisationReviewAreas { get; init; }
+    public string? UpgradeReadinessOutputPath { get; init; }
+    public UpgradeReadinessReport? UpgradeReadinessReport { get; init; }
 
     public int ProjectReferenceCount => Projects.Sum(x => x.ProjectReferences.Count);
     public int PackageReferenceCount => Projects.Sum(x => x.PackageReferences.Count);

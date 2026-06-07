@@ -18,6 +18,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - configuration files, app settings, connection strings, and custom configuration sections
 - evidence-backed modernisation hints and prioritised modernisation review areas
 - Mermaid project dependency diagrams in the generated Markdown report
+- an MVP-scope upgrade-readiness artifact that produces `upgrade-readiness-report.md` with static, evidence-backed upgrade planning signals
 
 ## Quick start
 
@@ -49,6 +50,14 @@ By default, the Markdown report is written to:
 ```
 
 For full command usage, see [docs/usage.md](docs/usage.md).
+
+The MVP scope now also includes an optional upgrade-readiness artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts upgrade-readiness --upgrade-target net8.0
+```
+
+`--upgrade-target` is optional. When omitted, the report should use general upgrade-readiness language and avoid claiming compatibility with any specific destination framework.
 
 ## Example output
 
@@ -155,6 +164,12 @@ The current implementation can scan a folder containing .NET solutions and proje
 - evidence-backed modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC startup registration, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET HTTP module registrations, ASP.NET HTTP handler registrations, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, ASP.NET Web API startup registration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, WCF service behaviours, WCF endpoint behaviours, WCF metadata publishing settings, WCF debug settings, WCF throttling settings, WCF REST-style `webHttp` endpoint behaviours, and configuration-heavy applications
 - modernisation hint evidence metadata, including evidence kind, evidence name, source path, and confidence
 - a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
+
+### MVP-scope upgrade-readiness artifact
+
+The `upgrade-readiness` capability is an MVP-scope addition. It should produce `upgrade-readiness-report.md` as a separate Markdown artifact focused on static upgrade planning. The report should help a developer understand current project target frameworks, project-level upgrade candidates, possible upgrade concerns, package and assembly reference considerations, and configuration/runtime risks such as `System.Web`, WCF, EF6, `packages.config`, direct assembly references, `Web.config`, or legacy ASP.NET artifacts.
+
+This capability should remain evidence-backed and cautious. It must not claim to build the solution, run the application, restore packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate code, or guarantee compatibility with `net8.0`, `net10.0`, or any other destination framework.
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 

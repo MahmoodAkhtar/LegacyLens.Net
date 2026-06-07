@@ -65,6 +65,29 @@ public sealed class ScanCommand
             modernisationHints,
             configFiles);
 
+        string? upgradeReadinessOutputPath = null;
+        UpgradeReadinessReport? upgradeReadinessReport = null;
+
+        if (options.ShouldWriteUpgradeReadiness)
+        {
+            var upgradeReadinessAnalyzer = new UpgradeReadinessAnalyzer();
+
+            upgradeReadinessReport = upgradeReadinessAnalyzer.Analyze(
+                projects,
+                wcfEndpoints,
+                wcfServiceContracts,
+                wcfBehaviours,
+                legacyAspNetArtifacts,
+                configFiles,
+                modernisationHints,
+                options.UpgradeTarget);
+
+            upgradeReadinessOutputPath = ResolveUpgradeReadinessOutputPath(scanPath, options);
+
+            var upgradeReadinessWriter = new UpgradeReadinessMarkdownReportWriter();
+            upgradeReadinessWriter.Write(upgradeReadinessOutputPath, upgradeReadinessReport);
+        }
+        
         return new ScanResult
         {
             ScanPath = scanPath,
@@ -77,10 +100,34 @@ public sealed class ScanCommand
             LegacyAspNetArtifacts = legacyAspNetArtifacts,
             ConfigFiles = configFiles,
             ModernisationHints = modernisationHints,
-            ModernisationReviewAreas = modernisationReviewAreas
+            ModernisationReviewAreas = modernisationReviewAreas,
+            UpgradeReadinessOutputPath = upgradeReadinessOutputPath,
+            UpgradeReadinessReport = upgradeReadinessReport
         };
     }
 
+    private static string ResolveUpgradeReadinessOutputPath(string scanPath, ScanOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
+        {
+            return Path.Combine(
+                Path.GetFullPath(options.OutputDirectory),
+                "upgrade-readiness-report.md");
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Output))
+        {
+            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
+
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                return Path.Combine(outputDirectory, "upgrade-readiness-report.md");
+            }
+        }
+
+        return Path.Combine(scanPath, "output", "upgrade-readiness-report.md");
+    }
+    
     private static string ResolveOutputPath(string scanPath, ScanOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.Output))

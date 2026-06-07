@@ -35,6 +35,8 @@ Options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness.
+--upgrade-target <tfm>  Optional requested target framework for upgrade-readiness wording.
 -h, --help             Show help.
 --version              Show version.
 ```
@@ -50,6 +52,8 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports
 legacylens scan C:\Repos\LegacyApp --format markdown
 legacylens scan C:\Repos\LegacyApp --quiet
 legacylens scan C:\Repos\LegacyApp --verbose
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-readiness --upgrade-target net8.0
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-readiness
 legacylens --help
 legacylens --version
 ```
@@ -88,11 +92,35 @@ When `--output-dir` is used, the report file is written as:
 
 Use either `--output` or `--output-dir`, not both.
 
+### Upgrade Readiness Artifact
+
+The MVP scope now includes an optional `upgrade-readiness` artifact that should produce:
+
+```text
+<output-dir>/upgrade-readiness-report.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts upgrade-readiness --upgrade-target net8.0
+```
+
+The `--upgrade-target` option is optional:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts upgrade-readiness
+```
+
+When no upgrade target is provided, the report should still be generated using general upgrade-readiness wording. The report should remain static and evidence-backed. It should not claim to build the solution, run tests, restore NuGet packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate the codebase, or guarantee compatibility with any destination framework.
+
+For the first implementation, prefer the smallest command support needed to generate `upgrade-readiness-report.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
+
 ### Console Output Modes
 
 Default output prints a concise scan summary, including discovered solution/project counts, dependency counts, WCF counts, legacy ASP.NET artifact counts, configuration file counts, modernisation hint counts, and the top review areas.
 
-As part of the MVP scope, the generated Markdown report should include package compatibility review information for upgrade planning. This enriches package discovery with package version, project target framework, package target framework where available, package source format, and possible compatibility concerns. No separate command is required; the review should be part of the normal `scan` output once implemented.
+The generated Markdown report includes package compatibility review information for upgrade planning. This enriches package discovery with package version, project target framework, package target framework where available, package source format, and possible compatibility concerns. No separate command is required; the review is part of the normal `scan` output.
 
 Quiet mode prints only the essential report output:
 
@@ -110,7 +138,7 @@ Representative package lines:
 
 ```text
 Package reference: EntityFramework 6.4.4 (source: packages.config, package target framework: net48)
-Package reference: Dapper 2.1.66 (source: PackageReference)
+Package reference: Dapper 2.1.35 (source: PackageReference)
 Package compatibility concern: Classic Entity Framework should be reviewed before migration to EF Core or modern .NET.
 ```
 
@@ -124,6 +152,8 @@ The CLI currently validates the following:
 - the supported command is `scan`
 - a scan path is required
 - unknown options are rejected
+- `--artifacts upgrade-readiness` should be supported when the upgrade-readiness artifact is implemented
+- `--upgrade-target <tfm>` should be accepted as optional context for upgrade-readiness wording
 - option values are required for `--output`, `-o`, `--output-dir`, and `--format`
 - only `markdown` is currently supported for `--format`
 - `--output` and `--output-dir` cannot be used together

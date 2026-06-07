@@ -8,4 +8,10 @@ public sealed class ScanOptions
     public string Format { get; init; } = "markdown";
     public bool Quiet { get; init; }
     public bool Verbose { get; init; }
+
+    public string? Artifacts { get; init; }
+    public string? UpgradeTarget { get; init; }
+
+    public bool ShouldWriteUpgradeReadiness =>
+        string.Equals(Artifacts, "upgrade-readiness", StringComparison.OrdinalIgnoreCase);
 }

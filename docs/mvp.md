@@ -113,6 +113,17 @@ Current MVP functionality includes implemented capabilities and newly required M
 - modernisation review summary prioritisation using highest severity, review-area priority, hint counts, and review area name
 - modernisation review summary reporting in the generated Markdown report
 - output file generation under the `output/` directory
+- optional `--artifacts upgrade-readiness` command support for producing the upgrade-readiness artifact
+- optional `--upgrade-target <tfm>` command support for upgrade-readiness report context
+- static upgrade-readiness analysis for upgrade planning
+- upgrade-readiness report generation as `upgrade-readiness-report.md`
+- upgrade-readiness current project target reporting
+- upgrade-readiness project-level readiness classification using `Lower risk candidate`, `Moderate review required`, `Higher risk / review first`, and `Unknown`
+- upgrade-readiness possible concern reporting based on static evidence
+- upgrade-readiness package upgrade consideration reporting where package metadata exists
+- upgrade-readiness assembly reference consideration reporting where assembly references exist
+- upgrade-readiness configuration and runtime consideration reporting where configuration, WCF, or legacy ASP.NET evidence exists
+- upgrade-readiness notes and limitations explaining static no-build analysis
 
 ## MVP Exit Criteria
 
@@ -121,12 +132,13 @@ The MVP should be considered complete when the tool can produce a useful static 
 The MVP exit criteria are:
 
 - The CLI can scan the sample legacy solution successfully.
-- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections.
+- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce a separate `upgrade-readiness-report.md` artifact.
 - The report identifies the main modernisation review areas clearly enough for a developer to decide where to investigate first.
 - The package compatibility review shows package name, version where available, project target framework, package target framework where available, source format, source path, and possible compatibility concern without claiming to perform full NuGet compatibility resolution.
 - Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.
 - The report does not contain known duplicated, misleading, or materially low-value findings that would confuse a reader.
 - Existing automated tests pass.
+- The upgrade-readiness report includes current project targets, project-level readiness classifications, possible upgrade concerns, package upgrade considerations, assembly reference considerations, configuration/runtime considerations, and clear static-analysis limitations.
 - The README reflects the actual current report output and does not describe speculative MVP behaviour as already implemented.
 
 ### CLI command contract
@@ -156,6 +168,7 @@ The following are not blockers for the MVP:
 - deeper HTTP module or HTTP handler implementation analysis
 - exhaustive ASP.NET MVC or Web API behaviour analysis
 - full migration recommendations or automated migration planning
+- automatic migration execution or definitive pass/fail upgrade compatibility decisions
 - full NuGet restore, transitive dependency resolution, package asset inspection, or guaranteed package compatibility checks
 - HTML report output
 - support for every possible legacy project or configuration edge case

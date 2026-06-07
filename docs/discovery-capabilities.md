@@ -75,8 +75,12 @@ Even if the solution does not build, it can still discover useful information fr
 - package references
 - package compatibility review metadata for upgrade planning
 - prioritised modernisation review areas derived from discovered hints
+- upgrade-readiness analysis inputs for `upgrade-readiness-report.md`, using existing static evidence such as project targets, packages, assembly references, WCF, legacy ASP.NET artifacts, and configuration indicators
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
+
+
+> Note: upgrade-readiness is now MVP scope as a separate static report artifact. It should produce `upgrade-readiness-report.md` and should use existing discovered evidence to classify project-level readiness and possible upgrade concerns. It should not claim to build the solution, restore packages, resolve transitive dependencies, inspect package assets, automatically migrate code, or guarantee compatibility with a destination framework.
 
 > Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
 
@@ -897,6 +901,69 @@ This helps identify service boundaries defined in code, even when the target sol
 Current service contract discovery is intentionally lightweight and static. It is based on source scanning rather than compilation, so it does not require the target solution to build.
 
 ---
+
+## Upgrade Readiness Analysis
+
+The `upgrade-readiness` capability is an MVP-scope analysis that produces a separate Markdown artifact named `upgrade-readiness-report.md`.
+
+It should consume existing static discovery results rather than duplicating scanners where possible. Useful inputs include:
+
+- solution and project structure
+- project names and project file paths
+- current project target frameworks
+- project references and coupling signals
+- package references, versions, source format, source path, and package target framework where available
+- assembly references, including `System.Web` and `System.ServiceModel` indicators
+- WCF endpoint, binding, behaviour, and service contract evidence
+- legacy ASP.NET artifacts such as WebForms, ASMX, ASHX, `Global.asax`, MVC, and Web API indicators
+- configuration file evidence from `app.config` and `web.config`
+- configuration counts such as app settings, connection strings, and custom sections
+- modernisation hints already produced by the tool
+
+The report should answer which projects look like lower-risk candidates, which require moderate review, which should be reviewed first, and which cannot be classified confidently from static evidence.
+
+Readiness categories should be limited to:
+
+- `Lower risk candidate`
+- `Moderate review required`
+- `Higher risk / review first`
+- `Unknown`
+
+Initial static concern rules should include:
+
+| Evidence | Possible concern |
+|---|---|
+| `.NET Framework` target framework | Requires review before moving to modern .NET |
+| `packages.config` | Older NuGet package management style; PackageReference migration may be needed |
+| `System.Web` assembly reference | ASP.NET Core does not use the System.Web pipeline |
+| `Global.asax` | Startup/application lifecycle logic may need migration |
+| `.aspx`, `.ascx`, `.master` | WebForms artifacts may require rewrite or replacement |
+| `.asmx` | Legacy ASMX service surface may require replacement |
+| `.ashx` | Custom HTTP handler may require ASP.NET Core middleware or endpoint replacement |
+| `System.ServiceModel` or WCF configuration | WCF migration decision required |
+| `EntityFramework` package | EF6 migration or isolation decision required |
+| `.edmx`, `DbContext`, or `ObjectContext` where detected | Data access migration requires review |
+| direct assembly references with `HintPath` where detected | Local or vendor DLL compatibility may need review |
+| connection strings | Database/runtime dependency requires migration planning |
+| custom config sections | Runtime configuration may need replacement or migration |
+
+The analysis must use cautious wording such as `Possible concern`, `Requires review`, `Evidence found`, `May need migration work`, and `Likely upgrade consideration`. It should avoid absolute wording such as `Unsupported`, `Cannot be upgraded`, `Safe to migrate`, `Guaranteed compatible`, `Unused`, or `Must rewrite`.
+
+### Upgrade Readiness Report
+
+The generated report should include:
+
+- Summary
+- Target
+- Current Project Targets
+- Upgrade Readiness Overview
+- Project Upgrade Candidates
+- Possible Upgrade Concerns
+- Package Upgrade Considerations
+- Assembly Reference Considerations
+- Configuration and Runtime Considerations
+- Suggested Review Order
+- Notes and Limitations
 
 ## Modernisation Hint Analysis
 

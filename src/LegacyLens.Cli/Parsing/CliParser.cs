@@ -46,6 +46,8 @@ public sealed class CliParser
         var format = MarkdownFormat;
         var quiet = false;
         var verbose = false;
+        string? artifacts = null;
+        string? upgradeTarget = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -94,6 +96,26 @@ public sealed class CliParser
                 verbose = true;
                 continue;
             }
+            
+            if (arg.Equals("--artifacts", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!TryReadOptionValue(args, ref i, arg, out artifacts, out var error))
+                {
+                    return CliParseResult.Error(error);
+                }
+
+                continue;
+            }
+
+            if (arg.Equals("--upgrade-target", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!TryReadOptionValue(args, ref i, arg, out upgradeTarget, out var error))
+                {
+                    return CliParseResult.Error(error);
+                }
+
+                continue;
+            }
 
             if (arg.StartsWith("-", StringComparison.Ordinal))
             {
@@ -127,6 +149,18 @@ public sealed class CliParser
         {
             return CliParseResult.Error("Use either --quiet or --verbose, not both.");
         }
+        
+        if (!string.IsNullOrWhiteSpace(artifacts) &&
+            !artifacts.Equals("upgrade-readiness", StringComparison.OrdinalIgnoreCase))
+        {
+            return CliParseResult.Error("Only the upgrade-readiness artifact is currently supported.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(upgradeTarget) &&
+            string.IsNullOrWhiteSpace(artifacts))
+        {
+            return CliParseResult.Error("Use --upgrade-target with --artifacts upgrade-readiness.");
+        }
 
         return CliParseResult.Scan(new ScanOptions
         {
@@ -135,7 +169,9 @@ public sealed class CliParser
             OutputDirectory = outputDirectory,
             Format = MarkdownFormat,
             Quiet = quiet,
-            Verbose = verbose
+            Verbose = verbose,
+            Artifacts = artifacts,
+            UpgradeTarget = upgradeTarget
         });
     }
 

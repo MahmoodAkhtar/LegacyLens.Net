@@ -43,6 +43,8 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  --verbose              Print detailed discovery output.");
         Console.WriteLine("  -h, --help             Show help.");
         Console.WriteLine("  --version              Show version.");
+        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Currently supports upgrade-readiness.");
+        Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness wording.");
     }
 
     public void WriteVersion()
@@ -110,6 +112,13 @@ public sealed class ScanConsoleWriter
         Console.WriteLine();
         Console.WriteLine("Markdown report generated:");
         Console.WriteLine(result.OutputPath);
+        
+        if (!string.IsNullOrWhiteSpace(result.UpgradeReadinessOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Upgrade readiness report generated:");
+            Console.WriteLine(result.UpgradeReadinessOutputPath);
+        }
     }
 
     private static void WriteVerbose(ScanResult result)

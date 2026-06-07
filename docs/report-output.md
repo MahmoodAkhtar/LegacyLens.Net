@@ -52,7 +52,7 @@ Projects discovered:
   Target framework: net48
 - SampleLegacyApp.Data
   Target framework: net48
-  Package reference: Dapper 2.1.66 (source: PackageReference)
+  Package reference: Dapper 2.1.35 (source: PackageReference)
   Package reference: EntityFramework 6.4.4 (source: packages.config, package target framework: net48)
   Package reference: Newtonsoft.Json 13.0.3 (source: packages.config, package target framework: net48)
 - SampleLegacyApp.Services
@@ -189,6 +189,107 @@ Markdown report generated: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\out
 
 ---
 
+## Upgrade Readiness Report Output
+
+The MVP scope now includes a separate upgrade-readiness Markdown artifact:
+
+```text
+output/upgrade-readiness-report.md
+```
+
+The upgrade-readiness report should be static and evidence-backed. It should help a developer decide what to review before attempting a migration, but it should not present a pass/fail compatibility result or claim that LegacyLens.NET built the solution, restored packages, resolved transitive dependencies, inspected NuGet package assets, or guaranteed compatibility with a requested target framework.
+
+Representative structure:
+
+```markdown
+# Upgrade Readiness Report
+
+## Summary
+
+This report is based on static source and configuration discovery. It highlights upgrade planning signals that may need review before migration. It does not prove compatibility with the requested target framework.
+
+## Target
+
+| Item | Value |
+|---|---|
+| Requested upgrade target | net8.0 |
+| Analysis mode | Static / no-build |
+| Compatibility guarantee | No |
+
+## Current Project Targets
+
+| Project | Target Framework | Project File |
+|---|---|---|
+| SampleLegacyApp.Contracts | net48 | `...\SampleLegacyApp.Contracts.csproj` |
+| SampleLegacyApp.Data | net48 | `...\SampleLegacyApp.Data.csproj` |
+| SampleLegacyApp.Services | net48 | `...\SampleLegacyApp.Services.csproj` |
+| SampleLegacyApp.Web | net48 | `...\SampleLegacyApp.Web.csproj` |
+
+## Upgrade Readiness Overview
+
+| Area | Status | Evidence |
+|---|---|---|
+| Target frameworks | Requires review | .NET Framework projects detected |
+| Package management | Requires review | packages.config detected |
+| Legacy ASP.NET | Possible blocker | Web.config / Global.asax / legacy ASP.NET artifacts detected |
+| WCF | Requires review | System.ServiceModel / WCF endpoint evidence detected |
+| Data access | Requires review | EntityFramework package detected |
+| Direct assemblies | Requires review | direct assembly references detected |
+| Configuration | Requires review | Web.config detected |
+
+## Project Upgrade Candidates
+
+| Project | Current Target | Readiness | Reason |
+|---|---|---|---|
+| SampleLegacyApp.Contracts | net48 | Moderate review required | Class library, but targets .NET Framework and references System.ServiceModel. |
+| SampleLegacyApp.Web | net48 | Higher risk / review first | Legacy ASP.NET, Web.config, WCF, MVC/Web API, and startup/configuration evidence detected. |
+
+## Possible Upgrade Concerns
+
+| Concern | Evidence | Why It Matters |
+|---|---|---|
+| .NET Framework target framework | net48 projects detected | Requires review before moving to modern .NET. |
+| Legacy ASP.NET runtime | WebForms, ASMX, Global.asax, MVC/Web API artifacts | ASP.NET Core does not use the System.Web request pipeline. |
+| WCF usage | System.ServiceModel references and WCF endpoint configuration | WCF service boundaries, bindings, metadata, and clients need migration decisions. |
+
+## Package Upgrade Considerations
+
+| Project | Package | Version | Source Format | Possible Concern |
+|---|---|---|---|---|
+| SampleLegacyApp.Data | EntityFramework | 6.4.4 | packages.config | EF6 migration or isolation decision required. |
+| SampleLegacyApp.Web | System.ServiceModel.Http | 4.10.3 | PackageReference | WCF-related package requires review. |
+
+## Assembly Reference Considerations
+
+| Project | Assembly | Possible Concern |
+|---|---|---|
+| SampleLegacyApp.Services | System.ServiceModel | WCF migration decision required. |
+
+## Configuration and Runtime Considerations
+
+| Project/File | Finding | Possible Upgrade Concern |
+|---|---|---|
+| Web.config | appSettings, connection strings, custom sections, WCF, HTTP modules/handlers | Runtime configuration and request pipeline behaviour may need migration. |
+
+## Suggested Review Order
+
+1. Review projects with no legacy web/data/service dependencies.
+2. Review package management style.
+3. Review data access projects.
+4. Review WCF/service boundaries.
+5. Review web host/startup/configuration last.
+
+## Notes and Limitations
+
+- This report is based on static discovery only.
+- LegacyLens.NET did not build the solution.
+- LegacyLens.NET did not restore NuGet packages.
+- LegacyLens.NET did not resolve transitive dependencies.
+- Findings should be verified by the development team before migration decisions are made.
+```
+
+---
+
 ## Generated Report Output
 
 LegacyLens.NET currently generates a Markdown report at:
@@ -199,7 +300,7 @@ output/discovery-report.md
 
 The following generated report excerpt is illustrative. Exact counts and findings may change as the sample application evolves.
 
-Package compatibility review is an MVP-scope addition. Until implemented in code, examples for that section should be treated as the intended report shape rather than the current generated output.
+Package compatibility review is included in the current generated discovery report. Examples for that section should remain representative because exact versions, paths, and findings may change as the sample application evolves.
 
 The current report sections include:
 
@@ -244,7 +345,7 @@ Representative excerpt:
 
 | Project | Project Target Framework | Package | Version | Package Target Framework | Source | Source File | Concern |
 |---|---|---|---|---|---|---|---|
-| SampleLegacyApp.Data | net48 | Dapper | 2.1.66 |  | PackageReference | `...\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj` | No specific compatibility concern detected by the static MVP rules. |
+| SampleLegacyApp.Data | net48 | Dapper | 2.1.35 |  | PackageReference | `...\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj` | No specific compatibility concern detected by the static MVP rules. |
 | SampleLegacyApp.Data | net48 | EntityFramework | 6.4.4 | net48 | packages.config | `...\SampleLegacyApp.Data\packages.config` | Classic Entity Framework should be reviewed before migration to EF Core or modern .NET. |
 | SampleLegacyApp.Data | net48 | Newtonsoft.Json | 13.0.3 | net48 | packages.config | `...\SampleLegacyApp.Data\packages.config` | Common package, but serialization behaviour may need review during ASP.NET Core migration. |
 | SampleLegacyApp.Web | net48 | System.ServiceModel.Http | unknown |  | PackageReference | `...\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj` | WCF-related package. Review WCF usage and replacement strategy before upgrading. |

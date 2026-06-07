@@ -203,6 +203,36 @@ Out of scope for MVP:
 
 ---
 
+### Step 5b: Upgrade readiness report for upgrade planning
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add an `upgrade-readiness` capability that can produce `upgrade-readiness-report.md`.
+- Use existing static discovery evidence where possible, including project targets, project references, package metadata, assembly references, WCF findings, legacy ASP.NET artifacts, configuration files, and existing modernisation hints.
+- Support optional upgrade target context, for example `--upgrade-target net8.0`, without claiming guaranteed compatibility.
+- Classify project-level readiness using `Lower risk candidate`, `Moderate review required`, `Higher risk / review first`, and `Unknown`.
+- Report possible upgrade concerns with supporting evidence and cautious wording.
+- Include package upgrade considerations where package data exists.
+- Include assembly reference considerations where assembly reference data exists.
+- Include configuration and runtime considerations for `app.config`, `web.config`, WCF, legacy ASP.NET, connection strings, custom configuration sections, and related evidence.
+- Include suggested review order and notes/limitations.
+- Add unit tests for analyzer rules and Markdown output.
+
+Out of scope for MVP:
+
+- Building the solution.
+- Running the application or tests.
+- NuGet restore.
+- Transitive dependency resolution.
+- Online package lookup.
+- NuGet package asset inspection.
+- Automatic migration.
+- Definitive pass/fail compatibility results for `net8.0`, `net10.0`, or any other destination framework.
+
+Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/upgrade-readiness-report.md` without over-engineering the CLI.
+
 ### Step 6: Legacy ASP.NET artifact discovery
 
 Status: Implemented with conditional quality gates
