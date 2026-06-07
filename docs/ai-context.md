@@ -6,7 +6,7 @@ This file is intended to be used as concise context for AI-assisted development 
 
 LegacyLens.NET is a standalone static discovery CLI for unfamiliar, legacy, and modern .NET codebases.
 
-It scans source and configuration files to produce a Markdown discovery report that helps a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+It scans source and configuration files to produce a Markdown discovery report that helps a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 ## Usage model
 
@@ -43,7 +43,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review and a separate `upgrade-readiness-report.md` artifact for upgrade planning.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, and a separate `upgrade-blockers.md` artifact for upgrade planning.
 
 ## Current implemented capability summary
 
@@ -81,6 +81,22 @@ legacylens scan <path> --output-dir ./output --artifacts upgrade-readiness --upg
 
 The capability must not claim to build the solution, run tests, restore packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate code, or guarantee compatibility with any destination framework. Use cautious wording such as `Possible concern`, `Requires review`, `Evidence found`, `May need migration work`, and `Likely upgrade consideration`.
 
+## MVP upgrade-blockers addition
+
+`upgrade-blockers` is now an MVP-scope capability. It should produce `upgrade-blockers.md` as a separate Markdown artifact. It is a static, evidence-backed blocker and decision report for .NET upgrade planning.
+
+Where `upgrade-readiness` answers how ready the solution looks for upgrade, `upgrade-blockers` answers what visible blockers and decisions could stop or complicate the upgrade. It should group findings such as `System.Web`, legacy ASP.NET artifacts, WCF/System.ServiceModel, EF6/EDMX/data-access indicators, `packages.config`, direct assembly or local DLL references, configuration/runtime coupling, Windows-only/platform-specific APIs, and custom build/MSBuild behaviour into clear blocker categories.
+
+Intended command shape:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers --upgrade-target net8.0
+```
+
+`--upgrade-target` is optional. If omitted, use general upgrade-blocker wording.
+
+The report should include a summary, target, blocker overview, upgrade blockers and decisions table, blocker details, evidence, why each blocker matters, decisions required, suggested review order, and notes/limitations. It must not claim to build the solution, run tests, restore packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate code, prove migration is impossible, or guarantee compatibility with any destination framework. Use cautious wording such as `Possible blocker`, `Potential blocker`, `Requires review`, `Migration decision required`, `Evidence found`, `May complicate upgrade`, and `May require replacement or redesign`.
+
 ## Design constraints
 
 - Static-first discovery.
@@ -92,11 +108,13 @@ The capability must not claim to build the solution, run tests, restore packages
 
 ## MVP definition
 
-The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce a readable Markdown report that helps a developer identify the main structure, dependencies, package compatibility review signals, upgrade-readiness signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce a readable Markdown report that helps a developer identify the main structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 Further work should be treated as post-MVP unless it fixes a specific report-quality defect.
 
 Package compatibility review is now MVP scope, but it should remain static and evidence-backed. It should not be described as full NuGet restore, transitive dependency resolution, online package lookup, package asset inspection, or guaranteed compatibility checking against a destination framework.
+
+Upgrade blockers is now MVP scope, but it should remain static, evidence-backed, and decision-oriented. It should not be described as a definitive compatibility checker, automatic migration tool, or proof that migration is impossible.
 
 ## Recommended AI prompt context bundle
 
@@ -114,7 +132,7 @@ Include `README.md` only when the task is specifically about public documentatio
 
 - `README.md` is the public front door.
 - `docs/usage.md` contains command usage.
-- `docs/report-output.md` contains console, discovery report, and upgrade-readiness report examples.
+- `docs/report-output.md` contains console, discovery report, upgrade-readiness report, and upgrade-blockers report examples.
 - `docs/discovery-capabilities.md` contains detailed scanner capability information.
 - `docs/architecture.md` contains repository and project structure.
 - `docs/mvp.md` defines MVP scope and exit criteria.

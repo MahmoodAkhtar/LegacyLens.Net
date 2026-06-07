@@ -77,6 +77,7 @@ Current analysis work includes:
 - identifying `Newtonsoft.Json` usage as an informational review item
 - identifying package compatibility review concerns for upgrade planning, including missing versions, legacy package formats, package target framework mismatches, and selected package-specific migration concerns
 - producing upgrade-readiness analysis models for a separate `upgrade-readiness-report.md` artifact
+- producing upgrade-blockers analysis models for a separate `upgrade-blockers.md` artifact
 - identifying legacy ASP.NET indicators from `System.Web` assembly references
 - identifying `System.Web.*` assembly references as legacy ASP.NET review items
 - identifying WebForms pages as legacy ASP.NET migration risk indicators
@@ -151,6 +152,23 @@ Likely core types:
 | `AssemblyUpgradeConsideration` | Assembly-reference upgrade planning row |
 
 The analyzer should consume existing discovery results where possible. It should not run builds, execute code, restore packages, resolve transitive dependencies, inspect NuGet package assets, or guarantee compatibility with a destination target framework.
+
+### Upgrade Blockers
+
+The upgrade-blockers MVP addition should fit the existing static-first architecture. A suitable implementation should add focused analysis models and a Markdown writer rather than duplicating discovery logic. It should share existing discovery inputs with upgrade-readiness where useful, but the output should be more focused, direct, and decision-oriented.
+
+Likely core types:
+
+| Type | Purpose |
+|---|---|
+| `UpgradeBlockersAnalyzer` | Consumes discovered projects, packages, assembly references, direct DLL or `HintPath` evidence where available, WCF findings, legacy ASP.NET artifacts, configuration files, existing modernisation hints, and package compatibility/static package review information to produce blocker findings |
+| `UpgradeBlockersReport` | Root model for `upgrade-blockers.md` |
+| `UpgradeBlocker` | Grouped blocker category with impact, title, why-it-matters text, evidence, and decisions required |
+| `UpgradeBlockerEvidence` | Evidence row containing project name, file path, reference, and finding where available |
+| `UpgradeBlockerCategory` | Category such as Legacy ASP.NET/System.Web, WCF/ServiceModel, EF6/EDMX/Data Access, Package Management, Direct Assembly References, Configuration/Runtime Coupling, Windows-only/Platform-specific APIs, Custom Build/MSBuild Behaviour, or Unknown/Requires Manual Review |
+| `UpgradeBlockerImpact` | Impact label such as High, Medium, Low, or Unknown |
+
+The analyzer should consume existing discovery results where possible. It should not run builds, execute code, restore packages, resolve transitive dependencies, inspect NuGet package assets, prove that migration is impossible, recommend rewrites without evidence, or guarantee compatibility with a destination target framework.
 
 ### Configuration
 
@@ -333,7 +351,9 @@ The Markdown report currently includes:
 - modernisation hints with severity, area, finding, evidence, confidence, source, and reason
 
 
-A dedicated writer may be added for `upgrade-readiness-report.md`. The writer should keep the report separate from the main discovery report and should include Summary, Target, Current Project Targets, Upgrade Readiness Overview, Project Upgrade Candidates, Possible Upgrade Concerns, Package Upgrade Considerations, Assembly Reference Considerations, Configuration and Runtime Considerations, Suggested Review Order, and Notes and Limitations sections.
+Dedicated writers may be added for `upgrade-readiness-report.md` and `upgrade-blockers.md`. The upgrade-readiness writer should keep the report separate from the main discovery report and should include Summary, Target, Current Project Targets, Upgrade Readiness Overview, Project Upgrade Candidates, Possible Upgrade Concerns, Package Upgrade Considerations, Assembly Reference Considerations, Configuration and Runtime Considerations, Suggested Review Order, and Notes and Limitations sections.
+
+The upgrade-blockers writer should keep the report separate from the main discovery report and should include Summary, Target, Blocker Overview, Upgrade Blockers and Decisions, Blocker Details, category-specific evidence tables, decisions required, Suggested Review Order, and Notes and Limitations sections.
 
 ### Mermaid
 

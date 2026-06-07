@@ -114,7 +114,8 @@ Current MVP functionality includes implemented capabilities and newly required M
 - modernisation review summary reporting in the generated Markdown report
 - output file generation under the `output/` directory
 - optional `--artifacts upgrade-readiness` command support for producing the upgrade-readiness artifact
-- optional `--upgrade-target <tfm>` command support for upgrade-readiness report context
+- optional `--artifacts upgrade-blockers` command support for producing the upgrade-blockers artifact
+- optional `--upgrade-target <tfm>` command support for upgrade-readiness and upgrade-blockers report context
 - static upgrade-readiness analysis for upgrade planning
 - upgrade-readiness report generation as `upgrade-readiness-report.md`
 - upgrade-readiness current project target reporting
@@ -124,6 +125,13 @@ Current MVP functionality includes implemented capabilities and newly required M
 - upgrade-readiness assembly reference consideration reporting where assembly references exist
 - upgrade-readiness configuration and runtime consideration reporting where configuration, WCF, or legacy ASP.NET evidence exists
 - upgrade-readiness notes and limitations explaining static no-build analysis
+- static upgrade-blockers analysis for upgrade planning
+- upgrade-blockers report generation as `upgrade-blockers.md`
+- upgrade-blockers blocker overview reporting with priority, category, impact, and evidence count
+- upgrade-blockers decision-oriented reporting for visible blockers and migration decisions
+- upgrade-blockers category grouping for Legacy ASP.NET/System.Web, WCF/ServiceModel, EF6/EDMX/Data Access, Package Management, Direct Assembly References, Configuration/Runtime Coupling, Windows-only/Platform-specific APIs, Custom Build/MSBuild Behaviour, and Unknown/Requires Manual Review where evidence exists
+- upgrade-blockers evidence reporting using existing discovered project, package, assembly, WCF, legacy ASP.NET, configuration, and modernisation/package review evidence where available
+- upgrade-blockers notes and limitations explaining static no-build analysis and that blockers mean “requires review”, not “cannot be upgraded”
 
 ## MVP Exit Criteria
 
@@ -132,13 +140,14 @@ The MVP should be considered complete when the tool can produce a useful static 
 The MVP exit criteria are:
 
 - The CLI can scan the sample legacy solution successfully.
-- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce a separate `upgrade-readiness-report.md` artifact.
+- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md` and `upgrade-blockers.md` artifacts.
 - The report identifies the main modernisation review areas clearly enough for a developer to decide where to investigate first.
 - The package compatibility review shows package name, version where available, project target framework, package target framework where available, source format, source path, and possible compatibility concern without claiming to perform full NuGet compatibility resolution.
 - Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.
 - The report does not contain known duplicated, misleading, or materially low-value findings that would confuse a reader.
 - Existing automated tests pass.
 - The upgrade-readiness report includes current project targets, project-level readiness classifications, possible upgrade concerns, package upgrade considerations, assembly reference considerations, configuration/runtime considerations, and clear static-analysis limitations.
+- The upgrade-blockers report includes a blocker overview, grouped blocker details, impact labels, evidence, why each blocker matters, decisions required, suggested review order, and clear static-analysis limitations.
 - The README reflects the actual current report output and does not describe speculative MVP behaviour as already implemented.
 
 ### CLI command contract
@@ -168,7 +177,7 @@ The following are not blockers for the MVP:
 - deeper HTTP module or HTTP handler implementation analysis
 - exhaustive ASP.NET MVC or Web API behaviour analysis
 - full migration recommendations or automated migration planning
-- automatic migration execution or definitive pass/fail upgrade compatibility decisions
+- automatic migration execution, definitive pass/fail upgrade compatibility decisions, or claims that a blocker proves migration is impossible
 - full NuGet restore, transitive dependency resolution, package asset inspection, or guaranteed package compatibility checks
 - HTML report output
 - support for every possible legacy project or configuration edge case
@@ -180,6 +189,6 @@ These items may be valuable later, but they should be treated as post-MVP improv
 
 The MVP is not intended to be a complete migration analyser.
 
-The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce a readable Markdown report that helps a developer identify the main structure, dependencies, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce a readable Markdown report that helps a developer identify the main structure, dependencies, legacy technology indicators, configuration concerns, prioritised modernisation review areas, and upgrade planning artifacts such as readiness and blocker/decision reports.
 
 Once that is achieved, further work should be treated as post-MVP unless it fixes a specific report-quality defect.

@@ -290,6 +290,185 @@ This report is based on static source and configuration discovery. It highlights
 
 ---
 
+## Upgrade Blockers Report Output
+
+The MVP scope now includes a separate upgrade-blockers Markdown artifact:
+
+```text
+output/upgrade-blockers.md
+```
+
+The upgrade-blockers report should be a static, evidence-backed blocker and decision report for .NET upgrade planning. It should help a developer identify visible technical blockers, migration decisions, and higher-risk areas that may complicate an upgrade, but it should not present a pass/fail compatibility result or claim that LegacyLens.NET built the solution, restored packages, resolved transitive dependencies, inspected NuGet package assets, proved that migration is impossible, or guaranteed compatibility with a requested target framework.
+
+Representative structure:
+
+```markdown
+# Upgrade Blockers
+
+## Summary
+
+This report is based on static source and configuration discovery. It highlights visible blockers and migration decisions that may need review before upgrade work begins. A blocker means “requires review”, not “cannot be upgraded”.
+
+## Target
+
+| Item | Value |
+|---|---|
+| Requested upgrade target | net8.0 |
+| Analysis mode | Static / no-build |
+| Compatibility guarantee | No |
+
+## Blocker Overview
+
+| Priority | Blocker | Impact | Evidence Count |
+|---:|---|---|---:|
+| 1 | Legacy ASP.NET / System.Web | High | 4 |
+| 2 | WCF / ServiceModel | High | 3 |
+| 3 | EF6 / EDMX / Data Access | High | 2 |
+| 4 | Package Management | Medium | 5 |
+| 5 | Configuration / Runtime Coupling | Medium | 1 |
+
+## Upgrade Blockers and Decisions
+
+| Priority | Area | Blocker / Decision | Impact | Evidence |
+|---:|---|---|---|---|
+| 1 | Legacy ASP.NET / System.Web | Migration decision required for classic ASP.NET request pipeline usage. | High | System.Web, WebForms, ASMX, Global.asax, HTTP modules, or HTTP handlers detected. |
+| 2 | WCF / ServiceModel | Migration decision required for WCF service boundaries and bindings. | High | System.ServiceModel, WCF endpoints, behaviours, or service contracts detected. |
+| 3 | EF6 / EDMX / Data Access | Data access migration or isolation decision required. | High | EntityFramework package, EDMX, ObjectContext, or DbContext evidence detected. |
+
+## Blocker Details
+
+### Legacy ASP.NET / System.Web
+
+Why this matters:
+Modern ASP.NET Core uses a different hosting model and request pipeline. Legacy `System.Web`, WebForms, ASMX, ASHX, `Global.asax`, HTTP modules, and HTTP handlers may require redesign, replacement, or staged migration.
+
+Evidence:
+
+| Project | File / Reference | Finding |
+|---|---|---|
+| SampleLegacyApp.Web | System.Web | Possible blocker: classic ASP.NET pipeline reference requires review. |
+| SampleLegacyApp.Web | `Default.aspx` | Possible blocker: WebForms page may require replacement or redesign. |
+| SampleLegacyApp.Web | `CustomerService.asmx` | Possible blocker: ASMX service surface may require replacement or compatibility planning. |
+
+Decision required:
+
+- Can the existing web host remain temporarily on .NET Framework?
+- Should endpoints be migrated gradually to ASP.NET Core?
+- Are there WebForms, ASMX, ASHX, module, or handler artifacts that need replacement?
+
+### WCF / ServiceModel
+
+Why this matters:
+WCF service hosting, bindings, behaviours, security settings, and `system.serviceModel` configuration may not map directly to modern .NET hosting choices.
+
+Evidence:
+
+| Project | File / Reference | Finding |
+|---|---|---|
+| SampleLegacyApp.Services | System.ServiceModel | Migration decision required for WCF usage. |
+| SampleLegacyApp.Web | `Web.config` | WCF endpoint, binding, behaviour, or service model configuration detected. |
+
+Decision required:
+
+- Keep WCF temporarily?
+- Use CoreWCF?
+- Replace with ASP.NET Core Web API?
+- Replace with gRPC?
+- Replace with messaging?
+
+### EF6 / EDMX / Data Access
+
+Why this matters:
+EF6 and EF Core are different products. EDMX/ObjectContext-based models are not simple package upgrades to EF Core.
+
+Evidence:
+
+| Project | File / Reference | Finding |
+|---|---|---|
+| SampleLegacyApp.Data | EntityFramework 6.4.4 | Classic Entity Framework should be reviewed before EF Core or modern .NET migration. |
+
+Decision required:
+
+- Keep EF6 temporarily?
+- Move to EF Core?
+- Reverse-engineer the database?
+- Isolate the data access layer first?
+- Preserve stored procedure behaviour?
+
+### Package Management and Package Age
+
+Why this matters:
+`packages.config`, old package versions, and legacy package layouts may complicate restore, SDK-style project migration, and upgrade planning.
+
+Evidence:
+
+| Project | Package | Version | Source Format | Finding |
+|---|---|---|---|---|
+| SampleLegacyApp.Data | EntityFramework | 6.4.4 | packages.config | Package management and EF6 usage require review. |
+
+Decision required:
+
+- Migrate from `packages.config` to `PackageReference`?
+- Upgrade packages before target framework migration?
+- Leave risky packages until after behaviour is covered by tests?
+
+### Direct Assembly / Local DLL References
+
+Why this matters:
+Direct DLL references, vendor binaries, GAC-style references, and `HintPath` references may not have modern equivalents or may block clean SDK-style migration.
+
+Evidence:
+
+| Project | Assembly | Hint Path | Finding |
+|---|---|---|---|
+| SampleLegacyApp.Services | System.ServiceModel |  | Direct framework assembly reference requires review. |
+
+Decision required:
+
+- Is there a NuGet replacement?
+- Is the source available?
+- Is the DLL compatible with the destination runtime?
+- Is it still used at runtime?
+
+### Configuration and Runtime Coupling
+
+Why this matters:
+Heavy `App.config` / `Web.config` usage, custom sections, binding redirects, connection strings, and environment transforms often need careful migration to modern configuration patterns.
+
+Evidence:
+
+| File | Finding | Possible Concern |
+|---|---|---|
+| `Web.config` | appSettings, connection strings, custom sections, WCF, HTTP modules/handlers | Runtime configuration and request pipeline behaviour may need migration planning. |
+
+Decision required:
+
+- How will settings move to `appsettings.json`, environment variables, secret stores, or deployment variables?
+- Are config transforms still needed?
+- Are there custom config sections that need replacement?
+
+## Suggested Review Order
+
+1. Review high-impact web host blockers first.
+2. Review WCF/service boundaries.
+3. Review data access and EF/EDMX usage.
+4. Review package management and direct assembly references.
+5. Review configuration and runtime coupling.
+6. Confirm blocker findings with the development team before planning migration work.
+
+## Notes and Limitations
+
+- This report is based on static discovery only.
+- LegacyLens.NET did not build the solution.
+- LegacyLens.NET did not restore NuGet packages.
+- LegacyLens.NET did not resolve transitive dependencies.
+- LegacyLens.NET did not inspect NuGet package assets.
+- A blocker means “requires review”, not “cannot be upgraded”.
+- Findings should be verified before migration decisions are made.
+```
+
+---
+
 ## Generated Report Output
 
 LegacyLens.NET currently generates a Markdown report at:

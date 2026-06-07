@@ -76,11 +76,14 @@ Even if the solution does not build, it can still discover useful information fr
 - package compatibility review metadata for upgrade planning
 - prioritised modernisation review areas derived from discovered hints
 - upgrade-readiness analysis inputs for `upgrade-readiness-report.md`, using existing static evidence such as project targets, packages, assembly references, WCF, legacy ASP.NET artifacts, and configuration indicators
+- upgrade-blockers analysis inputs for `upgrade-blockers.md`, using existing static evidence such as `System.Web`, legacy ASP.NET artifacts, WCF/System.ServiceModel, EF6/EDMX/data-access indicators where available, `packages.config`, assembly references, direct DLL or `HintPath` references where available, configuration indicators, and existing modernisation/package review findings
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
 
 > Note: upgrade-readiness is now MVP scope as a separate static report artifact. It should produce `upgrade-readiness-report.md` and should use existing discovered evidence to classify project-level readiness and possible upgrade concerns. It should not claim to build the solution, restore packages, resolve transitive dependencies, inspect package assets, automatically migrate code, or guarantee compatibility with a destination framework.
+
+> Note: upgrade-blockers is now MVP scope as a separate static report artifact. It should produce `upgrade-blockers.md` and should use existing discovered evidence to identify visible technical blockers, migration decisions, and higher-risk areas that may complicate upgrade planning. It should not claim to build the solution, restore packages, resolve transitive dependencies, inspect package assets, prove migration is impossible, automatically migrate code, or guarantee compatibility with a destination framework.
 
 > Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
 
@@ -964,6 +967,90 @@ The generated report should include:
 - Configuration and Runtime Considerations
 - Suggested Review Order
 - Notes and Limitations
+
+## Upgrade Blockers Analysis
+
+The `upgrade-blockers` capability is an MVP-scope analysis that produces a separate Markdown artifact named `upgrade-blockers.md`.
+
+It should consume existing static discovery results rather than duplicating scanners where possible. Useful inputs include:
+
+- solution and project structure
+- project names and project file paths
+- current project target frameworks
+- package references, versions, source format, source path, and package target framework where available
+- assembly references, including `System.Web` and `System.ServiceModel` indicators
+- direct assembly, local DLL, `HintPath`, and COM reference evidence where available
+- WCF endpoint, binding, behaviour, configuration, and service contract evidence
+- legacy ASP.NET artifacts such as WebForms, ASMX, ASHX, `Global.asax`, HTTP modules, HTTP handlers, MVC, and Web API indicators
+- EF6, EDMX, `ObjectContext`, and `DbContext` evidence where discoverable
+- configuration file evidence from `app.config` and `web.config`
+- configuration counts such as app settings, connection strings, and custom sections
+- existing modernisation hints and package compatibility/static package review information
+
+Where `upgrade-readiness` answers how ready the solution looks for upgrade, `upgrade-blockers` should answer what visible blockers and decisions could stop or complicate the upgrade. It should be focused, direct, and decision-oriented.
+
+Blocker categories should be limited to a small set:
+
+- `Legacy ASP.NET / System.Web`
+- `WCF / ServiceModel`
+- `EF6 / EDMX / Data Access`
+- `Package Management`
+- `Direct Assembly References`
+- `Configuration / Runtime Coupling`
+- `Windows-only / Platform-specific APIs`
+- `Custom Build / MSBuild Behaviour`
+- `Unknown / Requires Manual Review`
+
+Impact labels should be limited to:
+
+- `High`
+- `Medium`
+- `Low`
+- `Unknown`
+
+Initial static blocker rules should include:
+
+| Evidence | Category | Impact | Possible blocker / decision |
+|---|---|---|---|
+| `System.Web` reference | Legacy ASP.NET / System.Web | High | ASP.NET Core does not use the `System.Web` pipeline |
+| `Global.asax` | Legacy ASP.NET / System.Web | High | Application startup/lifecycle logic requires migration review |
+| `.aspx`, `.ascx`, `.master` | Legacy ASP.NET / System.Web | High | WebForms artifacts may require rewrite or replacement |
+| `.asmx` | Legacy ASP.NET / System.Web | High | Legacy ASMX service surface may require replacement |
+| `.ashx` | Legacy ASP.NET / System.Web | High | HTTP handler may require middleware/endpoint replacement |
+| HTTP module or handler registration | Legacy ASP.NET / System.Web | High | Custom request pipeline behaviour requires migration review |
+| `System.ServiceModel` reference | WCF / ServiceModel | High | WCF migration decision required |
+| `system.serviceModel` config section | WCF / ServiceModel | High | WCF endpoint/binding/security config requires review |
+| `EntityFramework` package | EF6 / EDMX / Data Access | Medium/High | EF6 migration or isolation decision required |
+| `.edmx` file | EF6 / EDMX / Data Access | High | EDMX/ObjectContext migration is likely non-mechanical |
+| `ObjectContext` | EF6 / EDMX / Data Access | High | ObjectContext-based data access needs migration review |
+| `DbContext` | EF6 / EDMX / Data Access | Medium | Data access needs review before EF Core migration |
+| `packages.config` | Package Management | Medium | PackageReference migration may be needed |
+| Direct assembly reference with `HintPath` | Direct Assembly References | Medium/High | Local/vendor DLL compatibility requires review |
+| COM reference | Direct Assembly References | High | COM dependency may block cross-platform migration |
+| `App.config` / `Web.config` | Configuration / Runtime Coupling | Medium | Runtime configuration requires migration planning |
+| connection strings | Configuration / Runtime Coupling | Medium | Database/runtime dependency requires review |
+| binding redirects | Configuration / Runtime Coupling | Medium | Assembly binding behaviour changes under modern .NET |
+| custom config sections | Configuration / Runtime Coupling | Medium | Custom configuration may require replacement |
+| pre-build/post-build event | Custom Build / MSBuild Behaviour | Medium | Build behaviour may need migration into SDK-style projects |
+| custom `.targets` / `.props` | Custom Build / MSBuild Behaviour | Medium | Custom MSBuild logic requires review |
+
+The analysis must use cautious wording such as `Possible blocker`, `Potential blocker`, `Requires review`, `Migration decision required`, `Evidence found`, `May complicate upgrade`, and `May require replacement or redesign`. It should avoid absolute wording such as `Impossible to upgrade`, `Unsupported`, `Must rewrite`, `Safe`, `Guaranteed compatible`, `Definitely unused`, or `Cannot be upgraded`.
+
+### Upgrade Blockers Report
+
+The generated report should include:
+
+- Summary
+- Target
+- Blocker Overview
+- Upgrade Blockers and Decisions
+- Blocker Details
+- category-specific evidence tables
+- decisions required for each blocker category
+- Suggested Review Order
+- Notes and Limitations
+
+---
 
 ## Modernisation Hint Analysis
 

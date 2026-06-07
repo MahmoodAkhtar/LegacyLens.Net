@@ -35,8 +35,8 @@ Options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness.
---upgrade-target <tfm>  Optional requested target framework for upgrade-readiness wording.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness and upgrade-blockers.
+--upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
 ```
@@ -54,6 +54,8 @@ legacylens scan C:\Repos\LegacyApp --quiet
 legacylens scan C:\Repos\LegacyApp --verbose
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-readiness --upgrade-target net8.0
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-readiness
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers --upgrade-target net8.0
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers
 legacylens --help
 legacylens --version
 ```
@@ -116,6 +118,30 @@ When no upgrade target is provided, the report should still be generated using g
 
 For the first implementation, prefer the smallest command support needed to generate `upgrade-readiness-report.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
+### Upgrade Blockers Artifact
+
+The MVP scope now includes an optional `upgrade-blockers` artifact that should produce:
+
+```text
+<output-dir>/upgrade-blockers.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers --upgrade-target net8.0
+```
+
+The `--upgrade-target` option is optional:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers
+```
+
+When no upgrade target is provided, the report should still be generated using general upgrade-blocker wording. The report should remain static and evidence-backed. It should identify visible blockers, migration decisions, and higher-risk areas that may complicate upgrade planning, but it should not claim to build the solution, run tests, restore NuGet packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate the codebase, prove that migration is impossible, or guarantee compatibility with any destination framework.
+
+For the first implementation, prefer the smallest command support needed to generate `upgrade-blockers.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
+
 ### Console Output Modes
 
 Default output prints a concise scan summary, including discovered solution/project counts, dependency counts, WCF counts, legacy ASP.NET artifact counts, configuration file counts, modernisation hint counts, and the top review areas.
@@ -153,7 +179,8 @@ The CLI currently validates the following:
 - a scan path is required
 - unknown options are rejected
 - `--artifacts upgrade-readiness` should be supported when the upgrade-readiness artifact is implemented
-- `--upgrade-target <tfm>` should be accepted as optional context for upgrade-readiness wording
+- `--artifacts upgrade-blockers` should be supported when the upgrade-blockers artifact is implemented
+- `--upgrade-target <tfm>` should be accepted as optional context for upgrade-readiness and upgrade-blockers wording
 - option values are required for `--output`, `-o`, `--output-dir`, and `--format`
 - only `markdown` is currently supported for `--format`
 - `--output` and `--output-dir` cannot be used together

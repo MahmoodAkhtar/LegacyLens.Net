@@ -19,6 +19,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - evidence-backed modernisation hints and prioritised modernisation review areas
 - Mermaid project dependency diagrams in the generated Markdown report
 - an MVP-scope upgrade-readiness artifact that produces `upgrade-readiness-report.md` with static, evidence-backed upgrade planning signals
+- an MVP-scope upgrade-blockers artifact that produces `upgrade-blockers.md` with static, evidence-backed blocker and migration decision signals
 
 ## Quick start
 
@@ -58,6 +59,14 @@ legacylens scan <path> --output-dir ./output --artifacts upgrade-readiness --upg
 ```
 
 `--upgrade-target` is optional. When omitted, the report should use general upgrade-readiness language and avoid claiming compatibility with any specific destination framework.
+
+The MVP scope now also includes an optional upgrade-blockers artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers --upgrade-target net8.0
+```
+
+`--upgrade-target` is optional. When omitted, the report should use general upgrade-blocker language and avoid claiming compatibility with any specific destination framework.
 
 ## Example output
 
@@ -170,6 +179,14 @@ The current implementation can scan a folder containing .NET solutions and proje
 The `upgrade-readiness` capability is an MVP-scope addition. It should produce `upgrade-readiness-report.md` as a separate Markdown artifact focused on static upgrade planning. The report should help a developer understand current project target frameworks, project-level upgrade candidates, possible upgrade concerns, package and assembly reference considerations, and configuration/runtime risks such as `System.Web`, WCF, EF6, `packages.config`, direct assembly references, `Web.config`, or legacy ASP.NET artifacts.
 
 This capability should remain evidence-backed and cautious. It must not claim to build the solution, run the application, restore packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate code, or guarantee compatibility with `net8.0`, `net10.0`, or any other destination framework.
+
+### MVP-scope upgrade-blockers artifact
+
+The `upgrade-blockers` capability is an MVP-scope addition. It should produce `upgrade-blockers.md` as a separate Markdown artifact focused on visible technical blockers and migration decisions that may complicate upgrading a legacy .NET codebase.
+
+The report should help a developer understand which projects or files contain evidence of possible blockers, why each blocker matters, which decisions the development team needs to make, and which blockers should be reviewed first. Typical blocker areas include `System.Web`, legacy ASP.NET artifacts, WCF / `System.ServiceModel`, EF6 / EDMX data access, `packages.config`, direct DLL or assembly references, custom configuration, binding redirects, and runtime coupling.
+
+This capability should remain evidence-backed and cautious. It must not claim to build the solution, run the application, restore packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate code, prove that migration is impossible, or guarantee compatibility with `net8.0`, `net10.0`, or any other destination framework. A blocker means “requires review”, not “cannot be upgraded”.
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 

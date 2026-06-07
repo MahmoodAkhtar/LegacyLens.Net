@@ -233,6 +233,36 @@ Out of scope for MVP:
 
 Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/upgrade-readiness-report.md` without over-engineering the CLI.
 
+### Step 5c: Upgrade blockers report for upgrade planning
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add an `upgrade-blockers` capability that can produce `upgrade-blockers.md`.
+- Use existing static discovery evidence where possible, including project targets, package metadata, assembly references, direct DLL or `HintPath` references where available, WCF findings, legacy ASP.NET artifacts, configuration files, existing modernisation hints, and package compatibility/static package review information.
+- Support optional upgrade target context, for example `--upgrade-target net8.0`, without claiming guaranteed compatibility.
+- Group visible blockers into focused categories such as `Legacy ASP.NET / System.Web`, `WCF / ServiceModel`, `EF6 / EDMX / Data Access`, `Package Management`, `Direct Assembly References`, `Configuration / Runtime Coupling`, `Windows-only / Platform-specific APIs`, `Custom Build / MSBuild Behaviour`, and `Unknown / Requires Manual Review`.
+- Assign impact labels using `High`, `Medium`, `Low`, or `Unknown`.
+- Report why each blocker matters, the supporting evidence, and the migration decisions required.
+- Include suggested review order and notes/limitations.
+- Add unit tests for analyzer rules and Markdown output.
+
+Out of scope for MVP:
+
+- Building the solution.
+- Running the application or tests.
+- NuGet restore.
+- Transitive dependency resolution.
+- Online package lookup.
+- NuGet package asset inspection.
+- Automatic migration.
+- Definitive pass/fail compatibility results for `net8.0`, `net10.0`, or any other destination framework.
+- Claims that a blocker proves the project cannot be upgraded.
+- Rewrite recommendations without supporting evidence.
+
+Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/upgrade-blockers.md` without over-engineering the CLI. The report should be more focused and decision-oriented than `upgrade-readiness-report.md`, not a duplicate of it.
+
 ### Step 6: Legacy ASP.NET artifact discovery
 
 Status: Implemented with conditional quality gates
