@@ -20,6 +20,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - Mermaid project dependency diagrams in the generated Markdown report
 - an MVP-scope upgrade-readiness artifact that produces `upgrade-readiness-report.md` with static, evidence-backed upgrade planning signals
 - an MVP-scope upgrade-blockers artifact that produces `upgrade-blockers.md` with static, evidence-backed blocker and migration decision signals
+- an MVP-scope external-dependencies artifact that produces `external-dependencies.md` with a static, evidence-backed inventory of possible runtime and build-time dependencies outside the repository
 
 ## Quick start
 
@@ -68,6 +69,14 @@ legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers --upgr
 
 `--upgrade-target` is optional. When omitted, the report should use general upgrade-blocker language and avoid claiming compatibility with any specific destination framework.
 
+The MVP scope now also includes an optional external-dependencies artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts external-dependencies
+```
+
+This report should identify possible databases, HTTP/API URLs, WCF/service endpoints, queues, SMTP/email settings, Redis/cache indicators, file shares, cloud service packages, private package feeds, direct vendor DLL references, and infrastructure-related configuration using static evidence only. It should mask sensitive values and avoid claiming that any external system was contacted, verified, reachable, active in production, or complete.
+
 ## Example output
 
 The normal `legacylens scan <path>` output is intentionally concise:
@@ -106,7 +115,7 @@ For detailed report examples, see [docs/report-output.md](docs/report-output.md)
 
 LegacyLens.NET is currently in late MVP development and is focused on hardening the first usable discovery baseline.
 
-The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary.
+The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, and external dependency inventory.
 
 The current implementation can scan a folder containing .NET solutions and projects and discover:
 
@@ -172,6 +181,7 @@ The current implementation can scan a folder containing .NET solutions and proje
 - ASP.NET Web API CORS registration
 - evidence-backed modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC startup registration, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET HTTP module registrations, ASP.NET HTTP handler registrations, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, ASP.NET Web API startup registration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, WCF service behaviours, WCF endpoint behaviours, WCF metadata publishing settings, WCF debug settings, WCF throttling settings, WCF REST-style `webHttp` endpoint behaviours, and configuration-heavy applications
 - modernisation hint evidence metadata, including evidence kind, evidence name, source path, and confidence
+- external dependency inventory inputs for `external-dependencies.md`, using static evidence such as connection strings, app settings, WCF endpoints, URL-like values, infrastructure package references, direct assembly references, and private package feed configuration where discoverable
 - a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 
 ### MVP-scope upgrade-readiness artifact
@@ -187,6 +197,14 @@ The `upgrade-blockers` capability is an MVP-scope addition. It should produce `u
 The report should help a developer understand which projects or files contain evidence of possible blockers, why each blocker matters, which decisions the development team needs to make, and which blockers should be reviewed first. Typical blocker areas include `System.Web`, legacy ASP.NET artifacts, WCF / `System.ServiceModel`, EF6 / EDMX data access, `packages.config`, direct DLL or assembly references, custom configuration, binding redirects, and runtime coupling.
 
 This capability should remain evidence-backed and cautious. It must not claim to build the solution, run the application, restore packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate code, prove that migration is impossible, or guarantee compatibility with `net8.0`, `net10.0`, or any other destination framework. A blocker means “requires review”, not “cannot be upgraded”.
+
+### MVP-scope external-dependencies artifact
+
+The `external-dependencies` capability is an MVP-scope addition. It should produce `external-dependencies.md` as a separate Markdown artifact focused on possible systems, services, infrastructure, files, databases, queues, APIs, package feeds, vendor assemblies, or runtime resources outside the repository.
+
+The report should group evidence such as connection strings, HTTP/API URLs, WCF endpoints, queue-related settings or packages, SMTP/email settings, Redis/cache indicators, file shares, cloud service packages, private NuGet feeds, direct vendor DLL references, and infrastructure-related configuration. It should help a developer identify what needs confirmation before migration, testing, deployment, onboarding, or environment setup.
+
+This capability should remain static, evidence-backed, and security-conscious. It must not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness. Sensitive values should be masked or redacted.
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 

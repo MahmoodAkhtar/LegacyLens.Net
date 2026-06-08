@@ -77,6 +77,7 @@ Even if the solution does not build, it can still discover useful information fr
 - prioritised modernisation review areas derived from discovered hints
 - upgrade-readiness analysis inputs for `upgrade-readiness-report.md`, using existing static evidence such as project targets, packages, assembly references, WCF, legacy ASP.NET artifacts, and configuration indicators
 - upgrade-blockers analysis inputs for `upgrade-blockers.md`, using existing static evidence such as `System.Web`, legacy ASP.NET artifacts, WCF/System.ServiceModel, EF6/EDMX/data-access indicators where available, `packages.config`, assembly references, direct DLL or `HintPath` references where available, configuration indicators, and existing modernisation/package review findings
+- external-dependencies analysis inputs for `external-dependencies.md`, using static evidence such as connection strings, app settings, URL-like values, WCF endpoints, messaging/cache/email/cloud package indicators, UNC or local path values, private NuGet feeds, and direct assembly or vendor DLL references where discoverable
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
@@ -84,6 +85,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: upgrade-readiness is now MVP scope as a separate static report artifact. It should produce `upgrade-readiness-report.md` and should use existing discovered evidence to classify project-level readiness and possible upgrade concerns. It should not claim to build the solution, restore packages, resolve transitive dependencies, inspect package assets, automatically migrate code, or guarantee compatibility with a destination framework.
 
 > Note: upgrade-blockers is now MVP scope as a separate static report artifact. It should produce `upgrade-blockers.md` and should use existing discovered evidence to identify visible technical blockers, migration decisions, and higher-risk areas that may complicate upgrade planning. It should not claim to build the solution, restore packages, resolve transitive dependencies, inspect package assets, prove migration is impossible, automatically migrate code, or guarantee compatibility with a destination framework.
+
+> Note: external-dependencies is now MVP scope as a separate static report artifact. It should produce `external-dependencies.md` and should use existing discovered evidence to identify possible runtime and build-time dependencies outside the repository. It should not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness.
 
 > Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
 
@@ -1048,6 +1051,89 @@ The generated report should include:
 - category-specific evidence tables
 - decisions required for each blocker category
 - Suggested Review Order
+- Notes and Limitations
+
+---
+
+
+## External Dependencies Analysis
+
+The `external-dependencies` capability is an MVP-scope analysis that produces a separate Markdown artifact named `external-dependencies.md`.
+
+It should consume existing static discovery results rather than duplicating scanners where possible. Useful inputs include:
+
+- configuration files such as `App.config`, `Web.config`, config transforms, `appsettings.json`, and `.settings` files where discoverable
+- `appSettings` keys and values where the implementation captures them
+- `connectionStrings` entries and provider names where available
+- WCF endpoint, binding, behaviour, and service contract evidence
+- project package references, versions, source format, and source path
+- assembly references and direct `HintPath` evidence where available
+- source code string literals where feasible and low-risk to scan
+- `NuGet.config` package sources where discoverable
+- existing modernisation hints where they provide useful supporting evidence
+
+The purpose is to identify possible systems or resources outside the repository that the application may depend on at runtime or build time. The report should answer what external systems appear to be referenced, where the evidence was found, what category the dependency belongs to, and what should be confirmed by the development team before migration, testing, deployment, onboarding, or local development.
+
+Dependency categories should be limited to a small set:
+
+- `Database`
+- `HTTP / API`
+- `WCF / Service Endpoint`
+- `Messaging / Queue`
+- `File System / File Share`
+- `Email / SMTP`
+- `Cache / Distributed State`
+- `Authentication / Identity Provider`
+- `Cloud Service`
+- `Private Package Feed`
+- `External Assembly / Vendor DLL`
+- `Unknown / Requires Review`
+
+Initial static evidence rules should include:
+
+| Evidence | Category | Possible finding |
+|---|---|---|
+| `connectionStrings` section | Database | Database dependency configured |
+| `System.Data.SqlClient`, `Microsoft.Data.SqlClient`, `Npgsql`, `MySql.Data`, `MySqlConnector`, or `Oracle.ManagedDataAccess` package/reference | Database | Database technology dependency may exist |
+| URL-looking config value such as `http://` or `https://` | HTTP / API | External or internal HTTP service dependency may exist |
+| App setting key ending with `Url`, `Uri`, `Endpoint`, `BaseAddress`, `BaseUrl`, or `ApiUrl` | HTTP / API | Service endpoint configuration may exist |
+| `system.serviceModel/client/endpoint` or configured WCF endpoint | WCF / Service Endpoint | WCF client/service endpoint configured |
+| `System.ServiceModel` reference | WCF / Service Endpoint | WCF usage may indicate service dependency |
+| `RabbitMQ.Client`, `MassTransit`, `NServiceBus`, `Microsoft.Azure.ServiceBus`, or `Azure.Messaging.ServiceBus` package/reference | Messaging / Queue | Message broker or queue dependency may exist |
+| App setting containing `Queue`, `Topic`, or `Subscription` | Messaging / Queue | Messaging dependency may exist |
+| UNC path beginning `\\` | File System / File Share | Network file share dependency may exist |
+| Windows absolute path such as `C:\...` | File System / File Share | Local machine path dependency may exist |
+| App setting containing `Path`, `Folder`, `Directory`, or `Share` | File System / File Share | File system dependency may exist |
+| SMTP config, `SmtpClient`, `SendGrid`, or `MailKit` evidence | Email / SMTP | Email service dependency may exist |
+| `StackExchange.Redis` package/reference or app setting containing `Redis`, `Cache`, or `DistributedCache` | Cache / Distributed State | Cache dependency may exist |
+| `ida:ClientId`, `ida:Tenant`, `Authority`, `Issuer`, `Audience`, OpenID Connect, Microsoft Identity, or Azure Identity evidence | Authentication / Identity Provider | Identity provider dependency may exist |
+| `WindowsAzure.Storage`, `Azure.Storage.Blobs`, `Microsoft.ApplicationInsights`, `AWSSDK.*`, or `Google.Cloud.*` package/reference | Cloud Service | Cloud service dependency may exist |
+| `NuGet.config` non-nuget.org package source | Private Package Feed | Private package feed dependency may exist |
+| Direct assembly reference with `HintPath` | External Assembly / Vendor DLL | Vendor/local DLL dependency may exist |
+
+Each finding should include evidence such as category, name or identifier, source type, source file, project name where applicable, evidence summary, masked value where necessary, confidence level if useful, notes, and whether confirmation is required.
+
+The analysis must be cautious and security-conscious. It should use wording such as `Possible external dependency`, `Evidence found`, `Requires confirmation`, `Configured dependency`, `Code reference`, `May indicate dependency`, and `Potential runtime dependency`. It should avoid absolute wording such as `Definitely used`, `Production dependency`, `Safe to remove`, `Unused`, `Verified`, `Reachable`, `Credential is valid`, or `Complete dependency map`.
+
+Sensitive values should not be printed in full. Passwords, API keys, tokens, connection string passwords, SAS tokens, access keys, client secrets, certificate private keys, private feed credentials, and embedded credentials should be masked or redacted.
+
+### External Dependencies Report
+
+The generated report should include:
+
+- Summary
+- Analysis Scope
+- Dependency Overview
+- Dependencies
+- Database Dependencies
+- HTTP / Service Dependencies
+- WCF Dependencies
+- Messaging Dependencies
+- File System Dependencies
+- Email Dependencies
+- Cache / Distributed State Dependencies
+- Build-Time / Package Feed Dependencies
+- Suggested Questions to Ask the Team
 - Notes and Limitations
 
 ---

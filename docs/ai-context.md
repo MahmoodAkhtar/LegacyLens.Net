@@ -6,7 +6,7 @@ This file is intended to be used as concise context for AI-assisted development 
 
 LegacyLens.NET is a standalone static discovery CLI for unfamiliar, legacy, and modern .NET codebases.
 
-It scans source and configuration files to produce a Markdown discovery report that helps a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+It scans source and configuration files to produce Markdown reports that help a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 ## Usage model
 
@@ -31,6 +31,8 @@ Important options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, and external-dependencies.
+--upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
 ```
@@ -43,7 +45,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, and a separate `upgrade-blockers.md` artifact for upgrade planning.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, and a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies.
 
 ## Current implemented capability summary
 
@@ -60,6 +62,7 @@ LegacyLens.NET currently discovers:
 - `app.config` and `web.config` configuration details
 - evidence-backed modernisation hints
 - prioritised modernisation review areas
+- external dependency inventory inputs such as connection strings, URL-like settings, WCF endpoints, infrastructure packages, private package feed evidence, direct assembly/vendor DLL references, and path/share indicators where discoverable
 
 ## MVP package compatibility review addition
 
@@ -97,6 +100,23 @@ legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers --upgr
 
 The report should include a summary, target, blocker overview, upgrade blockers and decisions table, blocker details, evidence, why each blocker matters, decisions required, suggested review order, and notes/limitations. It must not claim to build the solution, run tests, restore packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate code, prove migration is impossible, or guarantee compatibility with any destination framework. Use cautious wording such as `Possible blocker`, `Potential blocker`, `Requires review`, `Migration decision required`, `Evidence found`, `May complicate upgrade`, and `May require replacement or redesign`.
 
+
+## MVP external-dependencies addition
+
+`external-dependencies` is now an MVP-scope capability. It should produce `external-dependencies.md` as a separate Markdown artifact. It is a static, evidence-backed inventory of possible external runtime and build-time dependencies used by a .NET codebase.
+
+It should help identify systems, services, infrastructure, files, databases, queues, APIs, package feeds, vendor assemblies, or operational resources outside the repository that may need confirmation before migration, testing, deployment, onboarding, CI setup, or local development.
+
+Intended command shape:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts external-dependencies
+```
+
+The report should group findings such as connection strings, HTTP/API URLs, WCF endpoints, queue-related settings or packages, SMTP/email settings, Redis/cache indicators, file shares, cloud service packages, private NuGet feeds, direct vendor DLL references, and infrastructure-related configuration.
+
+The report should include a summary, analysis scope, dependency overview, dependency table, category-specific sections, suggested questions to ask the team, and notes/limitations. It must not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness. Sensitive values should be masked or redacted. Use cautious wording such as `Possible external dependency`, `Evidence found`, `Requires confirmation`, `Configured dependency`, `May indicate dependency`, and `Potential runtime dependency`.
+
 ## Design constraints
 
 - Static-first discovery.
@@ -108,13 +128,15 @@ The report should include a summary, target, blocker overview, upgrade blockers 
 
 ## MVP definition
 
-The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce a readable Markdown report that helps a developer identify the main structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce readable Markdown reports that help a developer identify the main structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 Further work should be treated as post-MVP unless it fixes a specific report-quality defect.
 
 Package compatibility review is now MVP scope, but it should remain static and evidence-backed. It should not be described as full NuGet restore, transitive dependency resolution, online package lookup, package asset inspection, or guaranteed compatibility checking against a destination framework.
 
 Upgrade blockers is now MVP scope, but it should remain static, evidence-backed, and decision-oriented. It should not be described as a definitive compatibility checker, automatic migration tool, or proof that migration is impossible.
+
+External dependencies is now MVP scope, but it should remain static, evidence-backed, and security-conscious. It should not be described as a runtime dependency mapper, network scanner, credential validator, production dependency list, or complete dependency map.
 
 ## Recommended AI prompt context bundle
 
@@ -132,7 +154,7 @@ Include `README.md` only when the task is specifically about public documentatio
 
 - `README.md` is the public front door.
 - `docs/usage.md` contains command usage.
-- `docs/report-output.md` contains console, discovery report, upgrade-readiness report, and upgrade-blockers report examples.
+- `docs/report-output.md` contains console, discovery report, upgrade-readiness report, upgrade-blockers report, and external-dependencies report examples.
 - `docs/discovery-capabilities.md` contains detailed scanner capability information.
 - `docs/architecture.md` contains repository and project structure.
 - `docs/mvp.md` defines MVP scope and exit criteria.

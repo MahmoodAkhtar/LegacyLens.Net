@@ -469,6 +469,130 @@ Decision required:
 
 ---
 
+
+## External Dependencies Report Output
+
+The MVP scope now includes a separate external-dependencies Markdown artifact:
+
+```text
+output/external-dependencies.md
+```
+
+The external-dependencies report should be a static, evidence-backed inventory of possible external runtime and build-time dependencies used by the scanned codebase. It should help a developer identify systems, services, infrastructure, files, databases, queues, APIs, package feeds, vendor assemblies, or operational resources that may need confirmation before migration, testing, deployment, onboarding, or local development.
+
+It should not claim that LegacyLens.NET connected to any external system, validated credentials, verified URLs or servers, inspected production infrastructure, proved production usage, proved that a dependency is unused, or produced a complete dependency map. Sensitive values should be masked or redacted.
+
+Representative structure:
+
+```markdown
+# External Dependencies
+
+## Summary
+
+This report is based on static source and configuration discovery. It identifies possible external dependencies and the evidence found for them. A finding means “requires confirmation”, not “verified production dependency”.
+
+## Analysis Scope
+
+| Item | Value |
+|---|---|
+| Analysis mode | Static / no-build |
+| Runtime verification | No |
+| Secret values printed | No |
+| Completeness guarantee | No |
+
+## Dependency Overview
+
+| Category | Count | Examples |
+|---|---:|---|
+| Databases | 1 | MainDatabase |
+| HTTP services / URLs | 2 | PaymentApiBaseUrl, CustomerApiUrl |
+| WCF/service endpoints | 3 | basicHttpBinding endpoint |
+| File system / file shares | 1 | ExportPath |
+| Email / SMTP | 1 | smtp settings |
+| Caching | 1 | StackExchange.Redis |
+| Private package feeds | 1 | NuGet.config source |
+
+## Dependencies
+
+| Category | Name / Identifier | Source | Evidence | Requires Confirmation |
+|---|---|---|---|---|
+| Database | MainDatabase | Web.config | Connection string configured; password masked if present. | Yes |
+| HTTP / API | PaymentApiBaseUrl | Web.config | URL-like app setting value found. | Yes |
+| WCF / Service Endpoint | SampleLegacyApp.Services.CustomerService | Web.config | basicHttpBinding endpoint configured. | Yes |
+
+## Database Dependencies
+
+| Name | Source File | Provider | Evidence | Notes |
+|---|---|---|---|---|
+| MainDatabase | `...\Web.config` | System.Data.SqlClient | Connection string configured. | Credentials are not printed. |
+
+## HTTP / Service Dependencies
+
+| Name / Key | Source File | Value Type | Evidence | Notes |
+|---|---|---|---|---|
+| PaymentApiBaseUrl | `...\Web.config` | URL | `https://...` value detected and masked if needed. | Requires confirmation. |
+
+## WCF Dependencies
+
+| Service / Endpoint | Source File | Binding | Contract | Notes |
+|---|---|---|---|---|
+| SampleLegacyApp.Services.CustomerService | `...\Web.config` | basicHttpBinding | SampleLegacyApp.Contracts.ICustomerService | Configured service endpoint; runtime usage not verified. |
+
+## Messaging Dependencies
+
+| Technology | Source | Evidence | Notes |
+|---|---|---|---|
+| RabbitMQ | PackageReference | RabbitMQ.Client package found. | May indicate message broker dependency. |
+
+## File System Dependencies
+
+| Path Type | Source File | Evidence | Notes |
+|---|---|---|---|
+| UNC path | `...\Web.config` | `\\server\share` | Network share dependency may exist. |
+
+## Email Dependencies
+
+| Source | Evidence | Notes |
+|---|---|---|
+| Web.config | SMTP settings detected. | SMTP server and credentials require confirmation. |
+
+## Cache / Distributed State Dependencies
+
+| Technology | Source | Evidence | Notes |
+|---|---|---|---|
+| Redis | PackageReference | StackExchange.Redis package found. | Redis/cache dependency may exist. |
+
+## Build-Time / Package Feed Dependencies
+
+| Source | Evidence | Notes |
+|---|---|---|
+| NuGet.config | Non-nuget.org package source found. | Private feed availability and credentials require confirmation. |
+
+## Suggested Questions to Ask the Team
+
+- Which of these dependencies are still used in production?
+- Which databases are shared with other applications?
+- Are any service URLs environment-specific?
+- Are WCF endpoints internal only or consumed by third parties?
+- Are queues/topics/subscriptions created manually or by infrastructure automation?
+- Are file shares still required?
+- Where are secrets stored outside this repository?
+- Which dependencies are required for local development?
+- Which dependencies are required for CI builds?
+- Which dependencies are required for production deployment?
+
+## Notes and Limitations
+
+- This report is based on static discovery only.
+- LegacyLens.NET did not run the application.
+- LegacyLens.NET did not connect to any external system.
+- LegacyLens.NET did not validate credentials, URLs, database servers, queues, or file shares.
+- Values that look sensitive should be masked or redacted.
+- A dependency listed here means evidence was found, not that the dependency is confirmed active in production.
+```
+
+---
+
 ## Generated Report Output
 
 LegacyLens.NET currently generates a Markdown report at:

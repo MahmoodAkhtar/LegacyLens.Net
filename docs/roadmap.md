@@ -16,6 +16,7 @@ After the MVP exit criteria are met, additional discovery work should be priorit
 - It reduces duplicated or noisy findings that make the report harder to use.
 - It improves prioritisation where the review summary ranks less actionable areas above clearly higher-value migration risks.
 - It adds support for a realistic legacy pattern found in an external sample application or real-world codebase.
+- It improves evidence for external runtime or build-time dependencies that materially affect migration, deployment, testing, onboarding, or local development.
 
 Ideas that do not satisfy one of these rules should remain post-MVP backlog items.
 
@@ -262,6 +263,31 @@ Out of scope for MVP:
 - Rewrite recommendations without supporting evidence.
 
 Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/upgrade-blockers.md` without over-engineering the CLI. The report should be more focused and decision-oriented than `upgrade-readiness-report.md`, not a duplicate of it.
+
+
+### Step 5d: External dependencies inventory for migration, deployment, and onboarding
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add an `external-dependencies` capability that can produce `external-dependencies.md`.
+- Use existing static discovery evidence where possible, including configuration files, connection strings, app settings, WCF endpoints, package references, assembly references, direct DLL or `HintPath` evidence where available, private package feed configuration where available, and low-risk source string evidence where feasible.
+- Group possible dependencies into focused categories such as `Database`, `HTTP / API`, `WCF / Service Endpoint`, `Messaging / Queue`, `File System / File Share`, `Email / SMTP`, `Cache / Distributed State`, `Authentication / Identity Provider`, `Cloud Service`, `Private Package Feed`, `External Assembly / Vendor DLL`, and `Unknown / Requires Review`.
+- Report source/evidence, source file, project name where applicable, notes, optional confidence, and whether each finding requires confirmation.
+- Mask or redact sensitive values such as passwords, API keys, tokens, SAS tokens, access keys, client secrets, private feed credentials, and connection string secrets.
+- Include suggested questions to ask the team and notes/limitations.
+- Add unit tests for analyzer rules and Markdown output, including secret masking and empty/no-findings handling.
+
+Out of scope for MVP:
+
+- Connecting to databases, APIs, queues, file shares, cloud services, Redis, SMTP, or package feeds.
+- Validating credentials, URLs, server existence, network reachability, queue existence, or production usage.
+- Running the application, executing code, or inspecting production infrastructure.
+- Proving that a dependency is active, proving that a dependency is unused, or guaranteeing completeness.
+- Printing full secrets or raw sensitive values.
+
+Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/external-dependencies.md` without over-engineering the CLI. The report should be distinct from configuration inventory, upgrade readiness, upgrade blockers, and data-access inventory; its focus is systems and resources outside the repository that may affect runtime, build, migration, deployment, testing, or onboarding.
 
 ### Step 6: Legacy ASP.NET artifact discovery
 

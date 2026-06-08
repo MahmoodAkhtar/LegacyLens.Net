@@ -5,6 +5,9 @@ namespace LegacyLens.Cli.Parsing;
 public sealed class CliParser
 {
     private const string MarkdownFormat = "markdown";
+    private const string UpgradeReadinessArtifact = "upgrade-readiness";
+    private const string UpgradeBlockersArtifact = "upgrade-blockers";
+    private const string ExternalDependenciesArtifact = "external-dependencies";
 
     public CliParseResult Parse(string[] args)
     {
@@ -96,7 +99,7 @@ public sealed class CliParser
                 verbose = true;
                 continue;
             }
-            
+
             if (arg.Equals("--artifacts", StringComparison.OrdinalIgnoreCase))
             {
                 if (!TryReadOptionValue(args, ref i, arg, out artifacts, out var error))
@@ -149,16 +152,15 @@ public sealed class CliParser
         {
             return CliParseResult.Error("Use either --quiet or --verbose, not both.");
         }
-        
-        if (!string.IsNullOrWhiteSpace(artifacts) &&
-            !artifacts.Equals("upgrade-readiness", StringComparison.OrdinalIgnoreCase) &&
-            !artifacts.Equals("upgrade-blockers", StringComparison.OrdinalIgnoreCase))
+
+        if (!string.IsNullOrWhiteSpace(artifacts) && !IsSupportedArtifact(artifacts))
         {
-            return CliParseResult.Error("Only the upgrade-readiness and upgrade-blockers artifacts are currently supported.");
+            return CliParseResult.Error(
+                "Only the upgrade-readiness, upgrade-blockers, and external-dependencies artifacts are currently supported.");
         }
 
         if (!string.IsNullOrWhiteSpace(upgradeTarget) &&
-            string.IsNullOrWhiteSpace(artifacts))
+            !IsUpgradeArtifact(artifacts))
         {
             return CliParseResult.Error("Use --upgrade-target with --artifacts upgrade-readiness or --artifacts upgrade-blockers.");
         }
@@ -174,6 +176,20 @@ public sealed class CliParser
             Artifacts = artifacts,
             UpgradeTarget = upgradeTarget
         });
+    }
+
+    private static bool IsSupportedArtifact(string artifact)
+    {
+        return artifact.Equals(UpgradeReadinessArtifact, StringComparison.OrdinalIgnoreCase) ||
+               artifact.Equals(UpgradeBlockersArtifact, StringComparison.OrdinalIgnoreCase) ||
+               artifact.Equals(ExternalDependenciesArtifact, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsUpgradeArtifact(string? artifact)
+    {
+        return artifact is not null &&
+               (artifact.Equals(UpgradeReadinessArtifact, StringComparison.OrdinalIgnoreCase) ||
+                artifact.Equals(UpgradeBlockersArtifact, StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool TryReadOptionValue(

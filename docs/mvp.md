@@ -115,6 +115,7 @@ Current MVP functionality includes implemented capabilities and newly required M
 - output file generation under the `output/` directory
 - optional `--artifacts upgrade-readiness` command support for producing the upgrade-readiness artifact
 - optional `--artifacts upgrade-blockers` command support for producing the upgrade-blockers artifact
+- optional `--artifacts external-dependencies` command support for producing the external-dependencies artifact
 - optional `--upgrade-target <tfm>` command support for upgrade-readiness and upgrade-blockers report context
 - static upgrade-readiness analysis for upgrade planning
 - upgrade-readiness report generation as `upgrade-readiness-report.md`
@@ -132,6 +133,12 @@ Current MVP functionality includes implemented capabilities and newly required M
 - upgrade-blockers category grouping for Legacy ASP.NET/System.Web, WCF/ServiceModel, EF6/EDMX/Data Access, Package Management, Direct Assembly References, Configuration/Runtime Coupling, Windows-only/Platform-specific APIs, Custom Build/MSBuild Behaviour, and Unknown/Requires Manual Review where evidence exists
 - upgrade-blockers evidence reporting using existing discovered project, package, assembly, WCF, legacy ASP.NET, configuration, and modernisation/package review evidence where available
 - upgrade-blockers notes and limitations explaining static no-build analysis and that blockers mean “requires review”, not “cannot be upgraded”
+- static external-dependencies analysis for identifying possible runtime and build-time dependencies outside the repository
+- external-dependencies report generation as `external-dependencies.md`
+- external-dependencies category grouping for Database, HTTP/API, WCF/Service Endpoint, Messaging/Queue, File System/File Share, Email/SMTP, Cache/Distributed State, Authentication/Identity Provider, Cloud Service, Private Package Feed, External Assembly/Vendor DLL, and Unknown/Requires Review where evidence exists
+- external-dependencies evidence reporting using existing discovered configuration, WCF, package, assembly, project, source, and private package feed evidence where available
+- external-dependencies masking or redaction for sensitive values such as passwords, API keys, tokens, SAS tokens, access keys, client secrets, private feed credentials, and connection string secrets
+- external-dependencies suggested team questions and notes/limitations explaining static no-build analysis and that findings mean “requires confirmation”, not “verified production dependency”
 
 ## MVP Exit Criteria
 
@@ -140,7 +147,7 @@ The MVP should be considered complete when the tool can produce a useful static 
 The MVP exit criteria are:
 
 - The CLI can scan the sample legacy solution successfully.
-- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md` and `upgrade-blockers.md` artifacts.
+- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md`, `upgrade-blockers.md`, and `external-dependencies.md` artifacts.
 - The report identifies the main modernisation review areas clearly enough for a developer to decide where to investigate first.
 - The package compatibility review shows package name, version where available, project target framework, package target framework where available, source format, source path, and possible compatibility concern without claiming to perform full NuGet compatibility resolution.
 - Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.
@@ -148,6 +155,7 @@ The MVP exit criteria are:
 - Existing automated tests pass.
 - The upgrade-readiness report includes current project targets, project-level readiness classifications, possible upgrade concerns, package upgrade considerations, assembly reference considerations, configuration/runtime considerations, and clear static-analysis limitations.
 - The upgrade-blockers report includes a blocker overview, grouped blocker details, impact labels, evidence, why each blocker matters, decisions required, suggested review order, and clear static-analysis limitations.
+- The external-dependencies report includes an analysis scope, dependency overview, grouped dependency sections, source/evidence details, confirmation flags, suggested team questions, sensitive value masking, and clear static-analysis limitations.
 - The README reflects the actual current report output and does not describe speculative MVP behaviour as already implemented.
 
 ### CLI command contract
@@ -179,6 +187,7 @@ The following are not blockers for the MVP:
 - full migration recommendations or automated migration planning
 - automatic migration execution, definitive pass/fail upgrade compatibility decisions, or claims that a blocker proves migration is impossible
 - full NuGet restore, transitive dependency resolution, package asset inspection, or guaranteed package compatibility checks
+- runtime dependency mapping, network scanning, credential validation, production infrastructure inspection, or guaranteed complete external dependency inventory
 - HTML report output
 - support for every possible legacy project or configuration edge case
 - deeper analysis that is not required to fix a clear report-quality issue in the current sample output
@@ -189,6 +198,6 @@ These items may be valuable later, but they should be treated as post-MVP improv
 
 The MVP is not intended to be a complete migration analyser.
 
-The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce a readable Markdown report that helps a developer identify the main structure, dependencies, legacy technology indicators, configuration concerns, prioritised modernisation review areas, and upgrade planning artifacts such as readiness and blocker/decision reports.
+The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce readable Markdown reports that help a developer identify the main structure, dependencies, legacy technology indicators, configuration concerns, prioritised modernisation review areas, upgrade planning artifacts such as readiness and blocker/decision reports, and possible external runtime or build-time dependencies that require confirmation.
 
 Once that is achieved, further work should be treated as post-MVP unless it fixes a specific report-quality defect.

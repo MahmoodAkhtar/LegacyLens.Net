@@ -35,7 +35,7 @@ Options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness and upgrade-blockers.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, and external-dependencies.
 --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
@@ -56,6 +56,7 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-r
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-readiness
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers --upgrade-target net8.0
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts external-dependencies
 legacylens --help
 legacylens --version
 ```
@@ -142,6 +143,26 @@ When no upgrade target is provided, the report should still be generated using g
 
 For the first implementation, prefer the smallest command support needed to generate `upgrade-blockers.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
+### External Dependencies Artifact
+
+The MVP scope now includes an optional `external-dependencies` artifact that should produce:
+
+```text
+<output-dir>/external-dependencies.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts external-dependencies
+```
+
+The report should remain static, evidence-backed, and security-conscious. It should identify possible runtime or build-time dependencies outside the repository, such as database connection strings, HTTP/API URLs, WCF endpoints, queues, SMTP/email settings, Redis/cache indicators, file shares, cloud service packages, private NuGet feeds, direct vendor DLL references, and infrastructure-related configuration.
+
+The report should not claim to connect to databases, call HTTP APIs, validate credentials, verify network reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, or guarantee completeness. Sensitive values such as passwords, API keys, tokens, SAS tokens, access keys, client secrets, private feed credentials, and connection string secrets should be masked or redacted.
+
+For the first implementation, prefer the smallest command support needed to generate `external-dependencies.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
+
 ### Console Output Modes
 
 Default output prints a concise scan summary, including discovered solution/project counts, dependency counts, WCF counts, legacy ASP.NET artifact counts, configuration file counts, modernisation hint counts, and the top review areas.
@@ -180,6 +201,7 @@ The CLI currently validates the following:
 - unknown options are rejected
 - `--artifacts upgrade-readiness` should be supported when the upgrade-readiness artifact is implemented
 - `--artifacts upgrade-blockers` should be supported when the upgrade-blockers artifact is implemented
+- `--artifacts external-dependencies` should be supported when the external-dependencies artifact is implemented
 - `--upgrade-target <tfm>` should be accepted as optional context for upgrade-readiness and upgrade-blockers wording
 - option values are required for `--output`, `-o`, `--output-dir`, and `--format`
 - only `markdown` is currently supported for `--format`

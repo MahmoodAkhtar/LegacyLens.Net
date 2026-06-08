@@ -87,7 +87,7 @@ public sealed class ScanCommand
             var upgradeReadinessWriter = new UpgradeReadinessMarkdownReportWriter();
             upgradeReadinessWriter.Write(upgradeReadinessOutputPath, upgradeReadinessReport);
         }
-        
+
         string? upgradeBlockersOutputPath = null;
         UpgradeBlockersReport? upgradeBlockersReport = null;
 
@@ -110,7 +110,25 @@ public sealed class ScanCommand
             var upgradeBlockersWriter = new UpgradeBlockersMarkdownReportWriter();
             upgradeBlockersWriter.Write(upgradeBlockersOutputPath, upgradeBlockersReport);
         }
-        
+
+        string? externalDependenciesOutputPath = null;
+        ExternalDependenciesReport? externalDependenciesReport = null;
+
+        if (options.ShouldWriteExternalDependencies)
+        {
+            var externalDependenciesAnalyzer = new ExternalDependenciesAnalyzer();
+
+            externalDependenciesReport = externalDependenciesAnalyzer.Analyze(
+                projects,
+                wcfEndpoints,
+                configFiles);
+
+            externalDependenciesOutputPath = ResolveExternalDependenciesOutputPath(scanPath, options);
+
+            var externalDependenciesWriter = new ExternalDependenciesMarkdownReportWriter();
+            externalDependenciesWriter.Write(externalDependenciesOutputPath, externalDependenciesReport);
+        }
+
         return new ScanResult
         {
             ScanPath = scanPath,
@@ -127,8 +145,32 @@ public sealed class ScanCommand
             UpgradeReadinessOutputPath = upgradeReadinessOutputPath,
             UpgradeReadinessReport = upgradeReadinessReport,
             UpgradeBlockersOutputPath = upgradeBlockersOutputPath,
-            UpgradeBlockersReport = upgradeBlockersReport
+            UpgradeBlockersReport = upgradeBlockersReport,
+            ExternalDependenciesOutputPath = externalDependenciesOutputPath,
+            ExternalDependenciesReport = externalDependenciesReport
         };
+    }
+
+    private static string ResolveExternalDependenciesOutputPath(string scanPath, ScanOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
+        {
+            return Path.Combine(
+                Path.GetFullPath(options.OutputDirectory),
+                "external-dependencies.md");
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Output))
+        {
+            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
+
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                return Path.Combine(outputDirectory, "external-dependencies.md");
+            }
+        }
+
+        return Path.Combine(scanPath, "output", "external-dependencies.md");
     }
 
     private static string ResolveUpgradeBlockersOutputPath(string scanPath, ScanOptions options)
@@ -152,7 +194,7 @@ public sealed class ScanCommand
 
         return Path.Combine(scanPath, "output", "upgrade-blockers.md");
     }
-    
+
     private static string ResolveUpgradeReadinessOutputPath(string scanPath, ScanOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
@@ -174,7 +216,7 @@ public sealed class ScanCommand
 
         return Path.Combine(scanPath, "output", "upgrade-readiness-report.md");
     }
-    
+
     private static string ResolveOutputPath(string scanPath, ScanOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.Output))

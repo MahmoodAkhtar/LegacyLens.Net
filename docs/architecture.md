@@ -78,6 +78,7 @@ Current analysis work includes:
 - identifying package compatibility review concerns for upgrade planning, including missing versions, legacy package formats, package target framework mismatches, and selected package-specific migration concerns
 - producing upgrade-readiness analysis models for a separate `upgrade-readiness-report.md` artifact
 - producing upgrade-blockers analysis models for a separate `upgrade-blockers.md` artifact
+- producing external-dependencies analysis models for a separate `external-dependencies.md` artifact
 - identifying legacy ASP.NET indicators from `System.Web` assembly references
 - identifying `System.Web.*` assembly references as legacy ASP.NET review items
 - identifying WebForms pages as legacy ASP.NET migration risk indicators
@@ -169,6 +170,27 @@ Likely core types:
 | `UpgradeBlockerImpact` | Impact label such as High, Medium, Low, or Unknown |
 
 The analyzer should consume existing discovery results where possible. It should not run builds, execute code, restore packages, resolve transitive dependencies, inspect NuGet package assets, prove that migration is impossible, recommend rewrites without evidence, or guarantee compatibility with a destination target framework.
+
+
+### External Dependencies
+
+The external-dependencies MVP addition should fit the existing static-first architecture. A suitable implementation should add focused analysis models and a Markdown writer rather than duplicating discovery logic. It should consume existing project, package, assembly, WCF, configuration, and modernisation evidence where useful.
+
+Likely core types:
+
+| Type | Purpose |
+|---|---|
+| `ExternalDependenciesAnalyzer` | Consumes discovered projects, packages, assembly references, WCF findings, configuration files, known infrastructure package/reference signals, optional source string evidence, and private feed evidence where available to produce possible external dependency findings |
+| `ExternalDependenciesReport` | Root model for `external-dependencies.md` |
+| `ExternalDependency` | Evidence-backed dependency finding with category, name, source, evidence, project/file path, notes, confirmation flag, and optional confidence |
+| `ExternalDependencyEvidence` | Evidence row containing source type, project name, file path, evidence summary, and masked value where applicable |
+| `ExternalDependencyCategory` | Category such as Database, HTTP/API, WCF/Service Endpoint, Messaging/Queue, File System/File Share, Email/SMTP, Cache/Distributed State, Authentication/Identity Provider, Cloud Service, Private Package Feed, External Assembly/Vendor DLL, or Unknown/Requires Review |
+| `ExternalDependencySourceType` | Source type such as Configuration, PackageReference, AssemblyReference, WcfEndpoint, NuGetConfig, SourceCode, ProjectFile, or Unknown |
+| `ExternalDependencyConfidence` | Optional confidence label such as High, Medium, or Low |
+
+The analyzer should not connect to databases, call HTTP APIs, validate URLs, validate credentials, check server reachability, inspect production infrastructure, run the application, execute code, prove production usage, prove unused dependencies, expose secrets, or guarantee completeness.
+
+For MVP, it is acceptable to start with connection strings, app settings with URL/path/queue/cache/email-like keys, WCF endpoint configuration, known infrastructure packages, direct assembly references, and `NuGet.config` package sources if easy to scan. If a scanner is not yet available or would require deeper parsing, the implementation should skip that rule rather than inventing evidence.
 
 ### Configuration
 
@@ -354,6 +376,8 @@ The Markdown report currently includes:
 Dedicated writers may be added for `upgrade-readiness-report.md` and `upgrade-blockers.md`. The upgrade-readiness writer should keep the report separate from the main discovery report and should include Summary, Target, Current Project Targets, Upgrade Readiness Overview, Project Upgrade Candidates, Possible Upgrade Concerns, Package Upgrade Considerations, Assembly Reference Considerations, Configuration and Runtime Considerations, Suggested Review Order, and Notes and Limitations sections.
 
 The upgrade-blockers writer should keep the report separate from the main discovery report and should include Summary, Target, Blocker Overview, Upgrade Blockers and Decisions, Blocker Details, category-specific evidence tables, decisions required, Suggested Review Order, and Notes and Limitations sections.
+
+The external-dependencies writer should keep the report separate from the main discovery report and should include Summary, Analysis Scope, Dependency Overview, Dependencies, category-specific dependency sections, Suggested Questions to Ask the Team, and Notes and Limitations sections. It should mask sensitive values and avoid printing full secrets or raw credentials.
 
 ### Mermaid
 

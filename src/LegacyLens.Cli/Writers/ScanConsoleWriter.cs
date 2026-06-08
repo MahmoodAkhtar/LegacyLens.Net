@@ -82,6 +82,11 @@ public sealed class ScanConsoleWriter
         {
             Console.WriteLine($"Upgrade blockers report generated: {result.UpgradeBlockersOutputPath}");
         }
+
+        if (!string.IsNullOrWhiteSpace(result.ExternalDependenciesOutputPath))
+        {
+            Console.WriteLine($"External dependencies report generated: {result.ExternalDependenciesOutputPath}");
+        }
     }
 
     private static void WriteNormal(ScanResult result)
@@ -124,19 +129,26 @@ public sealed class ScanConsoleWriter
         Console.WriteLine();
         Console.WriteLine("Markdown report generated:");
         Console.WriteLine(result.OutputPath);
-        
+
         if (!string.IsNullOrWhiteSpace(result.UpgradeReadinessOutputPath))
         {
             Console.WriteLine();
             Console.WriteLine("Upgrade readiness report generated:");
             Console.WriteLine(result.UpgradeReadinessOutputPath);
         }
-        
+
         if (!string.IsNullOrWhiteSpace(result.UpgradeBlockersOutputPath))
         {
             Console.WriteLine();
             Console.WriteLine("Upgrade blockers report generated:");
             Console.WriteLine(result.UpgradeBlockersOutputPath);
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.ExternalDependenciesOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("External dependencies report generated:");
+            Console.WriteLine(result.ExternalDependenciesOutputPath);
         }
     }
 
@@ -160,6 +172,21 @@ public sealed class ScanConsoleWriter
 
         Console.WriteLine();
         Console.WriteLine($"Markdown report generated: {result.OutputPath}");
+
+        if (!string.IsNullOrWhiteSpace(result.UpgradeReadinessOutputPath))
+        {
+            Console.WriteLine($"Upgrade readiness report generated: {result.UpgradeReadinessOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.UpgradeBlockersOutputPath))
+        {
+            Console.WriteLine($"Upgrade blockers report generated: {result.UpgradeBlockersOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.ExternalDependenciesOutputPath))
+        {
+            Console.WriteLine($"External dependencies report generated: {result.ExternalDependenciesOutputPath}");
+        }
     }
 
     private static void WriteProjects(ScanResult result)
