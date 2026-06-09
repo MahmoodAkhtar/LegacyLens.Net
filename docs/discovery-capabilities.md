@@ -79,6 +79,7 @@ Even if the solution does not build, it can still discover useful information fr
 - upgrade-blockers analysis inputs for `upgrade-blockers.md`, using existing static evidence such as `System.Web`, legacy ASP.NET artifacts, WCF/System.ServiceModel, EF6/EDMX/data-access indicators where available, `packages.config`, assembly references, direct DLL or `HintPath` references where available, configuration indicators, and existing modernisation/package review findings
 - external-dependencies analysis inputs for `external-dependencies.md`, using static evidence such as connection strings, app settings, URL-like values, WCF endpoints, messaging/cache/email/cloud package indicators, UNC or local path values, private NuGet feeds, and direct assembly or vendor DLL references where discoverable
 - data-access analysis inputs for `data-access-inventory.md`, using static evidence such as connection strings, provider names, database packages, database assembly references, EF6, EF Core, EDMX files, EF T4 templates, LINQ to SQL `.dbml` files, ADO.NET indicators, Dapper indicators, NHibernate indicators, raw SQL strings where feasible, stored procedure indicators where feasible, repository and unit-of-work class names, and migration folders where discoverable
+- edmx-analysis inputs for `edmx-analysis.md`, using static EDMX XML evidence such as CSDL conceptual entities, entity sets, keys, associations, navigation properties, complex types, function imports, SSDL storage entity sets, tables, views, columns, store functions, defining queries, MSL entity mappings, scalar property mappings, association mappings, function import mappings, modification function mappings, query views, designer metadata, and companion T4/generated files where discoverable
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
@@ -90,6 +91,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: external-dependencies is now MVP scope as a separate static report artifact. It should produce `external-dependencies.md` and should use existing discovered evidence to identify possible runtime and build-time dependencies outside the repository. It should not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness.
 
 > Note: data-access is now MVP scope as a separate static report artifact. It should produce `data-access-inventory.md` and should use existing discovered evidence to identify visible data access technologies, patterns, and migration concerns. It should not claim to connect to databases, validate credentials or connection strings, execute SQL, inspect schemas, run migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove a query or stored procedure is unused, automatically migrate data access code, or guarantee compatibility.
+
+> Note: edmx-analysis is now MVP scope as a separate static report artifact. It should produce `edmx-analysis.md` and should use static EDMX XML evidence to identify conceptual model, storage model, mapping model, designer metadata, companion generated file, and EF Core migration concern signals. It should not claim to connect to a database, validate EDMX mappings against a live schema, generate EF Core models, convert EDMX to EF Core, build the solution, run NuGet restore, guarantee compatibility, fully understand custom T4 templates, or treat all EF Core equivalents as direct one-to-one replacements.
 
 > Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
 
@@ -114,6 +117,30 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: modernisation hints include evidence metadata where a clear source can be identified. Evidence may point to a project, package reference, assembly reference, WCF endpoint, WCF service contract, WCF behaviour, legacy ASP.NET artifact, configuration file, or analysis summary. The generated report includes the evidence kind, evidence name, confidence, source path where available, and the reason for the hint. Legacy ASP.NET artifact evidence prefers the most specific matching artifact name so, for example, an action attribute hint can point to `HomeController.Index [HttpGet]` rather than only `HomeController`.
 
 > Note: solution discovery currently supports `.sln` files and extracts referenced C# project paths from project entries. Non-C# project entries and solution folders are ignored.
+
+---
+
+## EDMX Analysis Discovery
+
+The `edmx-analysis` capability should discover Entity Framework `.edmx` files used by legacy EF6 Database First or Model First projects and inspect their XML structure without building the solution or connecting to a database.
+
+Current MVP discovery expectations include:
+
+- finding `.edmx` files under scanned project folders
+- associating each EDMX file with the nearest discovered project where possible
+- parsing EDMX XML defensively with `System.Xml.Linq`
+- supporting common EDMX, CSDL, SSDL, and MSL XML namespace versions by using namespace-agnostic local-name matching where practical
+- identifying whether CSDL conceptual model, SSDL storage model, MSL mapping model, and designer metadata sections are present
+- extracting conceptual model evidence such as schemas, entity types, entity sets, key properties, properties, associations, association sets, navigation properties, complex types, and function imports
+- extracting storage model evidence such as schemas, entity types, entity sets, table/view names, columns, keys, associations, store functions, and defining queries
+- extracting mapping model evidence such as entity set mappings, entity type mappings, mapping fragments, scalar property mappings, association set mappings, function import mappings, modification function mappings, and query views
+- detecting companion generated files such as `.tt`, `.Designer.cs`, and generated context/model files near the EDMX file
+- producing upgrade concerns from concrete static evidence, such as EDMX usage, stored procedure/function mappings, query-backed entities, complex types, designer metadata, and companion generated files
+
+The generated `edmx-analysis.md` report should include summary counts, an EDMX files table, upgrade concerns, conceptual model details, storage model details, associations, function imports and store functions, mapping details, companion generated files, and clear notes/limitations.
+
+This capability is more focused than the broader `data-access` inventory. The data-access report can identify that EDMX files exist as data-access indicators; the edmx-analysis report should inspect the EDMX file contents in more detail.
+
 
 ---
 

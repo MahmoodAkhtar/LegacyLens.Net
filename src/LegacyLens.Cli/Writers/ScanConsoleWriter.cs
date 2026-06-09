@@ -45,7 +45,7 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  --version              Show version.");
         Console.WriteLine("  --artifacts <value>     Optional artifact selection. Currently supports upgrade-readiness.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness wording.");
-        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness, upgrade-blockers, external-dependencies, and data-access.");
+        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness, upgrade-blockers, external-dependencies, data-access, and edmx-analysis.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.");
     }
 
@@ -91,6 +91,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.DataAccessOutputPath))
         {
             Console.WriteLine($"Data access inventory generated: {result.DataAccessOutputPath}");
+        }
+        
+        if (!string.IsNullOrWhiteSpace(result.EdmxAnalysisOutputPath))
+        {
+            Console.WriteLine($"EDMX analysis report generated: {result.EdmxAnalysisOutputPath}");
         }
     }
 
@@ -162,6 +167,13 @@ public sealed class ScanConsoleWriter
             Console.WriteLine("Data access inventory generated:");
             Console.WriteLine(result.DataAccessOutputPath);
         }
+        
+        if (!string.IsNullOrWhiteSpace(result.EdmxAnalysisOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("EDMX analysis report generated:");
+            Console.WriteLine(result.EdmxAnalysisOutputPath);
+        }
     }
 
     private static void WriteVerbose(ScanResult result)
@@ -203,6 +215,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.DataAccessOutputPath))
         {
             Console.WriteLine($"Data access inventory generated: {result.DataAccessOutputPath}");
+        }
+        
+        if (!string.IsNullOrWhiteSpace(result.EdmxAnalysisOutputPath))
+        {
+            Console.WriteLine($"EDMX analysis report generated: {result.EdmxAnalysisOutputPath}");
         }
     }
 

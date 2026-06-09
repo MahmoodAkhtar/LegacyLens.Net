@@ -9,6 +9,7 @@ public sealed class CliParser
     private const string UpgradeBlockersArtifact = "upgrade-blockers";
     private const string ExternalDependenciesArtifact = "external-dependencies";
     private const string DataAccessArtifact = "data-access";
+    private const string EdmxAnalysisArtifact = "edmx-analysis";
     
     public CliParseResult Parse(string[] args)
     {
@@ -157,7 +158,7 @@ public sealed class CliParser
         if (!string.IsNullOrWhiteSpace(artifacts) && !IsSupportedArtifact(artifacts))
         {
             return CliParseResult.Error(
-                "Only the upgrade-readiness, upgrade-blockers, external-dependencies, and data-access artifacts are currently supported.");
+                "Only the upgrade-readiness, upgrade-blockers, external-dependencies, data-access, and edmx-analysis artifacts are currently supported.");
         }
 
         if (!string.IsNullOrWhiteSpace(upgradeTarget) &&
@@ -184,9 +185,10 @@ public sealed class CliParser
         return artifact.Equals(UpgradeReadinessArtifact, StringComparison.OrdinalIgnoreCase) ||
                artifact.Equals(UpgradeBlockersArtifact, StringComparison.OrdinalIgnoreCase) ||
                artifact.Equals(ExternalDependenciesArtifact, StringComparison.OrdinalIgnoreCase) ||
-               artifact.Equals(DataAccessArtifact, StringComparison.OrdinalIgnoreCase);
+               artifact.Equals(DataAccessArtifact, StringComparison.OrdinalIgnoreCase) ||
+               artifact.Equals(EdmxAnalysisArtifact, StringComparison.OrdinalIgnoreCase);
     }
-
+    
     private static bool IsUpgradeArtifact(string? artifact)
     {
         return artifact is not null &&

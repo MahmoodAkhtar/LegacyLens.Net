@@ -35,7 +35,7 @@ Options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, and data-access.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, data-access, and edmx-analysis.
 --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
@@ -58,6 +58,7 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-b
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts external-dependencies
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts data-access
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts edmx-analysis
 legacylens --help
 legacylens --version
 ```
@@ -185,6 +186,26 @@ The report should not claim to connect to databases, validate credentials, valid
 
 For the first implementation, prefer the smallest command support needed to generate `data-access-inventory.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
+### EDMX Analysis Artifact
+
+The MVP scope now includes an optional `edmx-analysis` artifact that should produce:
+
+```text
+<output-dir>/edmx-analysis.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts edmx-analysis
+```
+
+The report should remain static and evidence-backed. It should discover `.edmx` files under scanned projects, associate each EDMX file with the nearest discovered project where possible, parse the EDMX XML safely, and report useful conceptual model, storage model, mapping model, designer metadata, companion generated file, and EF Core migration concern information.
+
+The report should not claim to connect to a database, validate the EDMX against a live database, generate EF Core models, convert EDMX to EF Core, run NuGet restore, build the solution, guarantee migration compatibility, fully understand custom T4 templates, or claim that all EF Core equivalents are direct one-to-one replacements.
+
+For the first implementation, prefer the smallest command support needed to generate `edmx-analysis.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
+
 ### Console Output Modes
 
 Default output prints a concise scan summary, including discovered solution/project counts, dependency counts, WCF counts, legacy ASP.NET artifact counts, configuration file counts, modernisation hint counts, and the top review areas.
@@ -225,6 +246,7 @@ The CLI currently validates the following:
 - `--artifacts upgrade-blockers` should be supported when the upgrade-blockers artifact is implemented
 - `--artifacts external-dependencies` should be supported when the external-dependencies artifact is implemented
 - `--artifacts data-access` should be supported when the data-access artifact is implemented
+- `--artifacts edmx-analysis` should be supported when the edmx-analysis artifact is implemented
 - `--upgrade-target <tfm>` should be accepted as optional context for upgrade-readiness and upgrade-blockers wording
 - option values are required for `--output`, `-o`, `--output-dir`, and `--format`
 - only `markdown` is currently supported for `--format`

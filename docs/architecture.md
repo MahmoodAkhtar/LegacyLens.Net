@@ -80,6 +80,7 @@ Current analysis work includes:
 - producing upgrade-blockers analysis models for a separate `upgrade-blockers.md` artifact
 - producing external-dependencies analysis models for a separate `external-dependencies.md` artifact
 - producing data-access analysis models for a separate `data-access-inventory.md` artifact
+- producing EDMX analysis models for a separate `edmx-analysis.md` artifact
 - identifying legacy ASP.NET indicators from `System.Web` assembly references
 - identifying `System.Web.*` assembly references as legacy ASP.NET review items
 - identifying WebForms pages as legacy ASP.NET migration risk indicators
@@ -213,6 +214,31 @@ Likely core types:
 The analyzer should not connect to databases, validate credentials or connection strings, execute SQL, parse or validate full SQL syntax, inspect live schemas, compare schemas, run EF migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove unused queries or stored procedures, automatically migrate data access code, or guarantee EF6-to-EF Core or package compatibility. Sensitive values in connection strings and settings should be masked or redacted.
 
 For MVP, it is acceptable to start with connection strings, database provider names, known ORM/database package references, database-related assembly references, EDMX/T4/DBML file discovery where easy to scan, source-level class-name and token indicators, and migration folder evidence. If a scanner is not yet available or would require deeper parsing, the implementation should skip that rule rather than inventing evidence.
+
+### EDMX Analysis
+
+The edmx-analysis MVP addition should fit the existing static-first architecture. A suitable implementation should add focused analysis models and a Markdown writer rather than duplicating broader data-access discovery logic. It should consume discovered projects for project association and then inspect `.edmx` files directly.
+
+Likely core types:
+
+| Type | Purpose |
+|---|---|
+| `EdmxAnalyzer` | Discovers `.edmx` files, associates them with discovered projects where possible, parses EDMX XML safely, and produces an `EdmxAnalysisReport`. |
+| `EdmxAnalysisReport` | Root model for `edmx-analysis.md`. |
+| `DiscoveredEdmxModel` | Represents one EDMX file and its conceptual, storage, mapping, designer, companion-file, and concern evidence. |
+| `EdmxConceptualEntity` | Conceptual model entity details such as entity name, entity set, key properties, property count, and navigation-property count. |
+| `EdmxStorageEntity` | Storage model entity details such as store entity set, schema, table/view, column count, and defining-query indicator. |
+| `EdmxAssociation` | Association or relationship details such as name, roles, and multiplicities. |
+| `EdmxFunctionImport` | Conceptual function import details and mapped store function where available. |
+| `EdmxStoreFunction` | Storage function or stored procedure details such as name, schema, composability, and parameter count. |
+| `EdmxMappingFragment` | Mapping details such as entity set, entity type, store entity set, and scalar property mapping count. |
+| `EdmxCompanionFile` | Nearby generated or design-time files such as T4 templates, `.Designer.cs`, generated context files, or unknown companions. |
+| `EdmxUpgradeConcern` | Evidence-backed concern with severity, concern text, evidence, and recommendation. |
+
+The analyzer should use `System.Xml.Linq`, parse defensively, avoid failing the whole scan when one EDMX file is malformed, prefer namespace-agnostic `LocalName` matching, and capture namespace URIs for reporting where useful. Malformed or unreadable EDMX files should produce a cautious parse concern rather than invented model details.
+
+The analyzer should not connect to databases, validate EDMX against a live database, generate EF Core models, convert EDMX to EF Core, run NuGet restore, build the solution, guarantee migration compatibility, claim full semantic understanding of custom T4 templates, or claim that every EF Core equivalent is a direct one-to-one replacement.
+
 
 ### Configuration
 
@@ -400,6 +426,10 @@ Dedicated writers may be added for `upgrade-readiness-report.md` and `upgrade-bl
 The upgrade-blockers writer should keep the report separate from the main discovery report and should include Summary, Target, Blocker Overview, Upgrade Blockers and Decisions, Blocker Details, category-specific evidence tables, decisions required, Suggested Review Order, and Notes and Limitations sections.
 
 The external-dependencies writer should keep the report separate from the main discovery report and should include Summary, Analysis Scope, Dependency Overview, Dependencies, category-specific dependency sections, Suggested Questions to Ask the Team, and Notes and Limitations sections. It should mask sensitive values and avoid printing full secrets or raw credentials.
+
+The data-access writer should keep the report separate from the main discovery report and should include Summary, Analysis Scope, Data Access Overview, Projects with Data Access Indicators, Connection Strings, ORM and Data Access Technologies, EF/EDMX Details, DbContext/ObjectContext Candidates, Repository and Unit-of-Work Candidates, Raw SQL and Stored Procedure Indicators, Database Provider Indicators, Suggested Files to Review First, Migration Considerations, Suggested Questions, and Notes and Limitations sections.
+
+The edmx-analysis writer should keep the report separate from the main discovery report and should include Summary, EDMX Files, Upgrade Concerns, Conceptual Model, Storage Model, Associations, Function Imports and Store Functions, Mapping Details, Companion Generated Files, and Notes sections. If no EDMX files are discovered, it should still write a valid `edmx-analysis.md` report that clearly states that no EDMX files were found.
 
 ### Mermaid
 

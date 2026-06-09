@@ -23,4 +23,7 @@ public sealed class ScanOptions
     
     public bool ShouldWriteDataAccess =>
         string.Equals(Artifacts, "data-access", StringComparison.OrdinalIgnoreCase);
+    
+    public bool ShouldWriteEdmxAnalysis =>
+        string.Equals(Artifacts, "edmx-analysis", StringComparison.OrdinalIgnoreCase);
 }

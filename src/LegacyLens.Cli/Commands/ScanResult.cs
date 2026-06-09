@@ -32,6 +32,9 @@ public sealed class ScanResult
     
     public string? DataAccessOutputPath { get; init; }
     public DataAccessInventoryReport? DataAccessReport { get; init; }
+    
+    public string? EdmxAnalysisOutputPath { get; init; }
+    public EdmxAnalysisReport? EdmxAnalysisReport { get; init; }
 
     public int ProjectReferenceCount => Projects.Sum(x => x.ProjectReferences.Count);
     public int PackageReferenceCount => Projects.Sum(x => x.PackageReferences.Count);

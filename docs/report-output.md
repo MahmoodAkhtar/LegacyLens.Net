@@ -843,6 +843,99 @@ The generated report is intended to be readable in source control, Markdown prev
 
 ---
 
+## EDMX Analysis Report Output
+
+The MVP scope now includes a separate EDMX analysis Markdown artifact:
+
+```text
+output/edmx-analysis.md
+```
+
+The EDMX analysis report should be a static, evidence-backed report for understanding Entity Framework `.edmx` files before EF Core migration planning. It should inspect EDMX XML only and should not connect to the database, build the project, validate mappings against a live schema, generate EF Core code, or automatically convert EDMX models.
+
+Representative structure:
+
+```markdown
+# EDMX Analysis
+
+## Summary
+
+| Metric | Count |
+|---|---:|
+| EDMX files discovered | 1 |
+| Conceptual entity types | 4 |
+| Conceptual entity sets | 4 |
+| Storage entity sets | 4 |
+| Associations | 3 |
+| Navigation properties | 6 |
+| Complex types | 1 |
+| Function imports | 2 |
+| Store functions | 2 |
+| Modification function mappings | 1 |
+| Query views | 1 |
+| Defining queries | 1 |
+
+## EDMX Files
+
+| Project | EDMX File | Conceptual Model | Storage Model | Mapping Model | Designer Metadata |
+|---|---|---|---|---|---|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | Yes | Yes | Yes | Yes |
+
+## Upgrade Concerns
+
+| Severity | Concern | Evidence | Recommendation |
+|---|---|---|---|
+| High | EDMX model requires migration decision | `LegacyModel.edmx` contains CSDL, SSDL, and MSL sections. | Review whether to scaffold a new EF Core model from the database, keep EF6 isolated, or manually map equivalent entities and relationships. |
+| Medium | Stored procedure or function mapping requires review | Function imports or modification function mappings were found. | Review stored procedure usage and decide whether to use EF Core stored procedure support, raw SQL, or explicit repository methods. |
+| Medium | Query-backed model requires review | DefiningQuery or QueryView evidence was found. | Review whether keyless entity types, database views, raw SQL, or rewritten queries are needed. |
+
+## Conceptual Model
+
+| Project | EDMX File | Entity | Entity Set | Key | Properties | Navigation Properties |
+|---|---|---|---|---|---:|---:|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | Customer | Customers | Id | 6 | 2 |
+
+## Storage Model
+
+| Project | EDMX File | Store Entity Set | Schema | Table/View | Columns |
+|---|---|---|---|---|---:|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | Customers | dbo | Customers | 6 |
+
+## Associations
+
+| Project | EDMX File | Association | From | To | Multiplicity |
+|---|---|---|---|---|---|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | FK_Orders_Customers | Customer | Order | 1 to * |
+
+## Function Imports and Store Functions
+
+| Project | EDMX File | Function Import | Return Type | Store Function |
+|---|---|---|---|---|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | GetCustomerOrders | Collection(Order) | GetCustomerOrders |
+
+## Mapping Details
+
+| Project | EDMX File | Entity Set | Store Entity Set | Mapped Properties |
+|---|---|---|---|---:|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | Customers | Customers | 6 |
+
+## Companion Generated Files
+
+| Project | EDMX File | Companion File | Type |
+|---|---|---|---|
+| SampleLegacyApp.Data | `...\LegacyModel.Context.tt` | T4Template |
+| SampleLegacyApp.Data | `...\LegacyModel.Designer.cs` | DesignerCode |
+
+## Notes
+
+This report is based on static EDMX XML inspection only. LegacyLens.NET did not connect to the database, build the project, validate mappings, run EF migrations, scaffold EF Core models, or convert the EDMX file.
+```
+
+If no EDMX files are found, the report should still be valid and should clearly state that no EDMX files were discovered.
+
+---
+
+
 ## Mermaid Dependency Diagram
 
 LegacyLens.NET includes a Mermaid project dependency diagram in the generated Markdown report.

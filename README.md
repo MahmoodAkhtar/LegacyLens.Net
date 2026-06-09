@@ -22,6 +22,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope upgrade-blockers artifact that produces `upgrade-blockers.md` with static, evidence-backed blocker and migration decision signals
 - an MVP-scope external-dependencies artifact that produces `external-dependencies.md` with a static, evidence-backed inventory of possible runtime and build-time dependencies outside the repository
 - an MVP-scope data-access artifact that produces `data-access-inventory.md` with a static, evidence-backed inventory of data access technologies, patterns, and migration concerns
+- an MVP-scope edmx-analysis artifact that produces `edmx-analysis.md` with a static, evidence-backed analysis of EF EDMX conceptual, storage, mapping, designer, generated-file, and EF Core migration concern signals
 
 ## Quick start
 
@@ -86,6 +87,14 @@ legacylens scan <path> --output-dir ./output --artifacts data-access
 
 This report should identify visible data access technologies, patterns, and migration concerns such as connection strings, EF6, EDMX, EF Core, ADO.NET, Dapper, NHibernate, LINQ to SQL, raw SQL, stored procedure indicators, repository classes, unit-of-work classes, database provider indicators, and migration artifacts. It should remain static and evidence-backed, mask sensitive values, and avoid claiming that any database was contacted, schema was inspected, SQL was executed, or runtime usage was proven.
 
+The MVP scope now also includes an optional edmx-analysis artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts edmx-analysis
+```
+
+This report should discover `.edmx` files, parse EDMX XML safely, and identify conceptual model, storage model, mapping model, designer metadata, companion generated files, and EF Core migration concerns using static evidence only. It should avoid claiming that any database was contacted, mappings were validated against a live schema, EF Core models were generated, or the EDMX was converted automatically.
+
 ## Example output
 
 The normal `legacylens scan <path>` output is intentionally concise:
@@ -124,7 +133,7 @@ For detailed report examples, see [docs/report-output.md](docs/report-output.md)
 
 LegacyLens.NET is currently in late MVP development and is focused on hardening the first usable discovery baseline.
 
-The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, and data access inventory.
+The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, data access inventory, and EDMX analysis.
 
 The current implementation can scan a folder containing .NET solutions and projects and discover:
 
@@ -192,6 +201,7 @@ The current implementation can scan a folder containing .NET solutions and proje
 - modernisation hint evidence metadata, including evidence kind, evidence name, source path, and confidence
 - external dependency inventory inputs for `external-dependencies.md`, using static evidence such as connection strings, app settings, WCF endpoints, URL-like values, infrastructure package references, direct assembly references, and private package feed configuration where discoverable
 - data access inventory inputs for `data-access-inventory.md`, using static evidence such as connection strings, data access packages, database provider references, EDMX and related T4 files, LINQ to SQL files, source-level data access indicators, repository or unit-of-work class names, raw SQL indicators, stored procedure indicators, and migration folders where discoverable
+- EDMX analysis inputs for `edmx-analysis.md`, using static EDMX XML evidence such as conceptual entities, entity sets, keys, associations, navigation properties, complex types, function imports, storage entity sets, tables/views, columns, store functions, defining queries, entity mappings, scalar property mappings, modification function mappings, query views, designer metadata, and companion generated files where discoverable
 - a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 
 ### MVP-scope upgrade-readiness artifact
@@ -223,6 +233,14 @@ The `data-access` capability is an MVP-scope addition. It should produce `data-a
 The report should group evidence such as connection strings, database provider indicators, EF6 and EF Core package references, EDMX/ObjectContext files, LINQ to SQL `.dbml` files, ADO.NET usage, Dapper, NHibernate, raw SQL indicators, possible stored procedure usage, repository and unit-of-work candidates, and migration artifacts. It should help a developer decide which projects and files to inspect before migration or refactoring work starts.
 
 This capability should remain static, evidence-backed, and security-conscious. It must not claim to connect to databases, validate credentials or connection strings, execute SQL, inspect schemas, run migrations, scaffold EF Core models, prove runtime usage, or guarantee EF6-to-EF Core or package compatibility. Sensitive values in connection strings and settings should be masked or redacted.
+
+### MVP-scope edmx-analysis artifact
+
+The `edmx-analysis` capability is an MVP-scope addition. It should produce `edmx-analysis.md` as a separate Markdown artifact focused specifically on Entity Framework `.edmx` files used by legacy EF6 Database First or Model First projects.
+
+The report should help a developer understand which projects contain EDMX models, what the conceptual model contains, what database/storage objects are represented, how conceptual objects map to storage objects, whether function imports, store functions, stored procedure mappings, query views, defining queries, complex types, associations, navigation properties, designer metadata, or companion generated files are present, and why those findings matter for EF Core migration planning.
+
+This capability should remain static, evidence-backed, and cautious. It must not claim to connect to a database, validate the EDMX against a live schema, generate EF Core models, convert EDMX to EF Core, build the solution, run NuGet restore, guarantee compatibility, or claim that every EDMX concept has a direct one-to-one EF Core equivalent.
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 

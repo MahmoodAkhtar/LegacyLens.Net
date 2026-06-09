@@ -8,4 +8,11 @@
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.35" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Models\LegacyCustomerModel.edmx" />
+    <None Include="Models\LegacyCustomerModel.Context.tt" />
+    <Compile Include="Models\LegacyCustomerModel.Designer.cs" />
+    <Compile Include="Models\LegacyCustomerModel.Context.cs" />
+  </ItemGroup>
 </Project>

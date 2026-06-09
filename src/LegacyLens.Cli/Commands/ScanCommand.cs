@@ -145,6 +145,20 @@ public sealed class ScanCommand
             var dataAccessWriter = new DataAccessInventoryMarkdownReportWriter();
             dataAccessWriter.Write(dataAccessOutputPath, dataAccessReport);
         }
+        
+        string? edmxAnalysisOutputPath = null;
+        EdmxAnalysisReport? edmxAnalysisReport = null;
+
+        if (options.ShouldWriteEdmxAnalysis)
+        {
+            var edmxAnalyzer = new EdmxAnalyzer();
+
+            edmxAnalysisReport = edmxAnalyzer.Analyze(scanPath, projects);
+            edmxAnalysisOutputPath = ResolveEdmxAnalysisOutputPath(scanPath, options);
+
+            var edmxAnalysisWriter = new EdmxAnalysisMarkdownReportWriter();
+            edmxAnalysisWriter.Write(edmxAnalysisOutputPath, edmxAnalysisReport);
+        }
 
         return new ScanResult
         {
@@ -166,8 +180,32 @@ public sealed class ScanCommand
             ExternalDependenciesOutputPath = externalDependenciesOutputPath,
             ExternalDependenciesReport = externalDependenciesReport,
             DataAccessOutputPath = dataAccessOutputPath,
-            DataAccessReport = dataAccessReport
+            DataAccessReport = dataAccessReport,
+            EdmxAnalysisOutputPath = edmxAnalysisOutputPath,
+            EdmxAnalysisReport = edmxAnalysisReport
         };
+    }
+    
+    private static string ResolveEdmxAnalysisOutputPath(string scanPath, ScanOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
+        {
+            return Path.Combine(
+                Path.GetFullPath(options.OutputDirectory),
+                "edmx-analysis.md");
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Output))
+        {
+            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
+
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                return Path.Combine(outputDirectory, "edmx-analysis.md");
+            }
+        }
+
+        return Path.Combine(scanPath, "output", "edmx-analysis.md");
     }
 
     private static string ResolveDataAccessOutputPath(string scanPath, ScanOptions options)

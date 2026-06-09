@@ -1,0 +1,206 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <edmx:Runtime>
+    <edmx:ConceptualModels>
+      <Schema Namespace="SampleLegacyApp.Data.LegacyCustomerModel" Alias="Self" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityContainer Name="LegacyCustomerEntities" annotation:LazyLoadingEnabled="true" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation">
+          <EntitySet Name="Customers" EntityType="SampleLegacyApp.Data.LegacyCustomerModel.Customer" />
+          <EntitySet Name="Orders" EntityType="SampleLegacyApp.Data.LegacyCustomerModel.Order" />
+
+          <AssociationSet Name="FK_Orders_Customers" Association="SampleLegacyApp.Data.LegacyCustomerModel.FK_Orders_Customers">
+            <End Role="Customer" EntitySet="Customers" />
+            <End Role="Orders" EntitySet="Orders" />
+          </AssociationSet>
+
+          <FunctionImport Name="GetCustomerOrders" ReturnType="Collection(SampleLegacyApp.Data.LegacyCustomerModel.Order)" />
+        </EntityContainer>
+
+        <EntityType Name="Customer">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" />
+          <Property Name="Name" Type="String" MaxLength="100" Unicode="true" FixedLength="false" />
+          <Property Name="EmailAddress" Type="String" MaxLength="250" Unicode="true" FixedLength="false" />
+          <Property Name="CreatedOn" Type="DateTime" Nullable="false" />
+          <Property Name="IsActive" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="Orders" Relationship="SampleLegacyApp.Data.LegacyCustomerModel.FK_Orders_Customers" FromRole="Customer" ToRole="Orders" />
+        </EntityType>
+
+        <EntityType Name="Order">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" />
+          <Property Name="CustomerId" Type="Int32" Nullable="false" />
+          <Property Name="OrderNumber" Type="String" MaxLength="50" Unicode="true" FixedLength="false" />
+          <Property Name="Total" Type="Decimal" Nullable="false" Precision="18" Scale="2" />
+          <Property Name="CreatedOn" Type="DateTime" Nullable="false" />
+          <NavigationProperty Name="Customer" Relationship="SampleLegacyApp.Data.LegacyCustomerModel.FK_Orders_Customers" FromRole="Orders" ToRole="Customer" />
+        </EntityType>
+
+        <ComplexType Name="PostalAddress">
+          <Property Name="Line1" Type="String" MaxLength="100" />
+          <Property Name="Town" Type="String" MaxLength="100" />
+          <Property Name="Postcode" Type="String" MaxLength="20" />
+        </ComplexType>
+
+        <Association Name="FK_Orders_Customers">
+          <End Role="Customer" Type="SampleLegacyApp.Data.LegacyCustomerModel.Customer" Multiplicity="1" />
+          <End Role="Orders" Type="SampleLegacyApp.Data.LegacyCustomerModel.Order" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Customer">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="Orders">
+              <PropertyRef Name="CustomerId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+      </Schema>
+    </edmx:ConceptualModels>
+
+    <edmx:StorageModels>
+      <Schema Namespace="SampleLegacyApp.Data.LegacyCustomerModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2008" Alias="Self" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityContainer Name="LegacyCustomerStoreContainer">
+          <EntitySet Name="Customers" EntityType="SampleLegacyApp.Data.LegacyCustomerModel.Store.Customers" Schema="dbo" Table="Customers" />
+          <EntitySet Name="Orders" EntityType="SampleLegacyApp.Data.LegacyCustomerModel.Store.Orders" Schema="dbo" Table="Orders" />
+          <EntitySet Name="ActiveCustomersView" EntityType="SampleLegacyApp.Data.LegacyCustomerModel.Store.ActiveCustomersView" Schema="dbo" Table="ActiveCustomersView" />
+        </EntityContainer>
+
+        <EntityType Name="Customers">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="Name" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="EmailAddress" Type="nvarchar" MaxLength="250" Nullable="true" />
+          <Property Name="CreatedOn" Type="datetime" Nullable="false" />
+          <Property Name="IsActive" Type="bit" Nullable="false" />
+        </EntityType>
+
+        <EntityType Name="Orders">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" Nullable="false" StoreGeneratedPattern="Identity" />
+          <Property Name="CustomerId" Type="int" Nullable="false" />
+          <Property Name="OrderNumber" Type="nvarchar" MaxLength="50" Nullable="false" />
+          <Property Name="Total" Type="decimal" Precision="18" Scale="2" Nullable="false" />
+          <Property Name="CreatedOn" Type="datetime" Nullable="false" />
+        </EntityType>
+
+        <EntityType Name="ActiveCustomersView">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" Nullable="false" />
+          <Property Name="Name" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="EmailAddress" Type="nvarchar" MaxLength="250" Nullable="true" />
+          <DefiningQuery>
+            SELECT Id, Name, EmailAddress
+            FROM dbo.Customers
+            WHERE IsActive = 1
+          </DefiningQuery>
+        </EntityType>
+
+        <Association Name="FK_Orders_Customers">
+          <End Role="Customers" Type="SampleLegacyApp.Data.LegacyCustomerModel.Store.Customers" Multiplicity="1" />
+          <End Role="Orders" Type="SampleLegacyApp.Data.LegacyCustomerModel.Store.Orders" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Customers">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="Orders">
+              <PropertyRef Name="CustomerId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+
+        <Function Name="GetCustomerOrders" Schema="dbo" IsComposable="false">
+          <Parameter Name="customerId" Type="int" Mode="In" />
+        </Function>
+
+        <Function Name="InsertCustomer" Schema="dbo" IsComposable="false">
+          <Parameter Name="name" Type="nvarchar" Mode="In" />
+          <Parameter Name="emailAddress" Type="nvarchar" Mode="In" />
+        </Function>
+      </Schema>
+    </edmx:StorageModels>
+
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="LegacyCustomerStoreContainer" CdmEntityContainer="LegacyCustomerEntities">
+          <EntitySetMapping Name="Customers">
+            <EntityTypeMapping TypeName="SampleLegacyApp.Data.LegacyCustomerModel.Customer">
+              <MappingFragment StoreEntitySet="Customers">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="EmailAddress" ColumnName="EmailAddress" />
+                <ScalarProperty Name="CreatedOn" ColumnName="CreatedOn" />
+                <ScalarProperty Name="IsActive" ColumnName="IsActive" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+
+          <EntitySetMapping Name="Orders">
+            <EntityTypeMapping TypeName="SampleLegacyApp.Data.LegacyCustomerModel.Order">
+              <MappingFragment StoreEntitySet="Orders">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="CustomerId" ColumnName="CustomerId" />
+                <ScalarProperty Name="OrderNumber" ColumnName="OrderNumber" />
+                <ScalarProperty Name="Total" ColumnName="Total" />
+                <ScalarProperty Name="CreatedOn" ColumnName="CreatedOn" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+
+          <AssociationSetMapping Name="FK_Orders_Customers" TypeName="SampleLegacyApp.Data.LegacyCustomerModel.FK_Orders_Customers" StoreEntitySet="Orders">
+            <EndProperty Name="Customer">
+              <ScalarProperty Name="Id" ColumnName="CustomerId" />
+            </EndProperty>
+            <EndProperty Name="Orders">
+              <ScalarProperty Name="Id" ColumnName="Id" />
+            </EndProperty>
+          </AssociationSetMapping>
+
+          <FunctionImportMapping FunctionImportName="GetCustomerOrders" FunctionName="SampleLegacyApp.Data.LegacyCustomerModel.Store.GetCustomerOrders" />
+
+          <ModificationFunctionMapping>
+            <InsertFunction FunctionName="SampleLegacyApp.Data.LegacyCustomerModel.Store.InsertCustomer">
+              <ScalarProperty Name="Name" ParameterName="name" />
+              <ScalarProperty Name="EmailAddress" ParameterName="emailAddress" />
+            </InsertFunction>
+          </ModificationFunctionMapping>
+
+          <QueryView>
+            SELECT VALUE Customer
+            FROM LegacyCustomerEntities.Customers AS Customer
+            WHERE Customer.IsActive = true
+          </QueryView>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+
+  <edmx:Designer>
+    <edmx:Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </edmx:Connection>
+    <edmx:Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+      </DesignerInfoPropertySet>
+    </edmx:Options>
+    <edmx:Diagrams>
+      <Diagram Name="LegacyCustomerModelDiagram">
+        <EntityTypeShape EntityType="SampleLegacyApp.Data.LegacyCustomerModel.Customer" Width="1.5" />
+        <EntityTypeShape EntityType="SampleLegacyApp.Data.LegacyCustomerModel.Order" Width="1.5" />
+        <AssociationConnector Association="SampleLegacyApp.Data.LegacyCustomerModel.FK_Orders_Customers" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

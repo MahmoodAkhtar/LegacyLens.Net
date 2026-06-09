@@ -320,6 +320,39 @@ Out of scope for MVP:
 
 Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/data-access-inventory.md` without over-engineering the CLI.
 
+### Step 5f: EDMX analysis report for EF Core migration planning
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add an `edmx-analysis` capability that can produce `edmx-analysis.md`.
+- Discover `.edmx` files under scanned project folders and associate each EDMX file with the nearest discovered project where possible.
+- Parse EDMX XML defensively using `System.Xml.Linq` and namespace-tolerant local-name matching for common EDMX, CSDL, SSDL, and MSL namespace versions.
+- Identify whether the EDMX contains conceptual model, storage model, mapping model, and designer metadata sections.
+- Extract conceptual model details such as entity types, entity sets, key properties, property counts, navigation-property counts, associations, complex types, and function imports.
+- Extract storage model details such as store entity sets, schemas, tables/views, column counts, store functions, parameters, and defining-query indicators.
+- Extract mapping details such as entity set mappings, entity type mappings, mapping fragments, scalar property counts, association set mappings, function import mappings, modification function mappings, and query views.
+- Detect companion generated files such as `.tt`, `.Designer.cs`, generated context files, and generated model files where discoverable.
+- Produce evidence-backed upgrade concerns for EDMX usage, stored procedure/function mappings, modification function mappings, query views, defining queries, complex types, designer metadata, companion generated files, and malformed/unreadable EDMX files.
+- Add an `edmx-analysis.md` Markdown writer with Summary, EDMX Files, Upgrade Concerns, Conceptual Model, Storage Model, Associations, Function Imports and Store Functions, Mapping Details, Companion Generated Files, and Notes sections.
+- Add unit tests for analyzer rules, namespace-tolerant parsing, malformed EDMX handling, companion file detection, and Markdown output.
+
+Out of scope for MVP:
+
+- Connecting to a database.
+- Validating the EDMX against a live database or schema.
+- Generating EF Core models.
+- Converting EDMX to EF Core.
+- Running NuGet restore.
+- Building the solution.
+- Guaranteeing migration compatibility.
+- Full semantic understanding of custom T4 templates.
+- Claiming that all EF Core equivalents are direct one-to-one replacements.
+
+Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/edmx-analysis.md` without over-engineering the CLI.
+
+
 ### Step 6: Legacy ASP.NET artifact discovery
 
 Status: Implemented with conditional quality gates

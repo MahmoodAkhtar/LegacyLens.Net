@@ -117,6 +117,7 @@ Current MVP functionality includes implemented capabilities and newly required M
 - optional `--artifacts upgrade-blockers` command support for producing the upgrade-blockers artifact
 - optional `--artifacts external-dependencies` command support for producing the external-dependencies artifact
 - optional `--artifacts data-access` command support for producing the data-access artifact
+- optional `--artifacts edmx-analysis` command support for producing the edmx-analysis artifact
 - optional `--upgrade-target <tfm>` command support for upgrade-readiness and upgrade-blockers report context
 - static upgrade-readiness analysis for upgrade planning
 - upgrade-readiness report generation as `upgrade-readiness-report.md`
@@ -146,6 +147,16 @@ Current MVP functionality includes implemented capabilities and newly required M
 - data-access evidence reporting using existing discovered configuration, package, assembly, project, source, EDMX/T4/DBML, and migration-folder evidence where available
 - data-access masking or redaction for sensitive values such as database passwords, user names where appropriate, access tokens, API keys, and embedded credentials
 - data-access suggested files to review first, migration considerations, suggested team questions, and notes/limitations explaining static no-build analysis and that findings mean “requires review”, not “verified runtime usage”
+- static edmx-analysis for inspecting Entity Framework `.edmx` files used by EF6 Database First or Model First projects
+- edmx-analysis report generation as `edmx-analysis.md`
+- edmx-analysis discovery of EDMX files under scanned projects and association with the nearest discovered project where possible
+- edmx-analysis parsing of EDMX XML using defensive, namespace-tolerant static inspection
+- edmx-analysis reporting for CSDL conceptual model details such as entities, entity sets, keys, properties, associations, navigation properties, complex types, and function imports
+- edmx-analysis reporting for SSDL storage model details such as schemas, tables/views, columns, keys, store functions, and defining queries
+- edmx-analysis reporting for MSL mapping details such as entity-to-table mappings, scalar property mappings, association mappings, function import mappings, modification function mappings, and query views
+- edmx-analysis reporting for designer metadata and companion generated files such as T4 templates, `.Designer.cs`, and generated context/model files where discoverable
+- edmx-analysis upgrade concern reporting for EDMX usage, stored procedure/function mappings, complex types, query-backed entities, defining queries, designer metadata, generated files, malformed EDMX files, and EF Core migration review points
+- edmx-analysis notes/limitations explaining static no-build analysis and that findings do not represent database validation, EF Core model generation, automatic conversion, or compatibility guarantees
 
 ## MVP Exit Criteria
 
@@ -154,7 +165,7 @@ The MVP should be considered complete when the tool can produce a useful static 
 The MVP exit criteria are:
 
 - The CLI can scan the sample legacy solution successfully.
-- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, and `data-access-inventory.md` artifacts.
+- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `data-access-inventory.md`, and `edmx-analysis.md` artifacts.
 - The report identifies the main modernisation review areas clearly enough for a developer to decide where to investigate first.
 - The package compatibility review shows package name, version where available, project target framework, package target framework where available, source format, source path, and possible compatibility concern without claiming to perform full NuGet compatibility resolution.
 - Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.
@@ -164,6 +175,7 @@ The MVP exit criteria are:
 - The upgrade-blockers report includes a blocker overview, grouped blocker details, impact labels, evidence, why each blocker matters, decisions required, suggested review order, and clear static-analysis limitations.
 - The data-access inventory includes an analysis scope, data access overview, projects with data access indicators, connection string/provider information with masked sensitive values, ORM and data access technology evidence, suggested files to review first, migration considerations, suggested team questions, and clear static-analysis limitations.
 - The external-dependencies report includes an analysis scope, dependency overview, grouped dependency sections, source/evidence details, confirmation flags, suggested team questions, sensitive value masking, and clear static-analysis limitations.
+- The edmx-analysis report includes summary counts, discovered EDMX files, conceptual model details, storage model details, associations, function imports and store functions, mapping details, companion generated files, upgrade concerns, and clear static-analysis limitations.
 - The README reflects the actual current report output and does not describe speculative MVP behaviour as already implemented.
 
 ### CLI command contract
@@ -196,6 +208,7 @@ The following are not blockers for the MVP:
 - automatic migration execution, definitive pass/fail upgrade compatibility decisions, or claims that a blocker proves migration is impossible
 - full NuGet restore, transitive dependency resolution, package asset inspection, or guaranteed package compatibility checks
 - runtime dependency mapping, network scanning, credential validation, production infrastructure inspection, or guaranteed complete external dependency inventory
+- EDMX-to-EF Core automatic conversion, live database validation, EF Core model generation, or guaranteed EDMX migration compatibility
 - HTML report output
 - support for every possible legacy project or configuration edge case
 - deeper analysis that is not required to fix a clear report-quality issue in the current sample output
@@ -206,6 +219,6 @@ These items may be valuable later, but they should be treated as post-MVP improv
 
 The MVP is not intended to be a complete migration analyser.
 
-The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce readable Markdown reports that help a developer identify the main structure, dependencies, legacy technology indicators, configuration concerns, prioritised modernisation review areas, upgrade planning artifacts such as readiness and blocker/decision reports, and possible external runtime or build-time dependencies that require confirmation.
+The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce readable Markdown reports that help a developer identify the main structure, dependencies, legacy technology indicators, configuration concerns, prioritised modernisation review areas, upgrade planning artifacts such as readiness and blocker/decision reports, and possible external runtime or build-time dependencies that require confirmation, and EDMX models that require EF Core migration review.
 
 Once that is achieved, further work should be treated as post-MVP unless it fixes a specific report-quality defect.
