@@ -289,6 +289,37 @@ Out of scope for MVP:
 
 Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/external-dependencies.md` without over-engineering the CLI. The report should be distinct from configuration inventory, upgrade readiness, upgrade blockers, and data-access inventory; its focus is systems and resources outside the repository that may affect runtime, build, migration, deployment, testing, or onboarding.
 
+
+### Step 5e: Data access inventory for migration and refactoring planning
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add a `data-access` capability that can produce `data-access-inventory.md`.
+- Use existing static discovery evidence where possible, including project targets, package metadata, assembly references, configuration files, connection strings, provider names, source file indicators, EDMX/T4/DBML file evidence, and existing modernisation or package review findings.
+- Identify visible data access categories such as Connection String, Entity Framework 6, Entity Framework Core, EDMX / ObjectContext, ADO.NET, Dapper, NHibernate, LINQ to SQL, Raw SQL, Stored Procedure, Repository Pattern, Unit of Work Pattern, Database Provider, Migration Artifact, and Unknown / Requires Review where evidence exists.
+- Mask or redact sensitive values in connection strings and settings.
+- Report projects with data access indicators, connection strings, ORM/data access technologies, EF/EDMX details, DbContext/ObjectContext candidates, repository and unit-of-work candidates, raw SQL and stored procedure indicators, database provider indicators, suggested files to review first, migration considerations, suggested questions, and notes/limitations.
+- Add unit tests for analyzer rules and Markdown output.
+
+Out of scope for MVP:
+
+- Connecting to databases.
+- Validating credentials or connection strings.
+- Executing SQL.
+- Parsing or validating full SQL syntax.
+- Discovering or comparing live database schemas.
+- Running EF migrations.
+- Scaffolding EF Core models.
+- Reverse-engineering databases.
+- Proving runtime usage.
+- Proving that repositories, queries, or stored procedures are unused.
+- Automatically migrating EF6, EDMX, NHibernate, Dapper, or ADO.NET code.
+- Guaranteed EF6-to-EF Core or package compatibility results.
+
+Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/data-access-inventory.md` without over-engineering the CLI.
+
 ### Step 6: Legacy ASP.NET artifact discovery
 
 Status: Implemented with conditional quality gates

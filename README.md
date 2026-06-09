@@ -21,6 +21,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope upgrade-readiness artifact that produces `upgrade-readiness-report.md` with static, evidence-backed upgrade planning signals
 - an MVP-scope upgrade-blockers artifact that produces `upgrade-blockers.md` with static, evidence-backed blocker and migration decision signals
 - an MVP-scope external-dependencies artifact that produces `external-dependencies.md` with a static, evidence-backed inventory of possible runtime and build-time dependencies outside the repository
+- an MVP-scope data-access artifact that produces `data-access-inventory.md` with a static, evidence-backed inventory of data access technologies, patterns, and migration concerns
 
 ## Quick start
 
@@ -77,6 +78,14 @@ legacylens scan <path> --output-dir ./output --artifacts external-dependencies
 
 This report should identify possible databases, HTTP/API URLs, WCF/service endpoints, queues, SMTP/email settings, Redis/cache indicators, file shares, cloud service packages, private package feeds, direct vendor DLL references, and infrastructure-related configuration using static evidence only. It should mask sensitive values and avoid claiming that any external system was contacted, verified, reachable, active in production, or complete.
 
+The MVP scope now also includes an optional data-access artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts data-access
+```
+
+This report should identify visible data access technologies, patterns, and migration concerns such as connection strings, EF6, EDMX, EF Core, ADO.NET, Dapper, NHibernate, LINQ to SQL, raw SQL, stored procedure indicators, repository classes, unit-of-work classes, database provider indicators, and migration artifacts. It should remain static and evidence-backed, mask sensitive values, and avoid claiming that any database was contacted, schema was inspected, SQL was executed, or runtime usage was proven.
+
 ## Example output
 
 The normal `legacylens scan <path>` output is intentionally concise:
@@ -115,7 +124,7 @@ For detailed report examples, see [docs/report-output.md](docs/report-output.md)
 
 LegacyLens.NET is currently in late MVP development and is focused on hardening the first usable discovery baseline.
 
-The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, and external dependency inventory.
+The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, and data access inventory.
 
 The current implementation can scan a folder containing .NET solutions and projects and discover:
 
@@ -182,6 +191,7 @@ The current implementation can scan a folder containing .NET solutions and proje
 - evidence-backed modernisation hints for legacy target frameworks, WCF usage, selected packages, legacy ASP.NET / `System.Web` usage, discovered legacy ASP.NET artifacts, ASP.NET MVC controllers, ASP.NET MVC actions, ASP.NET MVC route attributes, ASP.NET MVC action attributes, ASP.NET MVC area registrations, ASP.NET route configuration, ASP.NET MVC startup registration, ASP.NET MVC bundle configuration, ASP.NET MVC filter configuration, ASP.NET HTTP module registrations, ASP.NET HTTP handler registrations, ASP.NET Web API controllers, ASP.NET Web API actions, ASP.NET Web API route attributes, ASP.NET Web API action attributes, ASP.NET Web API configuration, ASP.NET Web API route registration, ASP.NET Web API startup registration, higher project coupling, selected WCF binding types, WCF security-related endpoint details, WCF timeout settings, WCF message size and buffer limits, WCF transfer modes, WCF reader quotas, metadata exchange endpoints, WCF service behaviours, WCF endpoint behaviours, WCF metadata publishing settings, WCF debug settings, WCF throttling settings, WCF REST-style `webHttp` endpoint behaviours, and configuration-heavy applications
 - modernisation hint evidence metadata, including evidence kind, evidence name, source path, and confidence
 - external dependency inventory inputs for `external-dependencies.md`, using static evidence such as connection strings, app settings, WCF endpoints, URL-like values, infrastructure package references, direct assembly references, and private package feed configuration where discoverable
+- data access inventory inputs for `data-access-inventory.md`, using static evidence such as connection strings, data access packages, database provider references, EDMX and related T4 files, LINQ to SQL files, source-level data access indicators, repository or unit-of-work class names, raw SQL indicators, stored procedure indicators, and migration folders where discoverable
 - a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 
 ### MVP-scope upgrade-readiness artifact
@@ -205,6 +215,14 @@ The `external-dependencies` capability is an MVP-scope addition. It should produ
 The report should group evidence such as connection strings, HTTP/API URLs, WCF endpoints, queue-related settings or packages, SMTP/email settings, Redis/cache indicators, file shares, cloud service packages, private NuGet feeds, direct vendor DLL references, and infrastructure-related configuration. It should help a developer identify what needs confirmation before migration, testing, deployment, onboarding, or environment setup.
 
 This capability should remain static, evidence-backed, and security-conscious. It must not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness. Sensitive values should be masked or redacted.
+
+### MVP-scope data-access artifact
+
+The `data-access` capability is an MVP-scope addition. It should produce `data-access-inventory.md` as a separate Markdown artifact focused on how the application appears to access databases and persistence infrastructure.
+
+The report should group evidence such as connection strings, database provider indicators, EF6 and EF Core package references, EDMX/ObjectContext files, LINQ to SQL `.dbml` files, ADO.NET usage, Dapper, NHibernate, raw SQL indicators, possible stored procedure usage, repository and unit-of-work candidates, and migration artifacts. It should help a developer decide which projects and files to inspect before migration or refactoring work starts.
+
+This capability should remain static, evidence-backed, and security-conscious. It must not claim to connect to databases, validate credentials or connection strings, execute SQL, inspect schemas, run migrations, scaffold EF Core models, prove runtime usage, or guarantee EF6-to-EF Core or package compatibility. Sensitive values in connection strings and settings should be masked or redacted.
 
 Package discovery behaviour is covered by tests for `<PackageReference />`, `packages.config`, duplicate package handling, and invalid `packages.config` handling.
 

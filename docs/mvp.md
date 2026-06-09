@@ -116,6 +116,7 @@ Current MVP functionality includes implemented capabilities and newly required M
 - optional `--artifacts upgrade-readiness` command support for producing the upgrade-readiness artifact
 - optional `--artifacts upgrade-blockers` command support for producing the upgrade-blockers artifact
 - optional `--artifacts external-dependencies` command support for producing the external-dependencies artifact
+- optional `--artifacts data-access` command support for producing the data-access artifact
 - optional `--upgrade-target <tfm>` command support for upgrade-readiness and upgrade-blockers report context
 - static upgrade-readiness analysis for upgrade planning
 - upgrade-readiness report generation as `upgrade-readiness-report.md`
@@ -139,6 +140,12 @@ Current MVP functionality includes implemented capabilities and newly required M
 - external-dependencies evidence reporting using existing discovered configuration, WCF, package, assembly, project, source, and private package feed evidence where available
 - external-dependencies masking or redaction for sensitive values such as passwords, API keys, tokens, SAS tokens, access keys, client secrets, private feed credentials, and connection string secrets
 - external-dependencies suggested team questions and notes/limitations explaining static no-build analysis and that findings mean “requires confirmation”, not “verified production dependency”
+- static data-access analysis for identifying visible data access technologies, patterns, and migration concerns
+- data-access report generation as `data-access-inventory.md`
+- data-access category grouping for Connection String, Entity Framework 6, Entity Framework Core, EDMX / ObjectContext, ADO.NET, Dapper, NHibernate, LINQ to SQL, Raw SQL, Stored Procedure, Repository Pattern, Unit of Work Pattern, Database Provider, Migration Artifact, and Unknown / Requires Review where evidence exists
+- data-access evidence reporting using existing discovered configuration, package, assembly, project, source, EDMX/T4/DBML, and migration-folder evidence where available
+- data-access masking or redaction for sensitive values such as database passwords, user names where appropriate, access tokens, API keys, and embedded credentials
+- data-access suggested files to review first, migration considerations, suggested team questions, and notes/limitations explaining static no-build analysis and that findings mean “requires review”, not “verified runtime usage”
 
 ## MVP Exit Criteria
 
@@ -147,7 +154,7 @@ The MVP should be considered complete when the tool can produce a useful static 
 The MVP exit criteria are:
 
 - The CLI can scan the sample legacy solution successfully.
-- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md`, `upgrade-blockers.md`, and `external-dependencies.md` artifacts.
+- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, and `data-access-inventory.md` artifacts.
 - The report identifies the main modernisation review areas clearly enough for a developer to decide where to investigate first.
 - The package compatibility review shows package name, version where available, project target framework, package target framework where available, source format, source path, and possible compatibility concern without claiming to perform full NuGet compatibility resolution.
 - Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.
@@ -155,6 +162,7 @@ The MVP exit criteria are:
 - Existing automated tests pass.
 - The upgrade-readiness report includes current project targets, project-level readiness classifications, possible upgrade concerns, package upgrade considerations, assembly reference considerations, configuration/runtime considerations, and clear static-analysis limitations.
 - The upgrade-blockers report includes a blocker overview, grouped blocker details, impact labels, evidence, why each blocker matters, decisions required, suggested review order, and clear static-analysis limitations.
+- The data-access inventory includes an analysis scope, data access overview, projects with data access indicators, connection string/provider information with masked sensitive values, ORM and data access technology evidence, suggested files to review first, migration considerations, suggested team questions, and clear static-analysis limitations.
 - The external-dependencies report includes an analysis scope, dependency overview, grouped dependency sections, source/evidence details, confirmation flags, suggested team questions, sensitive value masking, and clear static-analysis limitations.
 - The README reflects the actual current report output and does not describe speculative MVP behaviour as already implemented.
 

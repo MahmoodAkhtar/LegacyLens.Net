@@ -6,7 +6,7 @@ This file is intended to be used as concise context for AI-assisted development 
 
 LegacyLens.NET is a standalone static discovery CLI for unfamiliar, legacy, and modern .NET codebases.
 
-It scans source and configuration files to produce Markdown reports that help a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+It scans source and configuration files to produce Markdown reports that help a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, data access inventory signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 ## Usage model
 
@@ -31,7 +31,7 @@ Important options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, and external-dependencies.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, and data-access.
 --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
@@ -45,7 +45,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, and a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, and a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns.
 
 ## Current implemented capability summary
 
@@ -63,6 +63,7 @@ LegacyLens.NET currently discovers:
 - evidence-backed modernisation hints
 - prioritised modernisation review areas
 - external dependency inventory inputs such as connection strings, URL-like settings, WCF endpoints, infrastructure packages, private package feed evidence, direct assembly/vendor DLL references, and path/share indicators where discoverable
+- data access inventory inputs such as connection strings, provider names, EF6, EF Core, EDMX/T4, LINQ to SQL, ADO.NET, Dapper, NHibernate, raw SQL, stored procedure, repository, unit-of-work, and migration artifact indicators where discoverable
 
 ## MVP package compatibility review addition
 
@@ -117,6 +118,23 @@ The report should group findings such as connection strings, HTTP/API URLs, WCF 
 
 The report should include a summary, analysis scope, dependency overview, dependency table, category-specific sections, suggested questions to ask the team, and notes/limitations. It must not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness. Sensitive values should be masked or redacted. Use cautious wording such as `Possible external dependency`, `Evidence found`, `Requires confirmation`, `Configured dependency`, `May indicate dependency`, and `Potential runtime dependency`.
 
+
+## MVP data-access addition
+
+`data-access` is now an MVP-scope capability. It should produce `data-access-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed inventory of visible data access technologies, patterns, and migration concerns in a .NET codebase.
+
+It should help identify how the application appears to access databases and persistence infrastructure before migration or refactoring work starts. It should group findings such as connection strings, database provider indicators, `EntityFramework`, `Microsoft.EntityFrameworkCore`, EDMX/ObjectContext, EF-related T4 templates, LINQ to SQL `.dbml` files, ADO.NET usage, Dapper, NHibernate, raw SQL indicators, possible stored procedure usage, repository candidates, unit-of-work candidates, and migration artifacts.
+
+Intended command shape:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts data-access
+```
+
+The report should include a summary, analysis scope, data access overview, projects with data access indicators, connection strings, ORM and data access technologies, EF/EDMX details, DbContext/ObjectContext candidates, repository and unit-of-work candidates, raw SQL and stored procedure indicators, database provider indicators, suggested files to review first, migration considerations, suggested questions to ask the team, and notes/limitations.
+
+The capability must not claim to connect to databases, validate credentials or connection strings, execute SQL, parse or validate full SQL syntax, inspect or compare live schemas, run EF migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove unused queries or stored procedures, automatically migrate data access code, or guarantee EF6-to-EF Core or package compatibility. Sensitive values should be masked or redacted. Use cautious wording such as `Evidence found`, `Possible data access dependency`, `Requires review`, `May indicate database usage`, `Possible stored procedure usage`, `Migration consideration`, and `Should be verified by the development team`.
+
 ## Design constraints
 
 - Static-first discovery.
@@ -128,7 +146,7 @@ The report should include a summary, analysis scope, dependency overview, depend
 
 ## MVP definition
 
-The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce readable Markdown reports that help a developer identify the main structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce readable Markdown reports that help a developer identify the main structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, data access inventory signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 Further work should be treated as post-MVP unless it fixes a specific report-quality defect.
 
@@ -137,6 +155,8 @@ Package compatibility review is now MVP scope, but it should remain static and e
 Upgrade blockers is now MVP scope, but it should remain static, evidence-backed, and decision-oriented. It should not be described as a definitive compatibility checker, automatic migration tool, or proof that migration is impossible.
 
 External dependencies is now MVP scope, but it should remain static, evidence-backed, and security-conscious. It should not be described as a runtime dependency mapper, network scanner, credential validator, production dependency list, or complete dependency map.
+
+Data access is now MVP scope, but it should remain static, evidence-backed, and security-conscious. It should not be described as a database schema discovery tool, SQL validator, ORM migration tool, live runtime dependency mapper, credential validator, or guaranteed data-access migration plan.
 
 ## Recommended AI prompt context bundle
 
@@ -154,7 +174,7 @@ Include `README.md` only when the task is specifically about public documentatio
 
 - `README.md` is the public front door.
 - `docs/usage.md` contains command usage.
-- `docs/report-output.md` contains console, discovery report, upgrade-readiness report, upgrade-blockers report, and external-dependencies report examples.
+- `docs/report-output.md` contains console, discovery report, upgrade-readiness report, upgrade-blockers report, external-dependencies report, and data-access inventory examples.
 - `docs/discovery-capabilities.md` contains detailed scanner capability information.
 - `docs/architecture.md` contains repository and project structure.
 - `docs/mvp.md` defines MVP scope and exit criteria.

@@ -128,6 +128,23 @@ public sealed class ScanCommand
             var externalDependenciesWriter = new ExternalDependenciesMarkdownReportWriter();
             externalDependenciesWriter.Write(externalDependenciesOutputPath, externalDependenciesReport);
         }
+        
+        string? dataAccessOutputPath = null;
+        DataAccessInventoryReport? dataAccessReport = null;
+
+        if (options.ShouldWriteDataAccess)
+        {
+            var dataAccessAnalyzer = new DataAccessAnalyzer();
+
+            dataAccessReport = dataAccessAnalyzer.Analyze(
+                projects,
+                configFiles);
+
+            dataAccessOutputPath = ResolveDataAccessOutputPath(scanPath, options);
+
+            var dataAccessWriter = new DataAccessInventoryMarkdownReportWriter();
+            dataAccessWriter.Write(dataAccessOutputPath, dataAccessReport);
+        }
 
         return new ScanResult
         {
@@ -147,10 +164,34 @@ public sealed class ScanCommand
             UpgradeBlockersOutputPath = upgradeBlockersOutputPath,
             UpgradeBlockersReport = upgradeBlockersReport,
             ExternalDependenciesOutputPath = externalDependenciesOutputPath,
-            ExternalDependenciesReport = externalDependenciesReport
+            ExternalDependenciesReport = externalDependenciesReport,
+            DataAccessOutputPath = dataAccessOutputPath,
+            DataAccessReport = dataAccessReport
         };
     }
 
+    private static string ResolveDataAccessOutputPath(string scanPath, ScanOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
+        {
+            return Path.Combine(
+                Path.GetFullPath(options.OutputDirectory),
+                "data-access-inventory.md");
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Output))
+        {
+            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
+
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                return Path.Combine(outputDirectory, "data-access-inventory.md");
+            }
+        }
+
+        return Path.Combine(scanPath, "output", "data-access-inventory.md");
+    }
+    
     private static string ResolveExternalDependenciesOutputPath(string scanPath, ScanOptions options)
     {
         if (!string.IsNullOrWhiteSpace(options.OutputDirectory))

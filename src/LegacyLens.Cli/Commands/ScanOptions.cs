@@ -20,4 +20,7 @@ public sealed class ScanOptions
 
     public bool ShouldWriteExternalDependencies =>
         string.Equals(Artifacts, "external-dependencies", StringComparison.OrdinalIgnoreCase);
+    
+    public bool ShouldWriteDataAccess =>
+        string.Equals(Artifacts, "data-access", StringComparison.OrdinalIgnoreCase);
 }

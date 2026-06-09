@@ -593,6 +593,132 @@ This report is based on static source and configuration discovery. It identifies
 
 ---
 
+
+## Data Access Inventory Report Output
+
+The MVP scope now includes a separate data-access Markdown artifact:
+
+```text
+output/data-access-inventory.md
+```
+
+The data-access inventory should be a static, evidence-backed report for understanding how the application appears to access databases and persistence infrastructure. It should help a developer identify visible data access technologies, patterns, files, and migration concerns, but it should not claim that LegacyLens.NET connected to databases, validated credentials or connection strings, executed SQL, inspected schemas, ran migrations, reverse-engineered databases, proved runtime usage, or guaranteed compatibility.
+
+Representative structure:
+
+```markdown
+# Data Access Inventory
+
+## Summary
+
+This report is based on static source and configuration discovery. It identifies visible data access technologies, patterns, and migration concerns. A finding means evidence was found and should be reviewed; it does not prove runtime usage.
+
+## Analysis Scope
+
+| Item | Value |
+|---|---|
+| Analysis mode | Static / no-build |
+| Database connection attempted | No |
+| SQL executed | No |
+| Schema inspection | No |
+| Secret values printed | No |
+| Completeness guarantee | No |
+
+## Data Access Overview
+
+| Category | Count | Examples |
+|---|---:|---|
+| Connection strings | 2 | DefaultConnection, ReportingDb |
+| Entity Framework 6 | 1 | EntityFramework package |
+| EDMX models | 1 | Model.edmx |
+| EF Core | 0 |  |
+| ADO.NET | 3 | SqlConnection, SqlCommand |
+| Dapper | 1 | Dapper package |
+| NHibernate | 0 |  |
+| Stored procedures | 4 | dbo.GetCustomer, dbo.SaveOrder |
+| Raw SQL | 5 | SELECT, INSERT, EXEC |
+| Repositories / Unit of Work | 3 | CustomerRepository, UnitOfWork |
+
+## Projects with Data Access Indicators
+
+| Project | Target Framework | Indicators | Possible Concern |
+|---|---|---|---|
+
+## Connection Strings
+
+| Name | Source File | Provider | Credentials Embedded | Notes |
+|---|---|---|---|---|
+
+## ORM and Data Access Technologies
+
+| Project | Technology | Evidence | Source |
+|---|---|---|---|
+
+## Entity Framework / EDMX Details
+
+| Project | Finding | Source File | Migration Consideration |
+|---|---|---|---|
+
+## DbContext / ObjectContext Candidates
+
+| Project | Class | Type | Source File |
+|---|---|---|---|
+
+## Repository and Unit of Work Candidates
+
+| Project | Class | Pattern | Source File |
+|---|---|---|---|
+
+## Raw SQL and Stored Procedure Indicators
+
+| Project | Finding | Source File | Evidence Type |
+|---|---|---|---|
+
+## Database Provider Indicators
+
+| Project | Provider / Package / Reference | Evidence | Notes |
+|---|---|---|---|
+
+## Suggested Files to Review First
+
+| Priority | File / Project | Reason |
+|---:|---|---|
+
+## Migration Considerations
+
+| Area | Consideration |
+|---|---|
+| EF6 | Review whether to keep EF6 temporarily, migrate to EF Core, or isolate data access first. |
+| EDMX | EDMX/ObjectContext migration is likely non-mechanical. |
+| Raw SQL | Preserve query behaviour and stored procedure contracts during migration. |
+| Connection strings | Move secrets and environment-specific settings to modern configuration. |
+| Repositories | Review whether repositories hide or expose ORM-specific behaviour. |
+
+## Suggested Questions to Ask the Team
+
+- Which database is production?
+- Are any databases shared with other applications?
+- Are stored procedures part of the business logic?
+- Are stored procedures version-controlled elsewhere?
+- Are EF migrations used, or is the database managed manually?
+- Are EDMX models generated from the database?
+- Are connection strings transformed per environment?
+- Which data access paths are business-critical?
+- Are there database integration tests?
+- Is database access expected to move to EF Core, remain EF6, or be isolated behind services?
+
+## Notes and Limitations
+
+- This report is based on static discovery only.
+- LegacyLens.NET did not connect to any database.
+- LegacyLens.NET did not execute SQL.
+- LegacyLens.NET did not validate SQL syntax.
+- LegacyLens.NET did not inspect database schemas.
+- LegacyLens.NET did not run EF migrations.
+- Values that look sensitive should be masked or redacted.
+- A finding means evidence was found, not that the code path is confirmed active in production.
+```
+
 ## Generated Report Output
 
 LegacyLens.NET currently generates a Markdown report at:

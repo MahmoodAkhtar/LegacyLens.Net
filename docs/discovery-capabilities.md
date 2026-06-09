@@ -78,6 +78,7 @@ Even if the solution does not build, it can still discover useful information fr
 - upgrade-readiness analysis inputs for `upgrade-readiness-report.md`, using existing static evidence such as project targets, packages, assembly references, WCF, legacy ASP.NET artifacts, and configuration indicators
 - upgrade-blockers analysis inputs for `upgrade-blockers.md`, using existing static evidence such as `System.Web`, legacy ASP.NET artifacts, WCF/System.ServiceModel, EF6/EDMX/data-access indicators where available, `packages.config`, assembly references, direct DLL or `HintPath` references where available, configuration indicators, and existing modernisation/package review findings
 - external-dependencies analysis inputs for `external-dependencies.md`, using static evidence such as connection strings, app settings, URL-like values, WCF endpoints, messaging/cache/email/cloud package indicators, UNC or local path values, private NuGet feeds, and direct assembly or vendor DLL references where discoverable
+- data-access analysis inputs for `data-access-inventory.md`, using static evidence such as connection strings, provider names, database packages, database assembly references, EF6, EF Core, EDMX files, EF T4 templates, LINQ to SQL `.dbml` files, ADO.NET indicators, Dapper indicators, NHibernate indicators, raw SQL strings where feasible, stored procedure indicators where feasible, repository and unit-of-work class names, and migration folders where discoverable
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
@@ -87,6 +88,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: upgrade-blockers is now MVP scope as a separate static report artifact. It should produce `upgrade-blockers.md` and should use existing discovered evidence to identify visible technical blockers, migration decisions, and higher-risk areas that may complicate upgrade planning. It should not claim to build the solution, restore packages, resolve transitive dependencies, inspect package assets, prove migration is impossible, automatically migrate code, or guarantee compatibility with a destination framework.
 
 > Note: external-dependencies is now MVP scope as a separate static report artifact. It should produce `external-dependencies.md` and should use existing discovered evidence to identify possible runtime and build-time dependencies outside the repository. It should not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness.
+
+> Note: data-access is now MVP scope as a separate static report artifact. It should produce `data-access-inventory.md` and should use existing discovered evidence to identify visible data access technologies, patterns, and migration concerns. It should not claim to connect to databases, validate credentials or connection strings, execute SQL, inspect schemas, run migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove a query or stored procedure is unused, automatically migrate data access code, or guarantee compatibility.
 
 > Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
 
@@ -1137,6 +1140,78 @@ The generated report should include:
 - Notes and Limitations
 
 ---
+
+
+## Data Access Analysis
+
+The `data-access` capability is an MVP-scope static analysis that should produce `data-access-inventory.md`. It should help a developer understand how the codebase appears to access databases and persistence infrastructure.
+
+The analysis should use repository evidence where available, including:
+
+- project names, project file paths, and target frameworks
+- package references, package versions, package source formats, and package target frameworks where available
+- assembly references
+- `app.config`, `web.config`, and `appsettings.json` where available
+- connection strings and provider names, with sensitive values masked or redacted
+- `.edmx` files and EF-related `.tt` T4 templates
+- `.dbml` LINQ to SQL files
+- source files containing data access indicators
+- `DbContext`, `ObjectContext`, and EF Core `DbContext` candidates
+- ADO.NET usage such as `SqlConnection`, `SqlCommand`, `DbConnection`, `DbCommand`, and `CommandType.StoredProcedure`
+- Dapper usage such as Dapper package references or `Query` / `Execute` extension method indicators where feasible
+- NHibernate usage such as package references, `ISession`, `SessionFactory`, or mapping files where feasible
+- raw SQL strings where feasible
+- possible stored procedure names where feasible
+- repository and unit-of-work class names
+- migration folders where feasible
+- existing package compatibility or modernisation hints where relevant
+
+Suggested data access categories:
+
+- `Connection String`
+- `Entity Framework 6`
+- `Entity Framework Core`
+- `EDMX / ObjectContext`
+- `ADO.NET`
+- `Dapper`
+- `NHibernate`
+- `LINQ to SQL`
+- `Raw SQL`
+- `Stored Procedure`
+- `Repository Pattern`
+- `Unit of Work Pattern`
+- `Database Provider`
+- `Migration Artifact`
+- `Unknown / Requires Review`
+
+Initial static rules should be simple and evidence-backed:
+
+| Evidence | Category | Finding |
+|---|---|---|
+| `connectionStrings` section | Connection String | Database connection string configured |
+| `providerName="System.Data.SqlClient"` or `providerName="Microsoft.Data.SqlClient"` | Database Provider | SQL Server provider detected |
+| `providerName` containing `Npgsql` | Database Provider | PostgreSQL provider detected |
+| `providerName` containing `MySql` | Database Provider | MySQL provider detected |
+| `providerName` containing `Oracle` | Database Provider | Oracle provider detected |
+| `EntityFramework` package | Entity Framework 6 | EF6 package detected |
+| `Microsoft.EntityFrameworkCore` package | Entity Framework Core | EF Core package detected |
+| `.edmx` file | EDMX / ObjectContext | EDMX model detected |
+| `.tt` file near EDMX | EDMX / ObjectContext | EF T4 template detected |
+| `.dbml` file | LINQ to SQL | LINQ to SQL model detected |
+| `SqlConnection`, `SqlCommand`, `DbConnection`, or `DbCommand` | ADO.NET | ADO.NET usage detected |
+| `CommandType.StoredProcedure` or `EXEC` / `EXECUTE` strings | Stored Procedure | Possible stored procedure usage detected |
+| `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `MERGE`, or `EXEC` strings | Raw SQL | Possible raw SQL detected |
+| `Dapper` package or common Dapper calls | Dapper | Dapper usage detected |
+| `NHibernate` package or `ISession` / `SessionFactory` indicators | NHibernate | NHibernate usage detected |
+| Class names ending in `Repository` | Repository Pattern | Repository candidate detected |
+| Class names containing `UnitOfWork` or `IUnitOfWork` | Unit of Work Pattern | Unit-of-work candidate detected |
+| Folder names such as `Migrations` | Migration Artifact | Migration artifact detected |
+
+The data-access report should use cautious wording such as `Evidence found`, `Possible data access dependency`, `Requires review`, `May indicate database usage`, `Possible stored procedure usage`, `Migration consideration`, and `Should be verified by the development team`. It should avoid absolute wording such as `Definitely used in production`, `Safe to remove`, `Unused`, `Guaranteed compatible`, `Automatically migratable`, or `Must rewrite`.
+
+### Data Access Report
+
+The report should include summary, analysis scope, data access overview, projects with data access indicators, connection strings, ORM and data access technologies, EF/EDMX details, DbContext/ObjectContext candidates, repository and unit-of-work candidates, raw SQL and stored procedure indicators, database provider indicators, suggested files to review first, migration considerations, suggested questions to ask the team, and notes/limitations.
 
 ## Modernisation Hint Analysis
 

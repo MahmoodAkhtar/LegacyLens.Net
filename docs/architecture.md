@@ -79,6 +79,7 @@ Current analysis work includes:
 - producing upgrade-readiness analysis models for a separate `upgrade-readiness-report.md` artifact
 - producing upgrade-blockers analysis models for a separate `upgrade-blockers.md` artifact
 - producing external-dependencies analysis models for a separate `external-dependencies.md` artifact
+- producing data-access analysis models for a separate `data-access-inventory.md` artifact
 - identifying legacy ASP.NET indicators from `System.Web` assembly references
 - identifying `System.Web.*` assembly references as legacy ASP.NET review items
 - identifying WebForms pages as legacy ASP.NET migration risk indicators
@@ -191,6 +192,27 @@ Likely core types:
 The analyzer should not connect to databases, call HTTP APIs, validate URLs, validate credentials, check server reachability, inspect production infrastructure, run the application, execute code, prove production usage, prove unused dependencies, expose secrets, or guarantee completeness.
 
 For MVP, it is acceptable to start with connection strings, app settings with URL/path/queue/cache/email-like keys, WCF endpoint configuration, known infrastructure packages, direct assembly references, and `NuGet.config` package sources if easy to scan. If a scanner is not yet available or would require deeper parsing, the implementation should skip that rule rather than inventing evidence.
+
+
+### Data Access
+
+The data-access MVP addition should fit the existing static-first architecture. A suitable implementation should add focused analysis models and a Markdown writer rather than duplicating discovery logic. It should consume existing project, package, assembly, configuration, source-file, and modernisation evidence where useful.
+
+Likely core types:
+
+| Type | Purpose |
+|---|---|
+| `DataAccessAnalyzer` | Consumes discovered projects, package references, assembly references, configuration files, optional source-file indicators, EDMX/T4/DBML file evidence, and existing modernisation/package review evidence to produce data access findings. |
+| `DataAccessInventoryReport` | Root model for `data-access-inventory.md`. |
+| `DataAccessFinding` | Evidence-backed data access finding with category, project, source path, evidence, confidence, and migration consideration. |
+| `DataAccessEvidence` | Evidence row containing source type, project name, file path, finding, and masked value where applicable. |
+| `DataAccessCategory` | Category such as Connection String, Entity Framework 6, Entity Framework Core, EDMX / ObjectContext, ADO.NET, Dapper, NHibernate, LINQ to SQL, Raw SQL, Stored Procedure, Repository Pattern, Unit of Work Pattern, Database Provider, Migration Artifact, or Unknown / Requires Review. |
+| `DataAccessSourceType` | Source type such as Configuration, PackageReference, AssemblyReference, ProjectFile, SourceCode, EdmxFile, T4Template, DbmlFile, AppSettingsJson, or Unknown. |
+| `DataAccessConfidence` | Optional confidence label such as High, Medium, or Low. |
+
+The analyzer should not connect to databases, validate credentials or connection strings, execute SQL, parse or validate full SQL syntax, inspect live schemas, compare schemas, run EF migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove unused queries or stored procedures, automatically migrate data access code, or guarantee EF6-to-EF Core or package compatibility. Sensitive values in connection strings and settings should be masked or redacted.
+
+For MVP, it is acceptable to start with connection strings, database provider names, known ORM/database package references, database-related assembly references, EDMX/T4/DBML file discovery where easy to scan, source-level class-name and token indicators, and migration folder evidence. If a scanner is not yet available or would require deeper parsing, the implementation should skip that rule rather than inventing evidence.
 
 ### Configuration
 

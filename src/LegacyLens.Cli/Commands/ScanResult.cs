@@ -29,6 +29,9 @@ public sealed class ScanResult
 
     public string? ExternalDependenciesOutputPath { get; init; }
     public ExternalDependenciesReport? ExternalDependenciesReport { get; init; }
+    
+    public string? DataAccessOutputPath { get; init; }
+    public DataAccessInventoryReport? DataAccessReport { get; init; }
 
     public int ProjectReferenceCount => Projects.Sum(x => x.ProjectReferences.Count);
     public int PackageReferenceCount => Projects.Sum(x => x.PackageReferences.Count);

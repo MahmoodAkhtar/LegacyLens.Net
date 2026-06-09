@@ -35,7 +35,7 @@ Options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, and external-dependencies.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, and data-access.
 --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
@@ -57,6 +57,7 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-r
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers --upgrade-target net8.0
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts external-dependencies
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts data-access
 legacylens --help
 legacylens --version
 ```
@@ -163,6 +164,27 @@ The report should not claim to connect to databases, call HTTP APIs, validate cr
 
 For the first implementation, prefer the smallest command support needed to generate `external-dependencies.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
+
+### Data Access Artifact
+
+The MVP scope now includes an optional `data-access` artifact that should produce:
+
+```text
+<output-dir>/data-access-inventory.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts data-access
+```
+
+The report should remain static, evidence-backed, and security-conscious. It should identify visible data access technologies, patterns, and migration concerns, such as connection strings, database provider indicators, EF6, EDMX/ObjectContext, EF Core, ADO.NET, Dapper, NHibernate, LINQ to SQL, raw SQL indicators, possible stored procedure usage, repository candidates, unit-of-work candidates, and migration artifacts.
+
+The report should not claim to connect to databases, validate credentials, validate connection strings, execute SQL, parse or validate full SQL syntax, inspect live schemas, compare schemas, run EF migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove a query or stored procedure is unused, automatically migrate data access code, or guarantee EF6-to-EF Core or package compatibility. Sensitive values such as passwords, user names where appropriate, access tokens, API keys, and embedded credentials should be masked or redacted.
+
+For the first implementation, prefer the smallest command support needed to generate `data-access-inventory.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
+
 ### Console Output Modes
 
 Default output prints a concise scan summary, including discovered solution/project counts, dependency counts, WCF counts, legacy ASP.NET artifact counts, configuration file counts, modernisation hint counts, and the top review areas.
@@ -202,6 +224,7 @@ The CLI currently validates the following:
 - `--artifacts upgrade-readiness` should be supported when the upgrade-readiness artifact is implemented
 - `--artifacts upgrade-blockers` should be supported when the upgrade-blockers artifact is implemented
 - `--artifacts external-dependencies` should be supported when the external-dependencies artifact is implemented
+- `--artifacts data-access` should be supported when the data-access artifact is implemented
 - `--upgrade-target <tfm>` should be accepted as optional context for upgrade-readiness and upgrade-blockers wording
 - option values are required for `--output`, `-o`, `--output-dir`, and `--format`
 - only `markdown` is currently supported for `--format`
