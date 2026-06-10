@@ -3,7 +3,7 @@ using LegacyLens.Core.Discovery;
 
 namespace LegacyLens.Reporting.Mermaid;
 
-public sealed class MermaidDiagramWriter
+public sealed class ProjectDependencyMermaidDiagramWriter
 {
     public string BuildProjectDependencyDiagram(IReadOnlyList<DiscoveredProject> projects)
     {

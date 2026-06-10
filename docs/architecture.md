@@ -81,6 +81,7 @@ Current analysis work includes:
 - producing external-dependencies analysis models for a separate `external-dependencies.md` artifact
 - producing data-access analysis models for a separate `data-access-inventory.md` artifact
 - producing EDMX analysis models for a separate `edmx-analysis.md` artifact
+- producing class dependency analysis models for a separate `class-dependencies.md` artifact
 - identifying legacy ASP.NET indicators from `System.Web` assembly references
 - identifying `System.Web.*` assembly references as legacy ASP.NET review items
 - identifying WebForms pages as legacy ASP.NET migration risk indicators
@@ -214,6 +215,32 @@ Likely core types:
 The analyzer should not connect to databases, validate credentials or connection strings, execute SQL, parse or validate full SQL syntax, inspect live schemas, compare schemas, run EF migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove unused queries or stored procedures, automatically migrate data access code, or guarantee EF6-to-EF Core or package compatibility. Sensitive values in connection strings and settings should be masked or redacted.
 
 For MVP, it is acceptable to start with connection strings, database provider names, known ORM/database package references, database-related assembly references, EDMX/T4/DBML file discovery where easy to scan, source-level class-name and token indicators, and migration folder evidence. If a scanner is not yet available or would require deeper parsing, the implementation should skip that rule rather than inventing evidence.
+
+
+### Class Dependencies
+
+The class-dependencies MVP addition should fit the existing static-first architecture. A suitable implementation should add focused source-analysis models, an analyzer, a Mermaid writer or helper, and a Markdown writer rather than changing the normal project dependency report.
+
+Likely core types:
+
+| Type | Purpose |
+|---|---|
+| `ClassDependencyAnalyzer` | Scans C# source files under discovered projects and produces source-level type relationship findings. |
+| `ClassDependencyReport` | Root model for `class-dependencies.md`. |
+| `DiscoveredType` | Source-defined type with name, full name, kind, project name, and source path. |
+| `ClassDependency` | Evidence-backed source-to-target type relationship with dependency kind, project, source path, line number, and evidence. |
+| `ClassDependencyKind` | Dependency kind such as constructor parameter, field, property, method parameter, return type, local variable, object creation, static member access, base class, interface implementation, attribute, or generic type argument. |
+| `ClassDependencyConcern` | Coupling concern derived from a dependency, including severity, evidence, why-it-matters text, and recommendation. |
+| `ClassDependencyConcernSeverity` | Severity label such as `High`, `Medium`, or `Low`. |
+| `ClassCouplingHotspot` | Summary row for types with high outgoing dependencies, incoming dependencies, or concern counts. |
+| `ClassDependenciesMarkdownReportWriter` | Writes the `class-dependencies.md` artifact. |
+| `ClassDependencyMermaidDiagramWriter` | Writes focused Mermaid edges with dependency-kind labels where useful. |
+
+The analyzer should consume discovered projects where possible so each source file can be associated with a project. It may scan `.cs` files directly and should skip build output paths such as `bin` and `obj`.
+
+The implementation should remain static and evidence-backed. It should not run MSBuild, require NuGet restore, execute code, resolve runtime dependency injection, understand reflection or dynamic loading, guarantee generated code behaviour, or claim to produce a runtime call graph.
+
+For MVP, the report should favour useful review output over exhaustive semantic correctness. If a rule cannot produce clear source evidence, it should be skipped rather than inventing a relationship.
 
 ### EDMX Analysis
 
@@ -375,6 +402,39 @@ Post-MVP WCF discovery ideas include:
 ## LegacyLens.Reporting Structure
 
 The reporting project is responsible for producing human-readable output from discovered codebase information.
+
+### Reporting Naming Conventions
+
+Reporting classes should be named after the thing they render, not only the output format they render to. This keeps class names understandable at a glance as more Markdown reports and Mermaid diagrams are added.
+
+Use this general pattern for report writers:
+
+`{ThingBeingRendered}{OutputFormat}Writer`
+
+Examples:
+
+- `DiscoveryMarkdownReportWriter`
+- `UpgradeReadinessMarkdownReportWriter`
+- `UpgradeBlockersMarkdownReportWriter`
+- `ExternalDependenciesMarkdownReportWriter`
+- `DataAccessInventoryMarkdownReportWriter`
+- `EdmxAnalysisMarkdownReportWriter`
+- `ClassDependenciesMarkdownReportWriter`
+
+Avoid generic names such as `MarkdownReportWriter` when the writer only renders one specific report. For example, the writer for the main `discovery-report.md` artifact should be named `DiscoveryMarkdownReportWriter` rather than `MarkdownReportWriter`.
+
+For Mermaid diagram writers, use this more specific pattern:
+
+`{ThingBeingDiagrammed}MermaidDiagramWriter`
+
+Examples:
+
+- `ProjectDependencyMermaidDiagramWriter`
+- `ClassDependencyMermaidDiagramWriter`
+
+Avoid generic names such as `MermaidDiagramWriter` when the writer only renders one specific diagram type.
+
+Mermaid writers should live in the `LegacyLens.Reporting.Mermaid` namespace. Markdown report writers should live in the `LegacyLens.Reporting.Markdown` namespace. If a Mermaid diagram is embedded in a Markdown report, the Mermaid writer should still remain in the Mermaid namespace because it produces Mermaid syntax, not Markdown.
 
 Current reporting work includes:
 

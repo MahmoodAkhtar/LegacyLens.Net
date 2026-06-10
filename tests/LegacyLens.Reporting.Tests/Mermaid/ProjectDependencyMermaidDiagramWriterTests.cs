@@ -4,12 +4,12 @@ using LegacyLens.Reporting.Mermaid;
 
 namespace LegacyLens.Reporting.Tests.Mermaid;
 
-public sealed class MermaidDiagramWriterTests
+public sealed class ProjectDependencyMermaidDiagramWriterTests
 {
     [Fact]
     public void BuildProjectDependencyDiagram_ThrowsArgumentNullException_WhenProjectsIsNull()
     {
-        var writer = new MermaidDiagramWriter();
+        var writer = new ProjectDependencyMermaidDiagramWriter();
 
         var act = () => writer.BuildProjectDependencyDiagram(null!);
 
@@ -77,7 +77,7 @@ public sealed class MermaidDiagramWriterTests
                 }
             };
 
-            var writer = new MermaidDiagramWriter();
+            var writer = new ProjectDependencyMermaidDiagramWriter();
 
             var diagram = writer.BuildProjectDependencyDiagram(projects);
 
@@ -131,7 +131,7 @@ public sealed class MermaidDiagramWriterTests
                 }
             };
 
-            var writer = new MermaidDiagramWriter();
+            var writer = new ProjectDependencyMermaidDiagramWriter();
 
             var diagram = writer.BuildProjectDependencyDiagram(projects);
 
@@ -168,7 +168,7 @@ public sealed class MermaidDiagramWriterTests
                 }
             };
 
-            var writer = new MermaidDiagramWriter();
+            var writer = new ProjectDependencyMermaidDiagramWriter();
 
             var diagram = writer.BuildProjectDependencyDiagram(projects);
 
@@ -195,7 +195,7 @@ public sealed class MermaidDiagramWriterTests
             }
         };
 
-        var writer = new MermaidDiagramWriter();
+        var writer = new ProjectDependencyMermaidDiagramWriter();
 
         var diagram = writer.BuildProjectDependencyDiagram(projects);
 

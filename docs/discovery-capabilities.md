@@ -19,6 +19,8 @@ Even if the solution does not build, it can still discover useful information fr
 - `connectionStrings` entries
 - custom configuration sections
 - C# source files
+- source-defined C# types such as classes, interfaces, records, structs, and enums
+- source-level class/type dependencies such as constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, and generic type arguments
 - `.aspx` WebForms pages
 - `.ascx` WebForms user controls
 - `.master` WebForms master pages
@@ -80,6 +82,7 @@ Even if the solution does not build, it can still discover useful information fr
 - external-dependencies analysis inputs for `external-dependencies.md`, using static evidence such as connection strings, app settings, URL-like values, WCF endpoints, messaging/cache/email/cloud package indicators, UNC or local path values, private NuGet feeds, and direct assembly or vendor DLL references where discoverable
 - data-access analysis inputs for `data-access-inventory.md`, using static evidence such as connection strings, provider names, database packages, database assembly references, EF6, EF Core, EDMX files, EF T4 templates, LINQ to SQL `.dbml` files, ADO.NET indicators, Dapper indicators, NHibernate indicators, raw SQL strings where feasible, stored procedure indicators where feasible, repository and unit-of-work class names, and migration folders where discoverable
 - edmx-analysis inputs for `edmx-analysis.md`, using static EDMX XML evidence such as CSDL conceptual entities, entity sets, keys, associations, navigation properties, complex types, function imports, SSDL storage entity sets, tables, views, columns, store functions, defining queries, MSL entity mappings, scalar property mappings, association mappings, function import mappings, modification function mappings, query views, designer metadata, and companion T4/generated files where discoverable
+- class-dependencies inputs for `class-dependencies.md`, using static C# source evidence such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, inheritance, interface implementations, attributes, generic type usage, coupling hotspots, hardcoded concrete dependencies, and static dependency concerns where discoverable
 
 This makes it useful for old or broken solutions where restoring packages, installing SDKs, or compiling the code may not be possible immediately.
 
@@ -93,6 +96,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: data-access is now MVP scope as a separate static report artifact. It should produce `data-access-inventory.md` and should use existing discovered evidence to identify visible data access technologies, patterns, and migration concerns. It should not claim to connect to databases, validate credentials or connection strings, execute SQL, inspect schemas, run migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove a query or stored procedure is unused, automatically migrate data access code, or guarantee compatibility.
 
 > Note: edmx-analysis is now MVP scope as a separate static report artifact. It should produce `edmx-analysis.md` and should use static EDMX XML evidence to identify conceptual model, storage model, mapping model, designer metadata, companion generated file, and EF Core migration concern signals. It should not claim to connect to a database, validate EDMX mappings against a live schema, generate EF Core models, convert EDMX to EF Core, build the solution, run NuGet restore, guarantee compatibility, fully understand custom T4 templates, or treat all EF Core equivalents as direct one-to-one replacements.
+
+> Note: class-dependencies is now MVP scope as a separate static report artifact. It should produce `class-dependencies.md` and should use static C# source evidence to identify source-level type relationships, coupling hotspots, hardcoded concrete dependencies, static dependency concerns, and focused Mermaid diagrams with dependency-kind edge labels. It should not claim to build the solution, restore packages, resolve runtime dependency injection, execute code, understand reflection or dynamic loading, fully understand generated code, prove runtime usage, or produce a runtime call graph.
 
 > Note: package reference discovery currently supports both SDK-style `<PackageReference />` entries in `.csproj` files and legacy `packages.config` files located alongside project files. Invalid or unreadable `packages.config` files are ignored so discovery can continue.
 
@@ -117,6 +122,42 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: modernisation hints include evidence metadata where a clear source can be identified. Evidence may point to a project, package reference, assembly reference, WCF endpoint, WCF service contract, WCF behaviour, legacy ASP.NET artifact, configuration file, or analysis summary. The generated report includes the evidence kind, evidence name, confidence, source path where available, and the reason for the hint. Legacy ASP.NET artifact evidence prefers the most specific matching artifact name so, for example, an action attribute hint can point to `HomeController.Index [HttpGet]` rather than only `HomeController`.
 
 > Note: solution discovery currently supports `.sln` files and extracts referenced C# project paths from project entries. Non-C# project entries and solution folders are ignored.
+
+---
+
+## Class Dependency Discovery
+
+The `class-dependencies` capability should analyse C# source files under discovered projects and identify source-level relationships between source-defined types without building the solution.
+
+Current MVP discovery expectations include:
+
+- finding `.cs` files under discovered project folders
+- excluding build output paths such as `bin` and `obj`
+- discovering source-defined types such as classes, interfaces, records, structs, and enums where useful
+- focusing the MVP report mainly on classes and their dependencies
+- detecting dependencies created by constructor parameters, field types, property types, method parameters, method return types, local variable declarations, object creation, static member access, base classes, interface implementations, attribute usage, and generic type arguments
+- tracking project name, source path, line number, source type, target type, dependency kind, and concise source evidence where possible
+- classifying dependency kinds with friendly report labels such as `constructor parameter`, `field`, `property`, `method parameter`, `return type`, `local variable`, `hardcoded new`, `static access`, `inherits`, `implements`, `attribute`, and `generic type`
+- identifying coupling concerns from the dependency inventory, including hardcoded concrete dependencies, direct infrastructure construction, static access, concrete field/property dependencies, constructor parameters to concrete classes, inheritance from concrete base classes, framework-specific attributes, and time access such as `DateTime.Now` or `DateTime.UtcNow`
+- assigning cautious concern severity such as `High`, `Medium`, or `Low`
+- producing high-coupling hotspot summaries using outgoing dependency count, incoming dependency count, and concern count
+- producing a focused Mermaid diagram that labels edges by dependency kind and groups multiple dependency kinds between the same source and target where practical
+
+The generated `class-dependencies.md` report should include summary counts, top coupled types, coupling concerns, hardcoded concrete dependencies, static dependency hotspots, a focused dependency diagram, a full type dependency inventory, type-level detail sections, and notes/limitations.
+
+This capability should use cautious wording such as `source-level dependency`, `possible coupling concern`, `suggested review`, `evidence`, and `static analysis finding`. It should avoid overclaiming runtime behaviour.
+
+Out of scope for MVP:
+
+- MSBuild compilation
+- NuGet restore
+- runtime dependency injection resolution
+- reflection and dynamic loading analysis
+- generated code behaviour guarantees
+- conditional runtime behaviour analysis
+- runtime call graphs
+- proving that a dependency is always used at runtime
+- proving that a dependency is unused
 
 ---
 

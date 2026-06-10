@@ -408,3 +408,35 @@ Post-MVP ideas:
 - Application lifecycle event discovery beyond `Application_Start`.
 
 ---
+
+
+### Step 5f: Class dependencies report for source-level coupling analysis
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add a `class-dependencies` capability that can produce `class-dependencies.md`.
+- Analyse `.cs` source files under discovered projects without requiring MSBuild compilation or NuGet restore.
+- Discover source-defined types such as classes, interfaces, records, structs, and enums where useful, with MVP reporting focused mainly on classes.
+- Detect source-level relationships from constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, and generic type arguments.
+- Preserve evidence including project name, source path, line number, source type, target type, dependency kind, and concise source snippet where possible.
+- Identify hardcoded concrete dependencies, direct infrastructure construction, static dependency concerns, concrete dependencies, inheritance concerns, framework-specific attribute usage, and time access where static evidence exists.
+- Assign concern severity using `High`, `Medium`, and `Low` with cautious why-it-matters and recommendation text.
+- Report top coupled types, coupling concerns, hardcoded concrete dependencies, static dependency hotspots, a full type dependency inventory, and type details.
+- Generate a focused Mermaid diagram with dependency-kind edge labels, grouping multiple dependency kinds between the same source and target where practical.
+- Add unit tests for analyzer rules, concern classification, Mermaid output, CLI artifact selection, and Markdown output.
+
+Out of scope for MVP:
+
+- Building the solution.
+- Running the application or tests.
+- NuGet restore.
+- Full semantic compilation analysis.
+- Runtime dependency injection resolution.
+- Reflection, dynamic loading, factory behaviour, generated code behaviour, or conditional runtime behaviour analysis.
+- Runtime call graphs.
+- Proving that a dependency is always used or unused at runtime.
+
+Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/class-dependencies.md` without over-engineering the CLI.
+

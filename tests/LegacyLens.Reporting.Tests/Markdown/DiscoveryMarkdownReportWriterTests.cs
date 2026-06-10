@@ -8,7 +8,7 @@ using LegacyLens.Reporting.Markdown;
 
 namespace LegacyLens.Reporting.Tests.Markdown;
 
-public sealed class MarkdownReportWriterTests
+public sealed class DiscoveryMarkdownReportWriterTests
 {
     [Fact]
     public void Write_CreatesMarkdownReport()
@@ -19,7 +19,7 @@ public sealed class MarkdownReportWriterTests
         {
             var outputPath = Path.Combine(rootPath, "output", "discovery-report.md");
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -107,7 +107,7 @@ public sealed class MarkdownReportWriterTests
                 FilePath = Path.Combine(rootPath, "Default.aspx")
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -157,7 +157,7 @@ public sealed class MarkdownReportWriterTests
                 }
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -210,7 +210,7 @@ public sealed class MarkdownReportWriterTests
                 }
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -282,7 +282,7 @@ public sealed class MarkdownReportWriterTests
                 }
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -337,7 +337,7 @@ public sealed class MarkdownReportWriterTests
                 TargetFramework = "net48"
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -399,7 +399,7 @@ public sealed class MarkdownReportWriterTests
                 ReaderQuotaMaxNameTableCharCount = "16384"
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -455,7 +455,7 @@ public sealed class MarkdownReportWriterTests
                 }
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -505,7 +505,7 @@ public sealed class MarkdownReportWriterTests
                 }
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -539,7 +539,7 @@ public sealed class MarkdownReportWriterTests
         {
             var outputPath = Path.Combine(rootPath, "discovery-report.md");
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -579,7 +579,7 @@ public sealed class MarkdownReportWriterTests
                 FilePath = artifactPath
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -619,7 +619,7 @@ public sealed class MarkdownReportWriterTests
                 CustomSectionCount = 1
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -652,7 +652,7 @@ public sealed class MarkdownReportWriterTests
 
         try
         {
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             var hints = new[]
             {
@@ -742,7 +742,7 @@ public sealed class MarkdownReportWriterTests
                 FilePath = Path.Combine(rootPath, "Default.aspx")
             };
 
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,
@@ -773,7 +773,7 @@ public sealed class MarkdownReportWriterTests
     [Fact]
     public void Write_ThrowsArgumentException_WhenOutputPathIsEmpty()
     {
-        var writer = new MarkdownReportWriter();
+        var writer = new DiscoveryMarkdownReportWriter();
 
         var act = () => writer.Write(
             "",
@@ -797,7 +797,7 @@ public sealed class MarkdownReportWriterTests
         try
         {
             var outputPath = Path.Combine(rootPath, "discovery-report.md");
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             var act = () => writer.Write(
                 outputPath,
@@ -825,7 +825,7 @@ public sealed class MarkdownReportWriterTests
         try
         {
             var outputPath = Path.Combine(rootPath, "discovery-report.md");
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             var act = () => writer.Write(
                 outputPath,
@@ -853,7 +853,7 @@ public sealed class MarkdownReportWriterTests
         try
         {
             var outputPath = Path.Combine(rootPath, "discovery-report.md");
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             var act = () => writer.Write(
                 outputPath,
@@ -881,7 +881,7 @@ public sealed class MarkdownReportWriterTests
         try
         {
             var outputPath = Path.Combine(rootPath, "discovery-report.md");
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             var act = () => writer.Write(
                 outputPath,
@@ -909,7 +909,7 @@ public sealed class MarkdownReportWriterTests
         try
         {
             var outputPath = Path.Combine(rootPath, "discovery-report.md");
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             var act = () => writer.Write(
                 outputPath,
@@ -937,7 +937,7 @@ public sealed class MarkdownReportWriterTests
         try
         {
             var outputPath = Path.Combine(rootPath, "discovery-report.md");
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             var act = () => writer.Write(
                 outputPath,
@@ -965,7 +965,7 @@ public sealed class MarkdownReportWriterTests
         try
         {
             var outputPath = Path.Combine(rootPath, "discovery-report.md");
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             var act = () => writer.Write(
                 outputPath,
@@ -992,7 +992,7 @@ public sealed class MarkdownReportWriterTests
 
         try
         {
-            var writer = new MarkdownReportWriter();
+            var writer = new DiscoveryMarkdownReportWriter();
 
             writer.Write(
                 outputPath,

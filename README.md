@@ -23,6 +23,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope external-dependencies artifact that produces `external-dependencies.md` with a static, evidence-backed inventory of possible runtime and build-time dependencies outside the repository
 - an MVP-scope data-access artifact that produces `data-access-inventory.md` with a static, evidence-backed inventory of data access technologies, patterns, and migration concerns
 - an MVP-scope edmx-analysis artifact that produces `edmx-analysis.md` with a static, evidence-backed analysis of EF EDMX conceptual, storage, mapping, designer, generated-file, and EF Core migration concern signals
+- an MVP-scope class-dependencies artifact that produces `class-dependencies.md` with static, evidence-backed source-level type relationship analysis, coupling hotspots, hardcoded concrete dependencies, static dependency concerns, and focused Mermaid diagrams with dependency-kind edge labels
 
 ## Quick start
 
@@ -95,6 +96,14 @@ legacylens scan <path> --output-dir ./output --artifacts edmx-analysis
 
 This report should discover `.edmx` files, parse EDMX XML safely, and identify conceptual model, storage model, mapping model, designer metadata, companion generated files, and EF Core migration concerns using static evidence only. It should avoid claiming that any database was contacted, mappings were validated against a live schema, EF Core models were generated, or the EDMX was converted automatically.
 
+The MVP scope now also includes an optional class-dependencies artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-dependencies
+```
+
+This report should analyse `.cs` source files and identify source-level relationships between types, including constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, inheritance, interface implementations, attributes, and generic type usage. It should remain static and evidence-backed, include dependency-kind labels in focused Mermaid diagrams, and avoid claiming to understand runtime dependency injection, reflection, dynamic loading, generated code behaviour, or runtime call graphs.
+
 ## Example output
 
 The normal `legacylens scan <path>` output is intentionally concise:
@@ -133,7 +142,7 @@ For detailed report examples, see [docs/report-output.md](docs/report-output.md)
 
 LegacyLens.NET is currently in late MVP development and is focused on hardening the first usable discovery baseline.
 
-The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, data access inventory, and EDMX analysis.
+The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, data access inventory, EDMX analysis, and class dependency analysis.
 
 The current implementation can scan a folder containing .NET solutions and projects and discover:
 
@@ -202,6 +211,7 @@ The current implementation can scan a folder containing .NET solutions and proje
 - external dependency inventory inputs for `external-dependencies.md`, using static evidence such as connection strings, app settings, WCF endpoints, URL-like values, infrastructure package references, direct assembly references, and private package feed configuration where discoverable
 - data access inventory inputs for `data-access-inventory.md`, using static evidence such as connection strings, data access packages, database provider references, EDMX and related T4 files, LINQ to SQL files, source-level data access indicators, repository or unit-of-work class names, raw SQL indicators, stored procedure indicators, and migration folders where discoverable
 - EDMX analysis inputs for `edmx-analysis.md`, using static EDMX XML evidence such as conceptual entities, entity sets, keys, associations, navigation properties, complex types, function imports, storage entity sets, tables/views, columns, store functions, defining queries, entity mappings, scalar property mappings, modification function mappings, query views, designer metadata, and companion generated files where discoverable
+- class dependency analysis inputs for `class-dependencies.md`, using static C# source evidence such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, and generic type usage where discoverable
 - a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 
 ### MVP-scope upgrade-readiness artifact

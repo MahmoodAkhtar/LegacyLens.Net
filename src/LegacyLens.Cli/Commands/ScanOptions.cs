@@ -26,4 +26,7 @@ public sealed class ScanOptions
     
     public bool ShouldWriteEdmxAnalysis =>
         string.Equals(Artifacts, "edmx-analysis", StringComparison.OrdinalIgnoreCase);
+    
+    public bool ShouldWriteClassDependencies =>
+        string.Equals(Artifacts, "class-dependencies", StringComparison.OrdinalIgnoreCase);
 }

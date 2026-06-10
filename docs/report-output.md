@@ -955,3 +955,94 @@ graph TD
 This makes it easier to visually understand project-to-project relationships.
 
 ---
+
+
+---
+
+## Class Dependencies Report Output
+
+The MVP scope now includes a separate class-dependencies Markdown artifact:
+
+```text
+output/class-dependencies.md
+```
+
+The class-dependencies report should be a static, evidence-backed source-level coupling report for understanding which classes and other source-defined types reference each other before refactoring, testing, or modernising a legacy .NET codebase. It should inspect C# source files only and should not build the solution, restore packages, execute code, resolve runtime dependency injection, or claim to understand runtime call graphs.
+
+Representative structure:
+
+````markdown
+# Class Dependency Report
+
+## Summary
+
+- Projects analysed: 4
+- C# source files analysed: 18
+- Types discovered: 42
+- Dependency relationships discovered: 96
+- Coupling concerns discovered: 12
+- Hardcoded concrete dependencies discovered: 3
+- Static dependencies discovered: 5
+- High-coupling types discovered: 4
+
+## Top Coupled Types
+
+| Type | Project | Outgoing Dependencies | Incoming Dependencies | Concern Count | Notes |
+|---|---|---:|---:|---:|---|
+| `CustomerService` | SampleLegacyApp.Services | 4 | 2 | 2 | Concrete construction and service contract coupling found. |
+
+## Coupling Concerns
+
+| Severity | Source Type | Target Type | Dependency Kind | Evidence | Why It Matters | Recommendation |
+|---|---|---|---|---|---|---|
+| High | `CustomerService` | `CustomerRepository` | hardcoded new | `new CustomerRepository()` | Concrete construction hides the dependency and makes testing, replacement, and migration harder. | Consider constructor injection behind an interface or factory. |
+| Medium | `CustomerService` | `ConfigurationManager` | static access | `ConfigurationManager.AppSettings[...]` | Static configuration access may need review when moving from legacy config files to modern configuration. | Consider `IConfiguration` or options binding during migration. |
+
+## Hardcoded Concrete Dependencies
+
+| Source Type | Target Type | Project | Evidence | Severity | Suggested Review |
+|---|---|---|---|---|---|
+| `CustomerService` | `CustomerRepository` | SampleLegacyApp.Services | `new CustomerRepository()` | High | Consider constructor injection behind an interface or factory. |
+
+## Static Dependency Hotspots
+
+| Source Type | Static Dependency | Project | Evidence | Severity | Suggested Review |
+|---|---|---|---|---|---|
+| `CustomerService` | `ConfigurationManager` | SampleLegacyApp.Services | `ConfigurationManager.AppSettings[...]` | Medium | Review configuration access during migration. |
+
+## Dependency Diagram
+
+```mermaid
+graph TD
+    CustomerService -->|implements| ICustomerService
+    CustomerService -->|implements| ICustomerContract
+    CustomerService -->|field, hardcoded new| CustomerRepository
+    CustomerService -->|return type| CustomerDto
+    CustomerService -->|static access| ConfigurationManager
+```
+
+## Type Dependency Inventory
+
+| Source Type | Target Type | Dependency Kind | Project | Source Path | Line | Evidence |
+|---|---|---|---|---|---:|---|
+| `CustomerService` | `CustomerRepository` | hardcoded new | SampleLegacyApp.Services | `SampleLegacyApp.Services/CustomerService.cs` | 12 | `new CustomerRepository()` |
+
+## Type Details
+
+### CustomerService
+
+Project: `SampleLegacyApp.Services`
+
+Source: `SampleLegacyApp.Services/CustomerService.cs`
+
+Depends on:
+
+| Target Type | Dependency Kind | Line | Evidence |
+|---|---|---:|---|
+| `CustomerRepository` | field, hardcoded new | 12 | `private readonly CustomerRepository _repository = new();` |
+````
+
+The Mermaid diagram should be focused rather than exhaustive. For large codebases, the table inventory should remain the complete evidence-backed source of detail, while the diagram should prioritise high-coupling types, hardcoded concrete dependencies, static dependency hotspots, and highest-severity concerns.
+
+Suggested wording should stay cautious: `source-level dependency`, `possible coupling concern`, `suggested review`, `evidence`, and `static analysis finding`.
+
