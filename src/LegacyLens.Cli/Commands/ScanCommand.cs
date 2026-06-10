@@ -53,8 +53,8 @@ public sealed class ScanCommand
         var modernisationReviewPrioritiser = new ModernisationReviewPrioritiser();
         var modernisationReviewAreas = modernisationReviewPrioritiser.Prioritise(modernisationHints);
 
-        var reportWriter = new MarkdownReportWriter();
-        reportWriter.Write(
+        var discoveryReportWriter = new DiscoveryMarkdownReportWriter();
+        discoveryReportWriter.Write(
             outputPath,
             solutions,
             projects,
@@ -159,6 +159,20 @@ public sealed class ScanCommand
             var edmxAnalysisWriter = new EdmxAnalysisMarkdownReportWriter();
             edmxAnalysisWriter.Write(edmxAnalysisOutputPath, edmxAnalysisReport);
         }
+        
+        string? classDependenciesOutputPath = null;
+        ClassDependencyReport? classDependenciesReport = null;
+
+        if (options.ShouldWriteClassDependencies)
+        {
+            var classDependencyAnalyzer = new ClassDependencyAnalyzer();
+
+            classDependenciesReport = classDependencyAnalyzer.Analyze(projects);
+            classDependenciesOutputPath = ResolveClassDependenciesOutputPath(scanPath, options);
+
+            var classDependenciesWriter = new ClassDependenciesMarkdownReportWriter();
+            classDependenciesWriter.Write(classDependenciesOutputPath, classDependenciesReport);
+        }
 
         return new ScanResult
         {
@@ -182,8 +196,32 @@ public sealed class ScanCommand
             DataAccessOutputPath = dataAccessOutputPath,
             DataAccessReport = dataAccessReport,
             EdmxAnalysisOutputPath = edmxAnalysisOutputPath,
-            EdmxAnalysisReport = edmxAnalysisReport
+            EdmxAnalysisReport = edmxAnalysisReport,
+            ClassDependenciesOutputPath = classDependenciesOutputPath,
+            ClassDependenciesReport = classDependenciesReport
         };
+    }
+    
+    private static string ResolveClassDependenciesOutputPath(string scanPath, ScanOptions options)
+    {
+        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
+        {
+            return Path.Combine(
+                Path.GetFullPath(options.OutputDirectory),
+                "class-dependencies.md");
+        }
+
+        if (!string.IsNullOrWhiteSpace(options.Output))
+        {
+            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
+
+            if (!string.IsNullOrWhiteSpace(outputDirectory))
+            {
+                return Path.Combine(outputDirectory, "class-dependencies.md");
+            }
+        }
+
+        return Path.Combine(scanPath, "output", "class-dependencies.md");
     }
     
     private static string ResolveEdmxAnalysisOutputPath(string scanPath, ScanOptions options)

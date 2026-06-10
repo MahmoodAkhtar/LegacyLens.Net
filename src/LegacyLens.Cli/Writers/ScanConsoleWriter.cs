@@ -43,9 +43,7 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  --verbose              Print detailed discovery output.");
         Console.WriteLine("  -h, --help             Show help.");
         Console.WriteLine("  --version              Show version.");
-        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Currently supports upgrade-readiness.");
-        Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness wording.");
-        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness, upgrade-blockers, external-dependencies, data-access, and edmx-analysis.");
+        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness, upgrade-blockers, external-dependencies, data-access, edmx-analysis, and class-dependencies.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.");
     }
 
@@ -96,6 +94,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.EdmxAnalysisOutputPath))
         {
             Console.WriteLine($"EDMX analysis report generated: {result.EdmxAnalysisOutputPath}");
+        }
+        
+        if (!string.IsNullOrWhiteSpace(result.ClassDependenciesOutputPath))
+        {
+            Console.WriteLine($"Class dependencies report generated: {result.ClassDependenciesOutputPath}");
         }
     }
 
@@ -174,6 +177,13 @@ public sealed class ScanConsoleWriter
             Console.WriteLine("EDMX analysis report generated:");
             Console.WriteLine(result.EdmxAnalysisOutputPath);
         }
+        
+        if (!string.IsNullOrWhiteSpace(result.ClassDependenciesOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Class dependencies report generated:");
+            Console.WriteLine(result.ClassDependenciesOutputPath);
+        }
     }
 
     private static void WriteVerbose(ScanResult result)
@@ -220,6 +230,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.EdmxAnalysisOutputPath))
         {
             Console.WriteLine($"EDMX analysis report generated: {result.EdmxAnalysisOutputPath}");
+        }
+        
+        if (!string.IsNullOrWhiteSpace(result.ClassDependenciesOutputPath))
+        {
+            Console.WriteLine($"Class dependencies report generated: {result.ClassDependenciesOutputPath}");
         }
     }
 

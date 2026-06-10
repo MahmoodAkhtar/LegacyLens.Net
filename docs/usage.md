@@ -35,7 +35,7 @@ Options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, data-access, and edmx-analysis.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, data-access, edmx-analysis, and class-dependencies.
 --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
@@ -59,6 +59,7 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-b
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts external-dependencies
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts data-access
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts edmx-analysis
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-dependencies
 legacylens --help
 legacylens --version
 ```
@@ -206,6 +207,29 @@ The report should not claim to connect to a database, validate the EDMX against 
 
 For the first implementation, prefer the smallest command support needed to generate `edmx-analysis.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
+
+### Class Dependencies Artifact
+
+The MVP scope now includes an optional `class-dependencies` artifact that should produce:
+
+```text
+<output-dir>/class-dependencies.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-dependencies
+```
+
+The report should remain static and evidence-backed. It should analyse `.cs` source files under discovered projects and report source-level relationships between types, including constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, inheritance, interface implementations, attributes, and generic type usage.
+
+The report should include coupling summaries, high-dependency hotspots, hardcoded concrete dependencies, static dependency concerns, evidence-backed review notes, a focused Mermaid diagram with dependency-kind edge labels, a full type dependency inventory, and per-type details where useful.
+
+The report should not claim to build the solution, restore NuGet packages, resolve runtime dependency injection, execute code, understand reflection or dynamic loading, fully understand generated code, prove runtime usage, or produce a runtime call graph.
+
+For the first implementation, prefer the smallest command support needed to generate `class-dependencies.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
+
 ### Console Output Modes
 
 Default output prints a concise scan summary, including discovered solution/project counts, dependency counts, WCF counts, legacy ASP.NET artifact counts, configuration file counts, modernisation hint counts, and the top review areas.
@@ -247,6 +271,7 @@ The CLI currently validates the following:
 - `--artifacts external-dependencies` should be supported when the external-dependencies artifact is implemented
 - `--artifacts data-access` should be supported when the data-access artifact is implemented
 - `--artifacts edmx-analysis` should be supported when the edmx-analysis artifact is implemented
+- `--artifacts class-dependencies` should be supported when the class-dependencies artifact is implemented
 - `--upgrade-target <tfm>` should be accepted as optional context for upgrade-readiness and upgrade-blockers wording
 - option values are required for `--output`, `-o`, `--output-dir`, and `--format`
 - only `markdown` is currently supported for `--format`

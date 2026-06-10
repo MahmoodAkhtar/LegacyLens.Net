@@ -6,7 +6,7 @@ This file is intended to be used as concise context for AI-assisted development 
 
 LegacyLens.NET is a standalone static discovery CLI for unfamiliar, legacy, and modern .NET codebases.
 
-It scans source and configuration files to produce Markdown reports that help a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, data access inventory signals, EDMX analysis signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+It scans source and configuration files to produce Markdown reports that help a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, data access inventory signals, EDMX analysis signals, class dependency analysis signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 ## Usage model
 
@@ -31,7 +31,7 @@ Important options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, data-access, and edmx-analysis.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, data-access, edmx-analysis, and class-dependencies.
 --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
@@ -45,7 +45,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, and a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis.
 
 ## Current implemented capability summary
 
@@ -65,6 +65,7 @@ LegacyLens.NET currently discovers:
 - external dependency inventory inputs such as connection strings, URL-like settings, WCF endpoints, infrastructure packages, private package feed evidence, direct assembly/vendor DLL references, and path/share indicators where discoverable
 - data access inventory inputs such as connection strings, provider names, EF6, EF Core, EDMX/T4, LINQ to SQL, ADO.NET, Dapper, NHibernate, raw SQL, stored procedure, repository, unit-of-work, and migration artifact indicators where discoverable
 - EDMX analysis inputs such as `.edmx` files, CSDL conceptual entities/entity sets/keys/navigation properties/complex types/function imports, SSDL storage entity sets/tables/views/columns/functions/defining queries, MSL mappings/scalar properties/function import mappings/modification function mappings/query views, designer metadata, and companion generated files where discoverable
+- class dependency analysis inputs such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, generic type usage, coupling hotspots, hardcoded concrete dependencies, and static dependency concerns where discoverable
 
 ## MVP package compatibility review addition
 
@@ -152,6 +153,27 @@ The report should include a summary, EDMX files table, upgrade concerns, concept
 
 The capability must not claim to connect to a database, validate the EDMX against a live database or schema, generate EF Core models, convert EDMX to EF Core, run NuGet restore, build the solution, guarantee migration compatibility, fully understand custom T4 templates, or claim that all EF Core equivalents are direct one-to-one replacements. Use cautious wording such as `Evidence found`, `Requires review`, `Possible migration concern`, `May require manual mapping`, `Should be verified by the development team`, and `No direct EF Core EDMX equivalent`.
 
+
+## MVP class-dependencies addition
+
+`class-dependencies` is now an MVP-scope capability. It should produce `class-dependencies.md` as a separate Markdown artifact. It is a static, evidence-backed source-level dependency report for understanding class and type coupling inside a .NET solution.
+
+It should help a developer answer: “Inside these projects, which classes are actually coupled to which other classes?” This is useful because project-level references do not show class entanglement, hardcoded concrete construction, static access, inheritance coupling, or high-dependency hotspots.
+
+Intended command shape:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-dependencies
+```
+
+The capability should analyse `.cs` source files under discovered projects and identify source-level relationships from constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, and generic type arguments.
+
+The report should include a summary, top coupled types, coupling concerns, hardcoded concrete dependencies, static dependency hotspots, a focused Mermaid dependency diagram with dependency-kind edge labels, a full type dependency inventory, type details, and notes/limitations.
+
+Concern severity should use `High`, `Medium`, and `Low`. High findings include hardcoded concrete object creation, direct construction of infrastructure dependencies such as `SmtpClient`, `HttpClient`, or `SqlConnection`, and static access to legacy/global infrastructure where it affects upgrade or testability. Medium findings include static helper/configuration access, concrete field or property dependencies, constructor parameters to concrete classes, inheritance from concrete base classes, framework-specific attributes, and time access such as `DateTime.Now` or `DateTime.UtcNow`. Low findings include constructor parameters to interfaces, interface implementations, normal domain/model method parameters or return types, generic type usage, and informational attributes.
+
+The capability must not claim to build the solution, restore NuGet packages, resolve runtime dependency injection, execute code, understand reflection or dynamic loading, fully understand generated code, prove runtime usage, prove unused dependencies, or produce runtime call graphs. Use cautious wording such as `source-level dependency`, `possible coupling concern`, `suggested review`, `evidence`, and `static analysis finding`.
+
 ## Design constraints
 
 - Static-first discovery.
@@ -163,7 +185,7 @@ The capability must not claim to connect to a database, validate the EDMX agains
 
 ## MVP definition
 
-The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce readable Markdown reports that help a developer identify the main structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, data access inventory signals, EDMX analysis signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+The MVP is complete when LegacyLens.NET can statically scan a representative legacy .NET solution and produce readable Markdown reports that help a developer identify the main structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, data access inventory signals, EDMX analysis signals, class dependency analysis signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 Further work should be treated as post-MVP unless it fixes a specific report-quality defect.
 

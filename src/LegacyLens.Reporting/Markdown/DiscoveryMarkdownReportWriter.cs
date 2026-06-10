@@ -8,7 +8,7 @@ using LegacyLens.Reporting.Mermaid;
 
 namespace LegacyLens.Reporting.Markdown;
 
-public sealed class MarkdownReportWriter
+public sealed class DiscoveryMarkdownReportWriter
 {
     public void Write(
         string outputPath,
@@ -288,7 +288,7 @@ public sealed class MarkdownReportWriter
         builder.AppendLine("## Project Dependency Diagram");
         builder.AppendLine();
 
-        var mermaidDiagramWriter = new MermaidDiagramWriter();
+        var mermaidDiagramWriter = new ProjectDependencyMermaidDiagramWriter();
 
         builder.AppendLine(mermaidDiagramWriter.BuildProjectDependencyDiagram(projects));
         builder.AppendLine();

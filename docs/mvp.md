@@ -118,7 +118,18 @@ Current MVP functionality includes implemented capabilities and newly required M
 - optional `--artifacts external-dependencies` command support for producing the external-dependencies artifact
 - optional `--artifacts data-access` command support for producing the data-access artifact
 - optional `--artifacts edmx-analysis` command support for producing the edmx-analysis artifact
+- optional `--artifacts class-dependencies` command support for producing the class-dependencies artifact
 - optional `--upgrade-target <tfm>` command support for upgrade-readiness and upgrade-blockers report context
+- static class dependency analysis for identifying source-level type relationships and coupling concerns
+- class-dependencies report generation as `class-dependencies.md`
+- class-dependencies discovery of source-defined types such as classes, interfaces, records, structs, and enums where useful
+- class-dependencies reporting for constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, inheritance, interface implementations, attributes, and generic type usage
+- class-dependencies concern reporting for hardcoded concrete dependencies, direct infrastructure construction, static dependency concerns, concrete field/property dependencies, constructor parameters to concrete classes, inheritance from concrete base classes, framework-specific attributes, and time access where evidence exists
+- class-dependencies severity labelling using `High`, `Medium`, and `Low`
+- class-dependencies high-coupling hotspot reporting using outgoing dependency count, incoming dependency count, and concern count
+- class-dependencies focused Mermaid diagram generation with dependency-kind edge labels
+- class-dependencies evidence reporting with project name, source path, line number, source type, target type, dependency kind, and concise source evidence where possible
+- class-dependencies notes and limitations explaining static no-build analysis and that findings mean “requires review”, not “proven runtime usage”
 - static upgrade-readiness analysis for upgrade planning
 - upgrade-readiness report generation as `upgrade-readiness-report.md`
 - upgrade-readiness current project target reporting
@@ -157,6 +168,35 @@ Current MVP functionality includes implemented capabilities and newly required M
 - edmx-analysis reporting for designer metadata and companion generated files such as T4 templates, `.Designer.cs`, and generated context/model files where discoverable
 - edmx-analysis upgrade concern reporting for EDMX usage, stored procedure/function mappings, complex types, query-backed entities, defining queries, designer metadata, generated files, malformed EDMX files, and EF Core migration review points
 - edmx-analysis notes/limitations explaining static no-build analysis and that findings do not represent database validation, EF Core model generation, automatic conversion, or compatibility guarantees
+
+
+### Class Dependencies Artifact
+
+The `class-dependencies` capability is an MVP-scope addition. It should produce `class-dependencies.md` as a separate Markdown artifact. It is a static, evidence-backed source-level dependency report for understanding class and type coupling before refactoring, testing, or modernising a .NET codebase.
+
+MVP scope:
+
+- Add a `class-dependencies` capability that can produce `class-dependencies.md`.
+- Use discovered projects to locate `.cs` source files and associate findings with project names where possible.
+- Discover source-defined types such as classes, interfaces, records, structs, and enums where useful, while focusing mainly on classes for the MVP report.
+- Detect source-level dependencies from constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, and generic type arguments.
+- Preserve evidence including project name, source path, line number, source type, target type, dependency kind, and concise source snippet where possible.
+- Identify coupling concerns such as hardcoded concrete dependencies, direct infrastructure construction, static dependency concerns, concrete field/property dependencies, constructor parameters to concrete classes, inheritance from concrete base classes, framework-specific attributes, and time access.
+- Assign concern severity using `High`, `Medium`, and `Low` with cautious why-it-matters and recommendation text.
+- Report top coupled types, hardcoded concrete dependencies, static dependency hotspots, full type dependency inventory, and per-type details where useful.
+- Generate a focused Mermaid diagram using dependency-kind edge labels and grouping multiple kinds between the same source and target where practical.
+- Add unit tests for analyzer rules, concern classification, Mermaid output, CLI artifact selection, and Markdown output.
+
+Out of scope for MVP:
+
+- Building the solution.
+- Running the application or tests.
+- NuGet restore.
+- Full semantic compilation analysis.
+- Runtime dependency injection resolution.
+- Reflection, dynamic loading, factory behaviour, generated code behaviour, or conditional runtime behaviour analysis.
+- Runtime call graphs.
+- Proving that a dependency is always used or unused at runtime.
 
 ## MVP Exit Criteria
 
