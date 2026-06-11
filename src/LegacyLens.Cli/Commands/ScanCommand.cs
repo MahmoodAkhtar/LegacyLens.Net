@@ -1,3 +1,4 @@
+using LegacyLens.Cli.Commands.Runners;
 using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
@@ -10,12 +11,6 @@ namespace LegacyLens.Cli.Commands;
 public sealed class ScanCommand
 {
     private const string DiscoveryReportFileName = "discovery-report.md";
-    private const string UpgradeReadinessReportFileName = "upgrade-readiness-report.md";
-    private const string UpgradeBlockersReportFileName = "upgrade-blockers.md";
-    private const string ExternalDependenciesReportFileName = "external-dependencies.md";
-    private const string DataAccessInventoryReportFileName = "data-access-inventory.md";
-    private const string EdmxAnalysisReportFileName = "edmx-analysis.md";
-    private const string ClassDependenciesReportFileName = "class-dependencies.md";
 
     public ScanResult Execute(ScanOptions options)
     {
@@ -87,136 +82,17 @@ public sealed class ScanCommand
             context.ModernisationHints,
             context.ConfigFiles);
 
-        string? upgradeReadinessOutputPath = null;
-        UpgradeReadinessReport? upgradeReadinessReport = null;
+        var artifactResults = CreateArtifactRunners()
+            .Where(runner => runner.ShouldRun(context))
+            .Select(runner => runner.Run(context))
+            .ToArray();
 
-        if (context.Options.ShouldWriteUpgradeReadiness)
-        {
-            var upgradeReadinessAnalyzer = new UpgradeReadinessAnalyzer();
-
-            upgradeReadinessReport = upgradeReadinessAnalyzer.Analyze(
-                context.Projects,
-                context.WcfEndpoints,
-                context.WcfServiceContracts,
-                context.WcfBehaviours,
-                context.LegacyAspNetArtifacts,
-                context.ConfigFiles,
-                context.ModernisationHints,
-                context.Options.UpgradeTarget);
-
-            upgradeReadinessOutputPath = ArtifactOutputPathResolver.Resolve(
-                context.ScanPath,
-                context.Options,
-                UpgradeReadinessReportFileName);
-
-            var upgradeReadinessWriter = new UpgradeReadinessMarkdownReportWriter();
-            upgradeReadinessWriter.Write(upgradeReadinessOutputPath, upgradeReadinessReport);
-        }
-
-        string? upgradeBlockersOutputPath = null;
-        UpgradeBlockersReport? upgradeBlockersReport = null;
-
-        if (context.Options.ShouldWriteUpgradeBlockers)
-        {
-            var upgradeBlockersAnalyzer = new UpgradeBlockersAnalyzer();
-
-            upgradeBlockersReport = upgradeBlockersAnalyzer.Analyze(
-                context.Projects,
-                context.WcfEndpoints,
-                context.WcfServiceContracts,
-                context.WcfBehaviours,
-                context.LegacyAspNetArtifacts,
-                context.ConfigFiles,
-                context.ModernisationHints,
-                context.Options.UpgradeTarget);
-
-            upgradeBlockersOutputPath = ArtifactOutputPathResolver.Resolve(
-                context.ScanPath,
-                context.Options,
-                UpgradeBlockersReportFileName);
-
-            var upgradeBlockersWriter = new UpgradeBlockersMarkdownReportWriter();
-            upgradeBlockersWriter.Write(upgradeBlockersOutputPath, upgradeBlockersReport);
-        }
-
-        string? externalDependenciesOutputPath = null;
-        ExternalDependenciesReport? externalDependenciesReport = null;
-
-        if (context.Options.ShouldWriteExternalDependencies)
-        {
-            var externalDependenciesAnalyzer = new ExternalDependenciesAnalyzer();
-
-            externalDependenciesReport = externalDependenciesAnalyzer.Analyze(
-                context.Projects,
-                context.WcfEndpoints,
-                context.ConfigFiles);
-
-            externalDependenciesOutputPath = ArtifactOutputPathResolver.Resolve(
-                context.ScanPath,
-                context.Options,
-                ExternalDependenciesReportFileName);
-
-            var externalDependenciesWriter = new ExternalDependenciesMarkdownReportWriter();
-            externalDependenciesWriter.Write(externalDependenciesOutputPath, externalDependenciesReport);
-        }
-
-        string? dataAccessOutputPath = null;
-        DataAccessInventoryReport? dataAccessReport = null;
-
-        if (context.Options.ShouldWriteDataAccess)
-        {
-            var dataAccessAnalyzer = new DataAccessAnalyzer();
-
-            dataAccessReport = dataAccessAnalyzer.Analyze(
-                context.Projects,
-                context.ConfigFiles);
-
-            dataAccessOutputPath = ArtifactOutputPathResolver.Resolve(
-                context.ScanPath,
-                context.Options,
-                DataAccessInventoryReportFileName);
-
-            var dataAccessWriter = new DataAccessInventoryMarkdownReportWriter();
-            dataAccessWriter.Write(dataAccessOutputPath, dataAccessReport);
-        }
-
-        string? edmxAnalysisOutputPath = null;
-        EdmxAnalysisReport? edmxAnalysisReport = null;
-
-        if (context.Options.ShouldWriteEdmxAnalysis)
-        {
-            var edmxAnalyzer = new EdmxAnalyzer();
-
-            edmxAnalysisReport = edmxAnalyzer.Analyze(
-                context.ScanPath,
-                context.Projects);
-
-            edmxAnalysisOutputPath = ArtifactOutputPathResolver.Resolve(
-                context.ScanPath,
-                context.Options,
-                EdmxAnalysisReportFileName);
-
-            var edmxAnalysisWriter = new EdmxAnalysisMarkdownReportWriter();
-            edmxAnalysisWriter.Write(edmxAnalysisOutputPath, edmxAnalysisReport);
-        }
-
-        string? classDependenciesOutputPath = null;
-        ClassDependencyReport? classDependenciesReport = null;
-
-        if (context.Options.ShouldWriteClassDependencies)
-        {
-            var classDependencyAnalyzer = new ClassDependencyAnalyzer();
-
-            classDependenciesReport = classDependencyAnalyzer.Analyze(context.Projects);
-
-            classDependenciesOutputPath = ArtifactOutputPathResolver.Resolve(
-                context.ScanPath,
-                context.Options,
-                ClassDependenciesReportFileName);
-
-            var classDependenciesWriter = new ClassDependenciesMarkdownReportWriter();
-            classDependenciesWriter.Write(classDependenciesOutputPath, classDependenciesReport);
-        }
+        var upgradeReadinessResult = FindArtifactResult(artifactResults, "upgrade-readiness");
+        var upgradeBlockersResult = FindArtifactResult(artifactResults, "upgrade-blockers");
+        var externalDependenciesResult = FindArtifactResult(artifactResults, "external-dependencies");
+        var dataAccessResult = FindArtifactResult(artifactResults, "data-access");
+        var edmxAnalysisResult = FindArtifactResult(artifactResults, "edmx-analysis");
+        var classDependenciesResult = FindArtifactResult(artifactResults, "class-dependencies");
 
         return new ScanResult
         {
@@ -231,19 +107,45 @@ public sealed class ScanCommand
             ConfigFiles = context.ConfigFiles,
             ModernisationHints = context.ModernisationHints,
             ModernisationReviewAreas = context.ModernisationReviewAreas,
-            UpgradeReadinessOutputPath = upgradeReadinessOutputPath,
-            UpgradeReadinessReport = upgradeReadinessReport,
-            UpgradeBlockersOutputPath = upgradeBlockersOutputPath,
-            UpgradeBlockersReport = upgradeBlockersReport,
-            ExternalDependenciesOutputPath = externalDependenciesOutputPath,
-            ExternalDependenciesReport = externalDependenciesReport,
-            DataAccessOutputPath = dataAccessOutputPath,
-            DataAccessReport = dataAccessReport,
-            EdmxAnalysisOutputPath = edmxAnalysisOutputPath,
-            EdmxAnalysisReport = edmxAnalysisReport,
-            ClassDependenciesOutputPath = classDependenciesOutputPath,
-            ClassDependenciesReport = classDependenciesReport
+
+            UpgradeReadinessOutputPath = upgradeReadinessResult?.OutputPath,
+            UpgradeReadinessReport = upgradeReadinessResult?.Report as UpgradeReadinessReport,
+
+            UpgradeBlockersOutputPath = upgradeBlockersResult?.OutputPath,
+            UpgradeBlockersReport = upgradeBlockersResult?.Report as UpgradeBlockersReport,
+
+            ExternalDependenciesOutputPath = externalDependenciesResult?.OutputPath,
+            ExternalDependenciesReport = externalDependenciesResult?.Report as ExternalDependenciesReport,
+
+            DataAccessOutputPath = dataAccessResult?.OutputPath,
+            DataAccessReport = dataAccessResult?.Report as DataAccessInventoryReport,
+
+            EdmxAnalysisOutputPath = edmxAnalysisResult?.OutputPath,
+            EdmxAnalysisReport = edmxAnalysisResult?.Report as EdmxAnalysisReport,
+
+            ClassDependenciesOutputPath = classDependenciesResult?.OutputPath,
+            ClassDependenciesReport = classDependenciesResult?.Report as ClassDependencyReport
         };
+    }
+
+    private static IReadOnlyList<IScanArtifactRunner> CreateArtifactRunners() =>
+    [
+        new UpgradeReadinessArtifactRunner(),
+        new UpgradeBlockersArtifactRunner(),
+        new ExternalDependenciesArtifactRunner(),
+        new DataAccessArtifactRunner(),
+        new EdmxAnalysisArtifactRunner(),
+        new ClassDependenciesArtifactRunner()
+    ];
+
+    private static ScanArtifactResult? FindArtifactResult(
+        IEnumerable<ScanArtifactResult> artifactResults,
+        string artifactName)
+    {
+        return artifactResults.SingleOrDefault(
+            result => result.ArtifactName.Equals(
+                artifactName,
+                StringComparison.OrdinalIgnoreCase));
     }
 
     private static string ResolveOutputPath(string scanPath, ScanOptions options)

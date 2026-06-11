@@ -6,11 +6,8 @@ This document describes the repository and project structure for LegacyLens.NET.
 
 ```text
 LegacyLens.Net/
-├── artifacts/
 ├── docs/
 │   └── mvp.md
-├── output/
-├── reports/
 ├── samples/
 │   └── SampleLegacyApp/
 ├── src/
@@ -19,6 +16,33 @@ LegacyLens.Net/
 │   └── LegacyLens.Reporting/
 └── tests/
 ```
+
+The repository may also contain generated or local-only folders such as `artifacts/`, `output/`, and `reports/`, but these are ignored by Git and should not be treated as source-code folders.
+
+### Gitignored folder names that should not be used for code
+
+The `.gitignore` file intentionally ignores common build folders and LegacyLens.NET generated-output folders. Do not use these names for source, test, namespace, or feature folders inside `src/`, `tests/`, or `samples/`, because those folders may be ignored by Git and code may not be committed.
+
+Reserved generated-output folder names:
+
+- `artifacts/`
+- `output/`
+- `reports/`
+
+Avoid using these as code folders even with different casing, for example `Artifacts/`, `Output/`, or `Reports/`.
+
+Also avoid using common build/test-output folder names for source code, including:
+
+- `bin/`
+- `obj/`
+- `Debug/`
+- `Release/`
+- `Log/`
+- `Logs/`
+- `TestResult*/`
+- `CodeCoverage/`
+
+For optional artifact-generation code, use `Commands/Runners/` with the namespace `LegacyLens.Cli.Commands.Runners`. Do not use `Commands/Artifacts/`, because `artifacts/` is a generated-output folder name ignored by Git.
 
 ---
 
@@ -35,11 +59,20 @@ LegacyLens.Net/
 
 ## LegacyLens.Cli Structure
 
-The CLI project owns command-line parsing, scan orchestration, console output, and output-path selection for the main discovery report and optional artifact reports.
+The CLI project owns command-line parsing, scan orchestration, console output, output-path selection for the main discovery report, and artifact-runner coordination for optional artifact reports.
 
 ```text
 LegacyLens.Cli/
 ├── Commands/
+│   ├── Runners/
+│   │   ├── ClassDependenciesArtifactRunner.cs
+│   │   ├── DataAccessArtifactRunner.cs
+│   │   ├── EdmxAnalysisArtifactRunner.cs
+│   │   ├── ExternalDependenciesArtifactRunner.cs
+│   │   ├── IScanArtifactRunner.cs
+│   │   ├── ScanArtifactResult.cs
+│   │   ├── UpgradeBlockersArtifactRunner.cs
+│   │   └── UpgradeReadinessArtifactRunner.cs
 │   ├── ArtifactOutputPathResolver.cs
 │   ├── ScanCommand.cs
 │   ├── ScanContext.cs
@@ -56,13 +89,37 @@ The `Commands` namespace contains the command model and scan orchestration types
 
 | Type | Purpose |
 |---|---|
-| `ScanCommand` | Orchestrates static discovery, analysis, main report writing, and optional artifact writing for `legacylens scan <path>`. |
-| `ScanContext` | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, and prioritised review areas for later report writing and optional artifact generation. |
+| `ScanCommand` | Orchestrates static discovery, analysis, main report writing, artifact-runner execution, and final `ScanResult` creation for `legacylens scan <path>`. |
+| `ScanContext` | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, and prioritised review areas for report writing and optional artifact runners. |
 | `ScanOptions` | Represents validated scan options from the CLI parser, including output selection, console mode, artifact selection, and optional upgrade target context. |
 | `ScanResult` | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer. |
 | `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `data-access-inventory.md`, `edmx-analysis.md`, and `class-dependencies.md`. |
 
-`ScanContext` is intentionally not an artifact runner and should not contain discovery, analysis, report-writing, or output-path resolution behaviour. It exists to reduce long parameter lists inside `ScanCommand` and to prepare the CLI orchestration code for a later artifact-runner refactor. `ScanCommand` still owns when discovery runs, when analyzers run, when reports are written, and how the final `ScanResult` is populated.
+`ScanContext` is intentionally not an artifact runner and should not contain discovery, analysis, report-writing, or output-path resolution behaviour. It exists to reduce long parameter lists inside `ScanCommand` and to provide a stable input object for artifact runners. `ScanCommand` still owns when shared discovery runs, when shared analyzers run, when the main discovery report is written, which artifact runners are available, and how the final `ScanResult` is populated.
+
+### Artifact Runners
+
+The `Commands.Runners` namespace contains focused optional artifact-generation runners. Each runner decides whether it should run for the current `ScanOptions`, consumes the shared `ScanContext`, performs only the analysis needed for its artifact, writes its Markdown report, and returns a `ScanArtifactResult`.
+
+| Type | Purpose |
+|---|---|
+| `IScanArtifactRunner` | Common contract for optional artifact generation. |
+| `ScanArtifactResult` | Carries the artifact name, generated output path, and typed report object returned by a runner. |
+| `UpgradeReadinessArtifactRunner` | Produces `upgrade-readiness-report.md` when `--artifacts upgrade-readiness` is selected. |
+| `UpgradeBlockersArtifactRunner` | Produces `upgrade-blockers.md` when `--artifacts upgrade-blockers` is selected. |
+| `ExternalDependenciesArtifactRunner` | Produces `external-dependencies.md` when `--artifacts external-dependencies` is selected. |
+| `DataAccessArtifactRunner` | Produces `data-access-inventory.md` when `--artifacts data-access` is selected. |
+| `EdmxAnalysisArtifactRunner` | Produces `edmx-analysis.md` when `--artifacts edmx-analysis` is selected. |
+| `ClassDependenciesArtifactRunner` | Produces `class-dependencies.md` when `--artifacts class-dependencies` is selected. |
+
+Artifact runner implementation rules:
+
+- Keep optional artifact generation out of repeated `if` blocks inside `ScanCommand`.
+- Add a new runner when a new optional artifact is introduced.
+- Keep shared scan data on `ScanContext`; do not rediscover common solution/project/configuration facts inside runners.
+- Keep artifact-specific analyzer and Markdown writer calls inside the relevant runner.
+- Use `ArtifactOutputPathResolver` for optional artifact output paths.
+- Use `Commands/Runners/` rather than `Commands/Artifacts/`, because `artifacts/` is a gitignored generated-output folder name.
 
 Optional artifact path resolution should use this precedence:
 
