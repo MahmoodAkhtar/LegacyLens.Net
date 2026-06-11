@@ -42,6 +42,7 @@ LegacyLens.Cli/
 ├── Commands/
 │   ├── ArtifactOutputPathResolver.cs
 │   ├── ScanCommand.cs
+│   ├── ScanContext.cs
 │   ├── ScanOptions.cs
 │   └── ScanResult.cs
 ├── Parsing/
@@ -56,9 +57,12 @@ The `Commands` namespace contains the command model and scan orchestration types
 | Type | Purpose |
 |---|---|
 | `ScanCommand` | Orchestrates static discovery, analysis, main report writing, and optional artifact writing for `legacylens scan <path>`. |
+| `ScanContext` | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, and prioritised review areas for later report writing and optional artifact generation. |
 | `ScanOptions` | Represents validated scan options from the CLI parser, including output selection, console mode, artifact selection, and optional upgrade target context. |
 | `ScanResult` | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer. |
 | `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `data-access-inventory.md`, `edmx-analysis.md`, and `class-dependencies.md`. |
+
+`ScanContext` is intentionally not an artifact runner and should not contain discovery, analysis, report-writing, or output-path resolution behaviour. It exists to reduce long parameter lists inside `ScanCommand` and to prepare the CLI orchestration code for a later artifact-runner refactor. `ScanCommand` still owns when discovery runs, when analyzers run, when reports are written, and how the final `ScanResult` is populated.
 
 Optional artifact path resolution should use this precedence:
 

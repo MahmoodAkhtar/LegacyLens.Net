@@ -16,7 +16,7 @@ public sealed class ScanCommand
     private const string DataAccessInventoryReportFileName = "data-access-inventory.md";
     private const string EdmxAnalysisReportFileName = "edmx-analysis.md";
     private const string ClassDependenciesReportFileName = "class-dependencies.md";
-    
+
     public ScanResult Execute(ScanOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -61,38 +61,52 @@ public sealed class ScanCommand
         var modernisationReviewPrioritiser = new ModernisationReviewPrioritiser();
         var modernisationReviewAreas = modernisationReviewPrioritiser.Prioritise(modernisationHints);
 
-        var discoveryReportWriter = new DiscoveryMarkdownReportWriter();
-        discoveryReportWriter.Write(
+        var context = new ScanContext(
+            scanPath,
             outputPath,
+            options,
             solutions,
             projects,
             wcfEndpoints,
             wcfServiceContracts,
             wcfBehaviours,
             legacyAspNetArtifacts,
+            configFiles,
             modernisationHints,
-            configFiles);
+            modernisationReviewAreas);
+
+        var discoveryReportWriter = new DiscoveryMarkdownReportWriter();
+        discoveryReportWriter.Write(
+            context.OutputPath,
+            context.Solutions,
+            context.Projects,
+            context.WcfEndpoints,
+            context.WcfServiceContracts,
+            context.WcfBehaviours,
+            context.LegacyAspNetArtifacts,
+            context.ModernisationHints,
+            context.ConfigFiles);
 
         string? upgradeReadinessOutputPath = null;
         UpgradeReadinessReport? upgradeReadinessReport = null;
 
-        if (options.ShouldWriteUpgradeReadiness)
+        if (context.Options.ShouldWriteUpgradeReadiness)
         {
             var upgradeReadinessAnalyzer = new UpgradeReadinessAnalyzer();
 
             upgradeReadinessReport = upgradeReadinessAnalyzer.Analyze(
-                projects,
-                wcfEndpoints,
-                wcfServiceContracts,
-                wcfBehaviours,
-                legacyAspNetArtifacts,
-                configFiles,
-                modernisationHints,
-                options.UpgradeTarget);
+                context.Projects,
+                context.WcfEndpoints,
+                context.WcfServiceContracts,
+                context.WcfBehaviours,
+                context.LegacyAspNetArtifacts,
+                context.ConfigFiles,
+                context.ModernisationHints,
+                context.Options.UpgradeTarget);
 
             upgradeReadinessOutputPath = ArtifactOutputPathResolver.Resolve(
-                scanPath,
-                options,
+                context.ScanPath,
+                context.Options,
                 UpgradeReadinessReportFileName);
 
             var upgradeReadinessWriter = new UpgradeReadinessMarkdownReportWriter();
@@ -102,23 +116,23 @@ public sealed class ScanCommand
         string? upgradeBlockersOutputPath = null;
         UpgradeBlockersReport? upgradeBlockersReport = null;
 
-        if (options.ShouldWriteUpgradeBlockers)
+        if (context.Options.ShouldWriteUpgradeBlockers)
         {
             var upgradeBlockersAnalyzer = new UpgradeBlockersAnalyzer();
 
             upgradeBlockersReport = upgradeBlockersAnalyzer.Analyze(
-                projects,
-                wcfEndpoints,
-                wcfServiceContracts,
-                wcfBehaviours,
-                legacyAspNetArtifacts,
-                configFiles,
-                modernisationHints,
-                options.UpgradeTarget);
+                context.Projects,
+                context.WcfEndpoints,
+                context.WcfServiceContracts,
+                context.WcfBehaviours,
+                context.LegacyAspNetArtifacts,
+                context.ConfigFiles,
+                context.ModernisationHints,
+                context.Options.UpgradeTarget);
 
             upgradeBlockersOutputPath = ArtifactOutputPathResolver.Resolve(
-                scanPath,
-                options,
+                context.ScanPath,
+                context.Options,
                 UpgradeBlockersReportFileName);
 
             var upgradeBlockersWriter = new UpgradeBlockersMarkdownReportWriter();
@@ -128,72 +142,76 @@ public sealed class ScanCommand
         string? externalDependenciesOutputPath = null;
         ExternalDependenciesReport? externalDependenciesReport = null;
 
-        if (options.ShouldWriteExternalDependencies)
+        if (context.Options.ShouldWriteExternalDependencies)
         {
             var externalDependenciesAnalyzer = new ExternalDependenciesAnalyzer();
 
             externalDependenciesReport = externalDependenciesAnalyzer.Analyze(
-                projects,
-                wcfEndpoints,
-                configFiles);
+                context.Projects,
+                context.WcfEndpoints,
+                context.ConfigFiles);
 
             externalDependenciesOutputPath = ArtifactOutputPathResolver.Resolve(
-                scanPath,
-                options,
+                context.ScanPath,
+                context.Options,
                 ExternalDependenciesReportFileName);
 
             var externalDependenciesWriter = new ExternalDependenciesMarkdownReportWriter();
             externalDependenciesWriter.Write(externalDependenciesOutputPath, externalDependenciesReport);
         }
-        
+
         string? dataAccessOutputPath = null;
         DataAccessInventoryReport? dataAccessReport = null;
 
-        if (options.ShouldWriteDataAccess)
+        if (context.Options.ShouldWriteDataAccess)
         {
             var dataAccessAnalyzer = new DataAccessAnalyzer();
 
-            dataAccessReport = dataAccessAnalyzer.Analyze(projects, configFiles);
+            dataAccessReport = dataAccessAnalyzer.Analyze(
+                context.Projects,
+                context.ConfigFiles);
 
             dataAccessOutputPath = ArtifactOutputPathResolver.Resolve(
-                scanPath,
-                options,
+                context.ScanPath,
+                context.Options,
                 DataAccessInventoryReportFileName);
 
             var dataAccessWriter = new DataAccessInventoryMarkdownReportWriter();
             dataAccessWriter.Write(dataAccessOutputPath, dataAccessReport);
         }
-        
+
         string? edmxAnalysisOutputPath = null;
         EdmxAnalysisReport? edmxAnalysisReport = null;
 
-        if (options.ShouldWriteEdmxAnalysis)
+        if (context.Options.ShouldWriteEdmxAnalysis)
         {
             var edmxAnalyzer = new EdmxAnalyzer();
 
-            edmxAnalysisReport = edmxAnalyzer.Analyze(scanPath, projects);
-            
+            edmxAnalysisReport = edmxAnalyzer.Analyze(
+                context.ScanPath,
+                context.Projects);
+
             edmxAnalysisOutputPath = ArtifactOutputPathResolver.Resolve(
-                scanPath,
-                options,
+                context.ScanPath,
+                context.Options,
                 EdmxAnalysisReportFileName);
 
             var edmxAnalysisWriter = new EdmxAnalysisMarkdownReportWriter();
             edmxAnalysisWriter.Write(edmxAnalysisOutputPath, edmxAnalysisReport);
         }
-        
+
         string? classDependenciesOutputPath = null;
         ClassDependencyReport? classDependenciesReport = null;
 
-        if (options.ShouldWriteClassDependencies)
+        if (context.Options.ShouldWriteClassDependencies)
         {
             var classDependencyAnalyzer = new ClassDependencyAnalyzer();
 
-            classDependenciesReport = classDependencyAnalyzer.Analyze(projects);
-            
+            classDependenciesReport = classDependencyAnalyzer.Analyze(context.Projects);
+
             classDependenciesOutputPath = ArtifactOutputPathResolver.Resolve(
-                scanPath,
-                options,
+                context.ScanPath,
+                context.Options,
                 ClassDependenciesReportFileName);
 
             var classDependenciesWriter = new ClassDependenciesMarkdownReportWriter();
@@ -202,17 +220,17 @@ public sealed class ScanCommand
 
         return new ScanResult
         {
-            ScanPath = scanPath,
-            OutputPath = outputPath,
-            Solutions = solutions,
-            Projects = projects,
-            WcfEndpoints = wcfEndpoints,
-            WcfServiceContracts = wcfServiceContracts,
-            WcfBehaviours = wcfBehaviours,
-            LegacyAspNetArtifacts = legacyAspNetArtifacts,
-            ConfigFiles = configFiles,
-            ModernisationHints = modernisationHints,
-            ModernisationReviewAreas = modernisationReviewAreas,
+            ScanPath = context.ScanPath,
+            OutputPath = context.OutputPath,
+            Solutions = context.Solutions,
+            Projects = context.Projects,
+            WcfEndpoints = context.WcfEndpoints,
+            WcfServiceContracts = context.WcfServiceContracts,
+            WcfBehaviours = context.WcfBehaviours,
+            LegacyAspNetArtifacts = context.LegacyAspNetArtifacts,
+            ConfigFiles = context.ConfigFiles,
+            ModernisationHints = context.ModernisationHints,
+            ModernisationReviewAreas = context.ModernisationReviewAreas,
             UpgradeReadinessOutputPath = upgradeReadinessOutputPath,
             UpgradeReadinessReport = upgradeReadinessReport,
             UpgradeBlockersOutputPath = upgradeBlockersOutputPath,
