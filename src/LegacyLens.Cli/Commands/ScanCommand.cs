@@ -9,6 +9,14 @@ namespace LegacyLens.Cli.Commands;
 
 public sealed class ScanCommand
 {
+    private const string DiscoveryReportFileName = "discovery-report.md";
+    private const string UpgradeReadinessReportFileName = "upgrade-readiness-report.md";
+    private const string UpgradeBlockersReportFileName = "upgrade-blockers.md";
+    private const string ExternalDependenciesReportFileName = "external-dependencies.md";
+    private const string DataAccessInventoryReportFileName = "data-access-inventory.md";
+    private const string EdmxAnalysisReportFileName = "edmx-analysis.md";
+    private const string ClassDependenciesReportFileName = "class-dependencies.md";
+    
     public ScanResult Execute(ScanOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -82,7 +90,10 @@ public sealed class ScanCommand
                 modernisationHints,
                 options.UpgradeTarget);
 
-            upgradeReadinessOutputPath = ResolveUpgradeReadinessOutputPath(scanPath, options);
+            upgradeReadinessOutputPath = ArtifactOutputPathResolver.Resolve(
+                scanPath,
+                options,
+                UpgradeReadinessReportFileName);
 
             var upgradeReadinessWriter = new UpgradeReadinessMarkdownReportWriter();
             upgradeReadinessWriter.Write(upgradeReadinessOutputPath, upgradeReadinessReport);
@@ -105,7 +116,10 @@ public sealed class ScanCommand
                 modernisationHints,
                 options.UpgradeTarget);
 
-            upgradeBlockersOutputPath = ResolveUpgradeBlockersOutputPath(scanPath, options);
+            upgradeBlockersOutputPath = ArtifactOutputPathResolver.Resolve(
+                scanPath,
+                options,
+                UpgradeBlockersReportFileName);
 
             var upgradeBlockersWriter = new UpgradeBlockersMarkdownReportWriter();
             upgradeBlockersWriter.Write(upgradeBlockersOutputPath, upgradeBlockersReport);
@@ -123,7 +137,10 @@ public sealed class ScanCommand
                 wcfEndpoints,
                 configFiles);
 
-            externalDependenciesOutputPath = ResolveExternalDependenciesOutputPath(scanPath, options);
+            externalDependenciesOutputPath = ArtifactOutputPathResolver.Resolve(
+                scanPath,
+                options,
+                ExternalDependenciesReportFileName);
 
             var externalDependenciesWriter = new ExternalDependenciesMarkdownReportWriter();
             externalDependenciesWriter.Write(externalDependenciesOutputPath, externalDependenciesReport);
@@ -136,11 +153,12 @@ public sealed class ScanCommand
         {
             var dataAccessAnalyzer = new DataAccessAnalyzer();
 
-            dataAccessReport = dataAccessAnalyzer.Analyze(
-                projects,
-                configFiles);
+            dataAccessReport = dataAccessAnalyzer.Analyze(projects, configFiles);
 
-            dataAccessOutputPath = ResolveDataAccessOutputPath(scanPath, options);
+            dataAccessOutputPath = ArtifactOutputPathResolver.Resolve(
+                scanPath,
+                options,
+                DataAccessInventoryReportFileName);
 
             var dataAccessWriter = new DataAccessInventoryMarkdownReportWriter();
             dataAccessWriter.Write(dataAccessOutputPath, dataAccessReport);
@@ -154,7 +172,11 @@ public sealed class ScanCommand
             var edmxAnalyzer = new EdmxAnalyzer();
 
             edmxAnalysisReport = edmxAnalyzer.Analyze(scanPath, projects);
-            edmxAnalysisOutputPath = ResolveEdmxAnalysisOutputPath(scanPath, options);
+            
+            edmxAnalysisOutputPath = ArtifactOutputPathResolver.Resolve(
+                scanPath,
+                options,
+                EdmxAnalysisReportFileName);
 
             var edmxAnalysisWriter = new EdmxAnalysisMarkdownReportWriter();
             edmxAnalysisWriter.Write(edmxAnalysisOutputPath, edmxAnalysisReport);
@@ -168,7 +190,11 @@ public sealed class ScanCommand
             var classDependencyAnalyzer = new ClassDependencyAnalyzer();
 
             classDependenciesReport = classDependencyAnalyzer.Analyze(projects);
-            classDependenciesOutputPath = ResolveClassDependenciesOutputPath(scanPath, options);
+            
+            classDependenciesOutputPath = ArtifactOutputPathResolver.Resolve(
+                scanPath,
+                options,
+                ClassDependenciesReportFileName);
 
             var classDependenciesWriter = new ClassDependenciesMarkdownReportWriter();
             classDependenciesWriter.Write(classDependenciesOutputPath, classDependenciesReport);
@@ -201,138 +227,6 @@ public sealed class ScanCommand
             ClassDependenciesReport = classDependenciesReport
         };
     }
-    
-    private static string ResolveClassDependenciesOutputPath(string scanPath, ScanOptions options)
-    {
-        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
-        {
-            return Path.Combine(
-                Path.GetFullPath(options.OutputDirectory),
-                "class-dependencies.md");
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.Output))
-        {
-            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
-
-            if (!string.IsNullOrWhiteSpace(outputDirectory))
-            {
-                return Path.Combine(outputDirectory, "class-dependencies.md");
-            }
-        }
-
-        return Path.Combine(scanPath, "output", "class-dependencies.md");
-    }
-    
-    private static string ResolveEdmxAnalysisOutputPath(string scanPath, ScanOptions options)
-    {
-        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
-        {
-            return Path.Combine(
-                Path.GetFullPath(options.OutputDirectory),
-                "edmx-analysis.md");
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.Output))
-        {
-            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
-
-            if (!string.IsNullOrWhiteSpace(outputDirectory))
-            {
-                return Path.Combine(outputDirectory, "edmx-analysis.md");
-            }
-        }
-
-        return Path.Combine(scanPath, "output", "edmx-analysis.md");
-    }
-
-    private static string ResolveDataAccessOutputPath(string scanPath, ScanOptions options)
-    {
-        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
-        {
-            return Path.Combine(
-                Path.GetFullPath(options.OutputDirectory),
-                "data-access-inventory.md");
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.Output))
-        {
-            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
-
-            if (!string.IsNullOrWhiteSpace(outputDirectory))
-            {
-                return Path.Combine(outputDirectory, "data-access-inventory.md");
-            }
-        }
-
-        return Path.Combine(scanPath, "output", "data-access-inventory.md");
-    }
-    
-    private static string ResolveExternalDependenciesOutputPath(string scanPath, ScanOptions options)
-    {
-        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
-        {
-            return Path.Combine(
-                Path.GetFullPath(options.OutputDirectory),
-                "external-dependencies.md");
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.Output))
-        {
-            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
-
-            if (!string.IsNullOrWhiteSpace(outputDirectory))
-            {
-                return Path.Combine(outputDirectory, "external-dependencies.md");
-            }
-        }
-
-        return Path.Combine(scanPath, "output", "external-dependencies.md");
-    }
-
-    private static string ResolveUpgradeBlockersOutputPath(string scanPath, ScanOptions options)
-    {
-        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
-        {
-            return Path.Combine(
-                Path.GetFullPath(options.OutputDirectory),
-                "upgrade-blockers.md");
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.Output))
-        {
-            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
-
-            if (!string.IsNullOrWhiteSpace(outputDirectory))
-            {
-                return Path.Combine(outputDirectory, "upgrade-blockers.md");
-            }
-        }
-
-        return Path.Combine(scanPath, "output", "upgrade-blockers.md");
-    }
-
-    private static string ResolveUpgradeReadinessOutputPath(string scanPath, ScanOptions options)
-    {
-        if (!string.IsNullOrWhiteSpace(options.OutputDirectory))
-        {
-            return Path.Combine(
-                Path.GetFullPath(options.OutputDirectory),
-                "upgrade-readiness-report.md");
-        }
-
-        if (!string.IsNullOrWhiteSpace(options.Output))
-        {
-            var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(options.Output));
-
-            if (!string.IsNullOrWhiteSpace(outputDirectory))
-            {
-                return Path.Combine(outputDirectory, "upgrade-readiness-report.md");
-            }
-        }
-
-        return Path.Combine(scanPath, "output", "upgrade-readiness-report.md");
-    }
 
     private static string ResolveOutputPath(string scanPath, ScanOptions options)
     {
@@ -345,9 +239,9 @@ public sealed class ScanCommand
         {
             return Path.Combine(
                 Path.GetFullPath(options.OutputDirectory),
-                "discovery-report.md");
+                DiscoveryReportFileName);
         }
 
-        return Path.Combine(scanPath, "output", "discovery-report.md");
+        return Path.Combine(scanPath, "output", DiscoveryReportFileName);
     }
 }

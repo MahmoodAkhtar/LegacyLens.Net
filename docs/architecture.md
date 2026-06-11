@@ -26,10 +26,55 @@ LegacyLens.Net/
 
 | Project | Purpose |
 |---|---|
-| `LegacyLens.Cli` | Standalone command-line executable for running `legacylens scan <path>` and writing the Markdown discovery report |
+| `LegacyLens.Cli` | Standalone command-line executable for running `legacylens scan <path>`, writing the main Markdown discovery report, and coordinating optional artifact report generation |
 | `LegacyLens.Core` | Core discovery and analysis logic |
 | `LegacyLens.Reporting` | Report generation functionality |
 | `SampleLegacyApp` | Sample legacy-style .NET application used for testing discovery features |
+
+---
+
+## LegacyLens.Cli Structure
+
+The CLI project owns command-line parsing, scan orchestration, console output, and output-path selection for the main discovery report and optional artifact reports.
+
+```text
+LegacyLens.Cli/
+├── Commands/
+│   ├── ArtifactOutputPathResolver.cs
+│   ├── ScanCommand.cs
+│   ├── ScanOptions.cs
+│   └── ScanResult.cs
+├── Parsing/
+├── Writers/
+└── Program.cs
+```
+
+### Commands
+
+The `Commands` namespace contains the command model and scan orchestration types.
+
+| Type | Purpose |
+|---|---|
+| `ScanCommand` | Orchestrates static discovery, analysis, main report writing, and optional artifact writing for `legacylens scan <path>`. |
+| `ScanOptions` | Represents validated scan options from the CLI parser, including output selection, console mode, artifact selection, and optional upgrade target context. |
+| `ScanResult` | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer. |
+| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `data-access-inventory.md`, `edmx-analysis.md`, and `class-dependencies.md`. |
+
+Optional artifact path resolution should use this precedence:
+
+1. If `--output-dir` / `ScanOptions.OutputDirectory` is provided, write the artifact file into that directory.
+2. Else if `--output` / `ScanOptions.Output` is provided, write the artifact file into the same directory as the main discovery report.
+3. Else write the artifact file into `<scan-path>/output/<artifact-file-name>`.
+
+The normal `discovery-report.md` output-path resolution currently remains inside `ScanCommand` because it has slightly different file-vs-directory semantics: `--output` selects the exact main report file, while `--output-dir` selects the directory for `discovery-report.md`. Keep this separate unless a later artifact-pipeline refactor deliberately generalises both main report and optional artifact path handling.
+
+### Parsing
+
+The `Parsing` namespace contains command-line parsing and validation. It should validate the public CLI contract before `ScanCommand` runs. Examples include required scan path validation, unsupported option handling, mutually exclusive `--output` and `--output-dir`, mutually exclusive `--quiet` and `--verbose`, supported artifact values, and valid use of `--upgrade-target`.
+
+### Writers
+
+The CLI `Writers` namespace contains console output formatting. It should print concise default output, quiet output, verbose output, help text, version text, and error messages. Markdown and Mermaid report rendering should remain in `LegacyLens.Reporting`.
 
 ---
 
