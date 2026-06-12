@@ -1,6 +1,7 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Files;
 
 namespace LegacyLens.Core.Analysis;
 
@@ -15,12 +16,29 @@ public sealed class DataAccessAnalyzer
         ArgumentNullException.ThrowIfNull(projects);
         ArgumentNullException.ThrowIfNull(configFiles);
 
+        var inventory = new ScanFileInventoryBuilder().Build(projects);
+
+        return Analyze(
+            projects,
+            configFiles,
+            inventory);
+    }
+
+    public DataAccessInventoryReport Analyze(
+        IReadOnlyCollection<DiscoveredProject> projects,
+        IReadOnlyCollection<DiscoveredConfigFile> configFiles,
+        ScanFileInventory fileInventory)
+    {
+        ArgumentNullException.ThrowIfNull(projects);
+        ArgumentNullException.ThrowIfNull(configFiles);
+        ArgumentNullException.ThrowIfNull(fileInventory);
+
         var findings = new List<DataAccessFinding>();
 
         AddConfigurationFindings(findings, configFiles);
         AddProjectPackageFindings(findings, projects);
         AddAssemblyReferenceFindings(findings, projects);
-        AddProjectFileFindings(findings, projects);
+        AddProjectFileFindings(findings, projects, fileInventory);
 
         var distinctFindings = findings
             .GroupBy(CreateDeduplicationKey, StringComparer.OrdinalIgnoreCase)
@@ -381,57 +399,59 @@ public sealed class DataAccessAnalyzer
 
     private static void AddProjectFileFindings(
         ICollection<DataAccessFinding> findings,
-        IEnumerable<DiscoveredProject> projects)
+        IReadOnlyCollection<DiscoveredProject> projects,
+        ScanFileInventory fileInventory)
     {
-        foreach (var project in projects)
-        {
-            var projectDirectory = Path.GetDirectoryName(project.ProjectFilePath);
-
-            if (string.IsNullOrWhiteSpace(projectDirectory) || !Directory.Exists(projectDirectory))
-            {
-                continue;
-            }
-
-            AddEdmxAndModelFileFindings(findings, project, projectDirectory);
-            AddMigrationFolderFindings(findings, project, projectDirectory);
-            AddSourceCodeFindings(findings, project, projectDirectory);
-        }
+        AddEdmxFileFindings(findings, fileInventory.EdmxFiles);
+        AddDbmlFileFindings(findings, fileInventory.DbmlFiles);
+        AddT4FileFindings(findings, fileInventory.T4Files);
+        AddMigrationFolderFindings(findings, projects, fileInventory.MigrationDirectories);
+        AddSourceCodeFindings(findings, fileInventory.CSharpFiles);
     }
 
-    private static void AddEdmxAndModelFileFindings(
+    private static void AddEdmxFileFindings(
         ICollection<DataAccessFinding> findings,
-        DiscoveredProject project,
-        string projectDirectory)
+        IEnumerable<ScanFile> edmxFiles)
     {
-        foreach (var edmxFile in SafeEnumerateFiles(projectDirectory, "*.edmx"))
+        foreach (var edmxFile in edmxFiles)
         {
             findings.Add(new DataAccessFinding(
                 DataAccessCategory.EdmxObjectContext,
-                Path.GetFileName(edmxFile),
+                Path.GetFileName(edmxFile.FullPath),
                 DataAccessSourceType.EdmxFile,
-                edmxFile,
-                project.Name,
+                edmxFile.FullPath,
+                edmxFile.ProjectName,
                 Evidence: "EDMX model file found.",
                 MaskedValue: null,
                 DataAccessConfidence.High,
                 MigrationConsideration: "EDMX models are classic EF artifacts. Review ObjectContext/entities/mappings before planning EF Core migration."));
         }
+    }
 
-        foreach (var dbmlFile in SafeEnumerateFiles(projectDirectory, "*.dbml"))
+    private static void AddDbmlFileFindings(
+        ICollection<DataAccessFinding> findings,
+        IEnumerable<ScanFile> dbmlFiles)
+    {
+        foreach (var dbmlFile in dbmlFiles)
         {
             findings.Add(new DataAccessFinding(
                 DataAccessCategory.LinqToSql,
-                Path.GetFileName(dbmlFile),
+                Path.GetFileName(dbmlFile.FullPath),
                 DataAccessSourceType.DbmlFile,
-                dbmlFile,
-                project.Name,
+                dbmlFile.FullPath,
+                dbmlFile.ProjectName,
                 Evidence: "LINQ to SQL DBML model file found.",
                 MaskedValue: null,
                 DataAccessConfidence.High,
                 MigrationConsideration: "LINQ to SQL models require review because they do not directly map to EF Core migrations or DbContext scaffolding."));
         }
+    }
 
-        foreach (var t4File in SafeEnumerateFiles(projectDirectory, "*.tt"))
+    private static void AddT4FileFindings(
+        ICollection<DataAccessFinding> findings,
+        IEnumerable<ScanFile> t4Files)
+    {
+        foreach (var t4File in t4Files)
         {
             if (!LooksLikeEfT4Template(t4File))
             {
@@ -440,10 +460,10 @@ public sealed class DataAccessAnalyzer
 
             findings.Add(new DataAccessFinding(
                 DataAccessCategory.EdmxObjectContext,
-                Path.GetFileName(t4File),
+                Path.GetFileName(t4File.FullPath),
                 DataAccessSourceType.T4Template,
-                t4File,
-                project.Name,
+                t4File.FullPath,
+                t4File.ProjectName,
                 Evidence: "EF-related T4 template found.",
                 MaskedValue: null,
                 DataAccessConfidence.Medium,
@@ -451,9 +471,9 @@ public sealed class DataAccessAnalyzer
         }
     }
 
-    private static bool LooksLikeEfT4Template(string filePath)
+    private static bool LooksLikeEfT4Template(ScanFile file)
     {
-        var fileName = Path.GetFileName(filePath);
+        var fileName = Path.GetFileName(file.FullPath);
 
         if (fileName.Contains("Context", StringComparison.OrdinalIgnoreCase) ||
             fileName.Contains("Model", StringComparison.OrdinalIgnoreCase) ||
@@ -462,31 +482,26 @@ public sealed class DataAccessAnalyzer
             return true;
         }
 
-        var text = SafeReadAllText(filePath);
-
-        return text.Contains("EntityFramework", StringComparison.OrdinalIgnoreCase) ||
-               text.Contains("ObjectContext", StringComparison.OrdinalIgnoreCase) ||
-               text.Contains("DbContext", StringComparison.OrdinalIgnoreCase);
+        return file.Content.Contains("EntityFramework", StringComparison.OrdinalIgnoreCase) ||
+               file.Content.Contains("ObjectContext", StringComparison.OrdinalIgnoreCase) ||
+               file.Content.Contains("DbContext", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddMigrationFolderFindings(
         ICollection<DataAccessFinding> findings,
-        DiscoveredProject project,
-        string projectDirectory)
+        IReadOnlyCollection<DiscoveredProject> projects,
+        IEnumerable<string> migrationDirectories)
     {
-        foreach (var directory in SafeEnumerateDirectories(projectDirectory))
+        foreach (var directory in migrationDirectories)
         {
-            if (!string.Equals(Path.GetFileName(directory), "Migrations", StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
+            var project = FindNearestProject(directory, projects);
 
             findings.Add(new DataAccessFinding(
                 DataAccessCategory.MigrationArtifact,
                 "Migrations",
                 DataAccessSourceType.MigrationFolder,
                 directory,
-                project.Name,
+                project?.Name,
                 Evidence: "Migrations folder found.",
                 MaskedValue: null,
                 DataAccessConfidence.Medium,
@@ -496,148 +511,164 @@ public sealed class DataAccessAnalyzer
 
     private static void AddSourceCodeFindings(
         ICollection<DataAccessFinding> findings,
-        DiscoveredProject project,
-        string projectDirectory)
+        IEnumerable<ScanFile> sourceFiles)
     {
-        foreach (var sourceFile in SafeEnumerateFiles(projectDirectory, "*.cs"))
+        foreach (var sourceFile in sourceFiles)
         {
-            var source = SafeReadAllText(sourceFile);
-
-            if (string.IsNullOrWhiteSpace(source))
+            if (string.IsNullOrWhiteSpace(sourceFile.Content))
             {
                 continue;
             }
 
-            AddSourceTokenFinding(
-                findings,
-                project,
-                sourceFile,
-                source,
-                DataAccessCategory.AdoNet,
-                "ADO.NET usage detected.",
-                "ADO.NET tokens such as SqlConnection, DbConnection, SqlCommand, or DbCommand were found.",
-                "Review connection management, commands, transactions, and data reader usage before migration.",
-                DataAccessConfidence.Medium,
-                "SqlConnection",
-                "SqlCommand",
-                "DbConnection",
-                "DbCommand",
-                "IDbConnection",
-                "IDataReader");
-
-            AddSourceTokenFinding(
-                findings,
-                project,
-                sourceFile,
-                source,
-                DataAccessCategory.EntityFrameworkCore,
-                "DbContext candidate detected.",
-                "DbContext token found in source.",
-                "Review DbContext configuration, provider registration, migrations, and query behaviour before migration.",
-                DataAccessConfidence.Medium,
-                "DbContext",
-                "DbSet<",
-                "OnModelCreating");
-
-            AddSourceTokenFinding(
-                findings,
-                project,
-                sourceFile,
-                source,
-                DataAccessCategory.EdmxObjectContext,
-                "ObjectContext candidate detected.",
-                "ObjectContext token found in source.",
-                "Review ObjectContext usage because EDMX/ObjectContext patterns usually need migration or isolation decisions.",
-                DataAccessConfidence.High,
-                "ObjectContext",
-                "ObjectSet<",
-                "EntityObject");
-
-            AddSourceTokenFinding(
-                findings,
-                project,
-                sourceFile,
-                source,
-                DataAccessCategory.Dapper,
-                "Dapper usage detected.",
-                "Dapper token or common Dapper call found in source.",
-                "Review SQL strings, parameter handling, connection lifetimes, and transaction boundaries.",
-                DataAccessConfidence.Medium,
-                "using Dapper",
-                "SqlMapper",
-                ".Query<",
-                ".QueryAsync",
-                ".ExecuteAsync");
-
-            AddSourceTokenFinding(
-                findings,
-                project,
-                sourceFile,
-                source,
-                DataAccessCategory.NHibernate,
-                "NHibernate usage detected.",
-                "NHibernate token found in source.",
-                "Review session factory, mappings, transactions, and provider compatibility.",
-                DataAccessConfidence.Medium,
-                "NHibernate",
-                "ISession",
-                "SessionFactory");
-
-            if (LooksLikeRepositoryCandidate(sourceFile, source))
+            var project = new DiscoveredProject
             {
-                findings.Add(new DataAccessFinding(
-                    DataAccessCategory.RepositoryPattern,
-                    Path.GetFileNameWithoutExtension(sourceFile),
-                    DataAccessSourceType.SourceCode,
-                    sourceFile,
-                    project.Name,
-                    Evidence: "Repository class or interface candidate found.",
-                    MaskedValue: null,
-                    DataAccessConfidence.Low,
-                    MigrationConsideration: "Repository candidates should be reviewed to understand persistence boundaries and whether queries are centralised or spread through the application."));
-            }
+                Name = sourceFile.ProjectName,
+                ProjectFilePath = sourceFile.ProjectFilePath
+            };
 
-            if (LooksLikeUnitOfWorkCandidate(sourceFile, source))
-            {
-                findings.Add(new DataAccessFinding(
-                    DataAccessCategory.UnitOfWorkPattern,
-                    Path.GetFileNameWithoutExtension(sourceFile),
-                    DataAccessSourceType.SourceCode,
-                    sourceFile,
-                    project.Name,
-                    Evidence: "Unit-of-work class or interface candidate found.",
-                    MaskedValue: null,
-                    DataAccessConfidence.Low,
-                    MigrationConsideration: "Unit-of-work candidates should be reviewed to understand transaction boundaries and persistence orchestration."));
-            }
+            AddSourceCodeFindings(
+                findings,
+                project,
+                sourceFile.FullPath,
+                sourceFile.Content);
+        }
+    }
 
-            if (LooksLikeStoredProcedureUsage(source))
-            {
-                findings.Add(new DataAccessFinding(
-                    DataAccessCategory.StoredProcedure,
-                    Path.GetFileName(sourceFile),
-                    DataAccessSourceType.SourceCode,
-                    sourceFile,
-                    project.Name,
-                    Evidence: "Possible stored procedure usage detected.",
-                    MaskedValue: null,
-                    DataAccessConfidence.Low,
-                    MigrationConsideration: "Stored procedure indicators should be verified by the development team before changing data access code or schema deployment."));
-            }
+    private static void AddSourceCodeFindings(
+        ICollection<DataAccessFinding> findings,
+        DiscoveredProject project,
+        string sourceFile,
+        string source)
+    {
+        AddSourceTokenFinding(
+            findings,
+            project,
+            sourceFile,
+            source,
+            DataAccessCategory.AdoNet,
+            "ADO.NET usage detected.",
+            "ADO.NET tokens such as SqlConnection, DbConnection, SqlCommand, or DbCommand were found.",
+            "Review connection management, commands, transactions, and data reader usage before migration.",
+            DataAccessConfidence.Medium,
+            "SqlConnection",
+            "SqlCommand",
+            "DbConnection",
+            "DbCommand",
+            "IDbConnection",
+            "IDataReader");
 
-            if (LooksLikeRawSqlUsage(source))
-            {
-                findings.Add(new DataAccessFinding(
-                    DataAccessCategory.RawSql,
-                    Path.GetFileName(sourceFile),
-                    DataAccessSourceType.SourceCode,
-                    sourceFile,
-                    project.Name,
-                    Evidence: "Possible raw SQL string detected.",
-                    MaskedValue: null,
-                    DataAccessConfidence.Low,
-                    MigrationConsideration: "Raw SQL indicators should be reviewed for SQL dialect, parameter handling, stored procedure calls, and provider compatibility."));
-            }
+        AddSourceTokenFinding(
+            findings,
+            project,
+            sourceFile,
+            source,
+            DataAccessCategory.EntityFrameworkCore,
+            "DbContext candidate detected.",
+            "DbContext token found in source.",
+            "Review DbContext configuration, provider registration, migrations, and query behaviour before migration.",
+            DataAccessConfidence.Medium,
+            "DbContext",
+            "DbSet<",
+            "OnModelCreating");
+
+        AddSourceTokenFinding(
+            findings,
+            project,
+            sourceFile,
+            source,
+            DataAccessCategory.EdmxObjectContext,
+            "ObjectContext candidate detected.",
+            "ObjectContext token found in source.",
+            "Review ObjectContext usage because EDMX/ObjectContext patterns usually need migration or isolation decisions.",
+            DataAccessConfidence.High,
+            "ObjectContext",
+            "ObjectSet<",
+            "EntityObject");
+
+        AddSourceTokenFinding(
+            findings,
+            project,
+            sourceFile,
+            source,
+            DataAccessCategory.Dapper,
+            "Dapper usage detected.",
+            "Dapper token or common Dapper call found in source.",
+            "Review SQL strings, parameter handling, connection lifetimes, and transaction boundaries.",
+            DataAccessConfidence.Medium,
+            "using Dapper",
+            "SqlMapper",
+            ".Query<",
+            ".QueryAsync",
+            ".ExecuteAsync");
+
+        AddSourceTokenFinding(
+            findings,
+            project,
+            sourceFile,
+            source,
+            DataAccessCategory.NHibernate,
+            "NHibernate usage detected.",
+            "NHibernate token found in source.",
+            "Review session factory, mappings, transactions, and provider compatibility.",
+            DataAccessConfidence.Medium,
+            "NHibernate",
+            "ISession",
+            "SessionFactory");
+
+        if (LooksLikeRepositoryCandidate(sourceFile, source))
+        {
+            findings.Add(new DataAccessFinding(
+                DataAccessCategory.RepositoryPattern,
+                Path.GetFileNameWithoutExtension(sourceFile),
+                DataAccessSourceType.SourceCode,
+                sourceFile,
+                project.Name,
+                Evidence: "Repository class or interface candidate found.",
+                MaskedValue: null,
+                DataAccessConfidence.Low,
+                MigrationConsideration: "Repository candidates should be reviewed to understand persistence boundaries and whether queries are centralised or spread through the application."));
+        }
+
+        if (LooksLikeUnitOfWorkCandidate(sourceFile, source))
+        {
+            findings.Add(new DataAccessFinding(
+                DataAccessCategory.UnitOfWorkPattern,
+                Path.GetFileNameWithoutExtension(sourceFile),
+                DataAccessSourceType.SourceCode,
+                sourceFile,
+                project.Name,
+                Evidence: "Unit-of-work class or interface candidate found.",
+                MaskedValue: null,
+                DataAccessConfidence.Low,
+                MigrationConsideration: "Unit-of-work candidates should be reviewed to understand transaction boundaries and persistence orchestration."));
+        }
+
+        if (LooksLikeStoredProcedureUsage(source))
+        {
+            findings.Add(new DataAccessFinding(
+                DataAccessCategory.StoredProcedure,
+                Path.GetFileName(sourceFile),
+                DataAccessSourceType.SourceCode,
+                sourceFile,
+                project.Name,
+                Evidence: "Possible stored procedure usage detected.",
+                MaskedValue: null,
+                DataAccessConfidence.Low,
+                MigrationConsideration: "Stored procedure indicators should be verified by the development team before changing data access code or schema deployment."));
+        }
+
+        if (LooksLikeRawSqlUsage(source))
+        {
+            findings.Add(new DataAccessFinding(
+                DataAccessCategory.RawSql,
+                Path.GetFileName(sourceFile),
+                DataAccessSourceType.SourceCode,
+                sourceFile,
+                project.Name,
+                Evidence: "Possible raw SQL string detected.",
+                MaskedValue: null,
+                DataAccessConfidence.Low,
+                MigrationConsideration: "Raw SQL indicators should be reviewed for SQL dialect, parameter handling, stored procedure calls, and provider compatibility."));
         }
     }
 
@@ -705,57 +736,6 @@ public sealed class DataAccessAnalyzer
         return Regex.IsMatch(
             source,
             @"(?i)(""|@""|\$""|\$@"")[^""\r\n]*(SELECT|INSERT|UPDATE|DELETE|MERGE)\s+");
-    }
-
-    private static IEnumerable<string> SafeEnumerateFiles(string directory, string searchPattern)
-    {
-        try
-        {
-            return Directory
-                .EnumerateFiles(directory, searchPattern, SearchOption.AllDirectories)
-                .Where(path => !IsBuildOutputPath(path))
-                .ToArray();
-        }
-        catch
-        {
-            return Array.Empty<string>();
-        }
-    }
-
-    private static IEnumerable<string> SafeEnumerateDirectories(string directory)
-    {
-        try
-        {
-            return Directory
-                .EnumerateDirectories(directory, "*", SearchOption.AllDirectories)
-                .Where(path => !IsBuildOutputPath(path))
-                .ToArray();
-        }
-        catch
-        {
-            return Array.Empty<string>();
-        }
-    }
-
-    private static bool IsBuildOutputPath(string path)
-    {
-        var parts = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-
-        return parts.Any(part =>
-            part.Equals("bin", StringComparison.OrdinalIgnoreCase) ||
-            part.Equals("obj", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string SafeReadAllText(string path)
-    {
-        try
-        {
-            return File.ReadAllText(path);
-        }
-        catch
-        {
-            return string.Empty;
-        }
     }
 
     private static string StripAssemblyMetadata(string assemblyReference)
@@ -832,6 +812,33 @@ public sealed class DataAccessAnalyzer
             DataAccessCategory.UnknownRequiresReview => 999,
             _ => 999
         };
+    }
+
+    private static DiscoveredProject? FindNearestProject(
+        string path,
+        IEnumerable<DiscoveredProject> projects)
+    {
+        return projects
+            .Select(project => new
+            {
+                Project = project,
+                Directory = Path.GetDirectoryName(project.ProjectFilePath)
+            })
+            .Where(item => !string.IsNullOrWhiteSpace(item.Directory))
+            .Where(item => IsPathUnderDirectory(path, item.Directory!))
+            .OrderByDescending(item => item.Directory!.Length)
+            .Select(item => item.Project)
+            .FirstOrDefault();
+    }
+
+    private static bool IsPathUnderDirectory(string path, string directory)
+    {
+        var fullPath = Path.GetFullPath(path);
+        var fullDirectory = Path.GetFullPath(directory)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+
+        return fullPath.StartsWith(fullDirectory, StringComparison.OrdinalIgnoreCase);
     }
 
     private readonly record struct DataAccessSignal(

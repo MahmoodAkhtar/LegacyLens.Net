@@ -1,6 +1,7 @@
-﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Files;
 
 namespace LegacyLens.Core.Tests.Analysis;
 
@@ -14,7 +15,8 @@ public sealed class DataAccessAnalyzerTests
         var exception = Assert.Throws<ArgumentNullException>(() =>
             analyzer.Analyze(
                 null!,
-                Array.Empty<DiscoveredConfigFile>()));
+                Array.Empty<DiscoveredConfigFile>(),
+                ScanFileInventory.Empty));
 
         Assert.Equal("projects", exception.ParamName);
     }
@@ -27,9 +29,24 @@ public sealed class DataAccessAnalyzerTests
         var exception = Assert.Throws<ArgumentNullException>(() =>
             analyzer.Analyze(
                 Array.Empty<DiscoveredProject>(),
-                null!));
+                null!,
+                ScanFileInventory.Empty));
 
         Assert.Equal("configFiles", exception.ParamName);
+    }
+
+    [Fact]
+    public void Analyze_WhenFileInventoryIsNull_ThrowsArgumentNullException()
+    {
+        var analyzer = new DataAccessAnalyzer();
+
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            analyzer.Analyze(
+                Array.Empty<DiscoveredProject>(),
+                Array.Empty<DiscoveredConfigFile>(),
+                null!));
+
+        Assert.Equal("fileInventory", exception.ParamName);
     }
 
     [Fact]
@@ -37,7 +54,7 @@ public sealed class DataAccessAnalyzerTests
     {
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             Array.Empty<DiscoveredProject>(),
             Array.Empty<DiscoveredConfigFile>());
 
@@ -66,7 +83,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             Array.Empty<DiscoveredProject>(),
             configFiles);
 
@@ -106,7 +123,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             Array.Empty<DiscoveredProject>(),
             configFiles);
 
@@ -139,7 +156,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             Array.Empty<DiscoveredProject>(),
             configFiles);
 
@@ -177,7 +194,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             new[] { project },
             Array.Empty<DiscoveredConfigFile>());
 
@@ -215,7 +232,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             new[] { project },
             Array.Empty<DiscoveredConfigFile>());
 
@@ -253,7 +270,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             new[] { project },
             Array.Empty<DiscoveredConfigFile>());
 
@@ -289,7 +306,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             new[] { project },
             Array.Empty<DiscoveredConfigFile>());
 
@@ -325,7 +342,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             new[] { project },
             Array.Empty<DiscoveredConfigFile>());
 
@@ -355,7 +372,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             new[] { project },
             Array.Empty<DiscoveredConfigFile>());
 
@@ -385,7 +402,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             new[] { project },
             Array.Empty<DiscoveredConfigFile>());
 
@@ -417,7 +434,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             new[] { project },
             Array.Empty<DiscoveredConfigFile>());
 
@@ -447,7 +464,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -482,7 +499,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -517,7 +534,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -552,7 +569,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -595,7 +612,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -638,7 +655,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -688,7 +705,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -743,7 +760,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -788,7 +805,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -841,7 +858,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -887,7 +904,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -933,7 +950,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -977,7 +994,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -1022,7 +1039,7 @@ public sealed class DataAccessAnalyzerTests
 
             var analyzer = new DataAccessAnalyzer();
 
-            var report = analyzer.Analyze(
+            var report = Analyze(analyzer,
                 new[] { project },
                 Array.Empty<DiscoveredConfigFile>());
 
@@ -1063,7 +1080,7 @@ public sealed class DataAccessAnalyzerTests
 
         var analyzer = new DataAccessAnalyzer();
 
-        var report = analyzer.Analyze(
+        var report = Analyze(analyzer,
             new[] { project },
             Array.Empty<DiscoveredConfigFile>());
 
@@ -1071,6 +1088,19 @@ public sealed class DataAccessAnalyzerTests
 
         Assert.Equal(DataAccessCategory.Dapper, finding.Category);
         Assert.Equal("Dapper", finding.Name);
+    }
+
+    private static DataAccessInventoryReport Analyze(
+        DataAccessAnalyzer analyzer,
+        IReadOnlyCollection<DiscoveredProject> projects,
+        IReadOnlyCollection<DiscoveredConfigFile> configFiles)
+    {
+        var fileInventory = new ScanFileInventoryBuilder().Build(projects);
+
+        return analyzer.Analyze(
+            projects,
+            configFiles,
+            fileInventory);
     }
 
     private static DiscoveredProject CreateProject(string root)

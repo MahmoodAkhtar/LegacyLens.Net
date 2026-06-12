@@ -1,5 +1,6 @@
-﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Files;
 
 namespace LegacyLens.Core.Tests.Analysis;
 
@@ -32,13 +33,14 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
     }
 
     [Fact]
-    public void Analyze_WhenProjectsIsNull_ThrowsArgumentNullException()
+    public void Analyze_WhenFileInventoryIsNull_ThrowsArgumentNullException()
     {
         var analyzer = new ClassDependencyAnalyzer();
 
-        var exception = Assert.Throws<ArgumentNullException>(() => analyzer.Analyze(null!));
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            analyzer.Analyze((ScanFileInventory)null!));
 
-        Assert.Equal("projects", exception.ParamName);
+        Assert.Equal("fileInventory", exception.ParamName);
     }
 
     [Fact]
@@ -53,7 +55,7 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(new[] { missingProject });
+        var report = analyzer.Analyze(CreateInventory(new[] { missingProject }));
 
         Assert.Empty(report.Types);
         Assert.Empty(report.Dependencies);
@@ -94,7 +96,7 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(new[] { CreateProject() });
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
 
         Assert.Contains(report.Types, type =>
             type.Name == "IOrderRepository" &&
@@ -181,7 +183,7 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(new[] { CreateProject() });
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
 
         Assert.Contains(report.Dependencies, dependency =>
             dependency.SourceType == "OrderRepository" &&
@@ -269,7 +271,7 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(new[] { CreateProject() });
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
 
         Assert.True(report.HardcodedConcreteDependencyCount >= 1);
 
@@ -305,7 +307,7 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(new[] { CreateProject() });
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
 
         Assert.Equal(1, report.StaticDependencyCount);
 
@@ -364,7 +366,7 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(new[] { CreateProject() });
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
 
         Assert.Contains(report.Types, type => type.Name == "OrderService");
         Assert.DoesNotContain(report.Types, type => type.Name == "GeneratedBuildOutput");
@@ -395,7 +397,7 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(new[] { CreateProject() });
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
 
         var duplicateKeyCount = report.Dependencies
             .GroupBy(dependency => string.Join(
@@ -434,7 +436,7 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(new[] { CreateProject() });
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
 
         Assert.Contains(report.Dependencies, dependency =>
             dependency.SourceType == "OrderService" &&
@@ -472,7 +474,7 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(new[] { CreateProject() });
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
 
         Assert.Contains(report.Dependencies, dependency =>
             dependency.SourceType == "OrderService" &&
@@ -492,6 +494,11 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
         {
             Directory.Delete(_rootPath, recursive: true);
         }
+    }
+
+    private static ScanFileInventory CreateInventory(IReadOnlyCollection<DiscoveredProject> projects)
+    {
+        return new ScanFileInventoryBuilder().Build(projects);
     }
 
     private DiscoveredProject CreateProject()

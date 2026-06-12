@@ -24,7 +24,8 @@ public sealed class EdmxAnalysisArtifactRunner : IScanArtifactRunner
 
         var report = analyzer.Analyze(
             context.ScanPath,
-            context.Projects);
+            context.Projects,
+            context.FileInventory);
 
         var outputPath = ArtifactOutputPathResolver.Resolve(
             context.ScanPath,

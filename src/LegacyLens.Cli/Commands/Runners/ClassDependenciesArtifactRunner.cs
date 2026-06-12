@@ -22,7 +22,7 @@ public sealed class ClassDependenciesArtifactRunner : IScanArtifactRunner
 
         var analyzer = new ClassDependencyAnalyzer();
 
-        var report = analyzer.Analyze(context.Projects);
+        var report = analyzer.Analyze(context.FileInventory);
 
         var outputPath = ArtifactOutputPathResolver.Resolve(
             context.ScanPath,

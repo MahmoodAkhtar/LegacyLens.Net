@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Files;
 
 namespace LegacyLens.Core.Analysis;
 
@@ -51,13 +51,20 @@ public sealed class ClassDependencyAnalyzer
         "DateTime", "DateOnly", "TimeOnly", "Task", "ValueTask", "IEnumerable", "IReadOnlyList", "IReadOnlyCollection",
         "List", "Dictionary", "HashSet", "Array", "Nullable", "Action", "Func"
     };
-
-    public ClassDependencyReport Analyze(IReadOnlyCollection<DiscoveredProject> projects)
+    
+    public ClassDependencyReport Analyze(ScanFileInventory fileInventory)
     {
-        ArgumentNullException.ThrowIfNull(projects);
+        ArgumentNullException.ThrowIfNull(fileInventory);
 
-        var sourceFiles = DiscoverSourceFiles(projects).ToArray();
+        var sourceFiles = fileInventory.CSharpFiles
+            .Select(file => new SourceFileInfo(
+                file.ProjectName,
+                file.FullPath,
+                file.Content))
+            .ToArray();
+
         var discoveredTypes = DiscoverTypes(sourceFiles).ToArray();
+
         var knownTypes = discoveredTypes
             .GroupBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
@@ -91,25 +98,7 @@ public sealed class ClassDependencyAnalyzer
             hotspots,
             sourceFiles.Length);
     }
-
-    private static IEnumerable<SourceFileInfo> DiscoverSourceFiles(IEnumerable<DiscoveredProject> projects)
-    {
-        foreach (var project in projects)
-        {
-            var projectDirectory = Path.GetDirectoryName(project.ProjectFilePath);
-
-            if (string.IsNullOrWhiteSpace(projectDirectory) || !Directory.Exists(projectDirectory))
-            {
-                continue;
-            }
-
-            foreach (var sourceFile in SafeEnumerateFiles(projectDirectory, "*.cs"))
-            {
-                yield return new SourceFileInfo(project.Name, sourceFile, SafeReadAllText(sourceFile));
-            }
-        }
-    }
-
+    
     private static IEnumerable<DiscoveredType> DiscoverTypes(IEnumerable<SourceFileInfo> sourceFiles)
     {
         foreach (var sourceFile in sourceFiles)
@@ -726,41 +715,6 @@ public sealed class ClassDependencyAnalyzer
     private static string CreateConcernKey(ClassDependencyConcern concern) =>
         string.Join("|", concern.SourcePath, concern.LineNumber, concern.SourceType, concern.TargetType,
             concern.DependencyKind, concern.Evidence);
-
-    private static IEnumerable<string> SafeEnumerateFiles(string directory, string searchPattern)
-    {
-        try
-        {
-            return Directory
-                .EnumerateFiles(directory, searchPattern, SearchOption.AllDirectories)
-                .Where(path => !IsBuildOutputPath(path))
-                .ToArray();
-        }
-        catch
-        {
-            return Array.Empty<string>();
-        }
-    }
-
-    private static bool IsBuildOutputPath(string path)
-    {
-        var parts = path.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        return parts.Any(part =>
-            part.Equals("bin", StringComparison.OrdinalIgnoreCase) ||
-            part.Equals("obj", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static string SafeReadAllText(string path)
-    {
-        try
-        {
-            return File.ReadAllText(path);
-        }
-        catch
-        {
-            return string.Empty;
-        }
-    }
 
     private sealed record SourceFileInfo(string ProjectName, string SourcePath, string Source);
 }

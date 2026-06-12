@@ -2,6 +2,7 @@ using LegacyLens.Cli.Commands.Runners;
 using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Files;
 using LegacyLens.Core.LegacyAspNet;
 using LegacyLens.Core.Wcf;
 using LegacyLens.Reporting.Markdown;
@@ -27,6 +28,9 @@ public sealed class ScanCommand
 
         var projectDiscoveryService = new ProjectDiscoveryService();
         var projects = projectDiscoveryService.DiscoverProjects(scanPath);
+
+        var fileInventoryBuilder = new ScanFileInventoryBuilder();
+        var fileInventory = fileInventoryBuilder.Build(projects);
 
         var solutionDiscoveryService = new SolutionDiscoveryService();
         var solutions = solutionDiscoveryService.DiscoverSolutions(scanPath);
@@ -68,7 +72,8 @@ public sealed class ScanCommand
             legacyAspNetArtifacts,
             configFiles,
             modernisationHints,
-            modernisationReviewAreas);
+            modernisationReviewAreas,
+            fileInventory);
 
         var discoveryReportWriter = new DiscoveryMarkdownReportWriter();
         discoveryReportWriter.Write(

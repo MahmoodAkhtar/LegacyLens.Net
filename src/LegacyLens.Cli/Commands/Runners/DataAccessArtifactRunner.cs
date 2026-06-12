@@ -24,7 +24,8 @@ public sealed class DataAccessArtifactRunner : IScanArtifactRunner
 
         var report = analyzer.Analyze(
             context.Projects,
-            context.ConfigFiles);
+            context.ConfigFiles,
+            context.FileInventory);
 
         var outputPath = ArtifactOutputPathResolver.Resolve(
             context.ScanPath,

@@ -1,5 +1,6 @@
-﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Files;
 
 namespace LegacyLens.Core.Tests.Analysis;
 
@@ -13,7 +14,8 @@ public sealed class EdmxAnalyzerTests
         var exception = Assert.Throws<ArgumentException>(() =>
             analyzer.Analyze(
                 string.Empty,
-                Array.Empty<DiscoveredProject>()));
+                Array.Empty<DiscoveredProject>(),
+                ScanFileInventory.Empty));
 
         Assert.Equal("scanPath", exception.ParamName);
     }
@@ -26,9 +28,24 @@ public sealed class EdmxAnalyzerTests
         var exception = Assert.Throws<ArgumentNullException>(() =>
             analyzer.Analyze(
                 @"C:\Code\SampleLegacyApp",
-                null!));
+                null!,
+                ScanFileInventory.Empty));
 
         Assert.Equal("projects", exception.ParamName);
+    }
+
+    [Fact]
+    public void Analyze_WhenFileInventoryIsNull_ThrowsArgumentNullException()
+    {
+        var analyzer = new EdmxAnalyzer();
+
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            analyzer.Analyze(
+                @"C:\Code\SampleLegacyApp",
+                Array.Empty<DiscoveredProject>(),
+                null!));
+
+        Assert.Equal("fileInventory", exception.ParamName);
     }
 
     [Fact]
@@ -42,7 +59,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             Assert.Empty(report.Models);
         }
@@ -66,7 +83,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             var model = Assert.Single(report.Models);
 
@@ -114,7 +131,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             var model = Assert.Single(report.Models);
 
@@ -156,7 +173,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             var model = Assert.Single(report.Models);
 
@@ -198,7 +215,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             var model = Assert.Single(report.Models);
 
@@ -238,7 +255,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             var model = Assert.Single(report.Models);
 
@@ -292,7 +309,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             var model = Assert.Single(report.Models);
 
@@ -349,7 +366,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { outerProject, nestedProject });
+            var report = Analyze(analyzer, root, new[] { outerProject, nestedProject });
 
             var model = Assert.Single(report.Models);
 
@@ -388,7 +405,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             var model = Assert.Single(report.Models);
 
@@ -421,7 +438,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             var model = Assert.Single(report.Models);
 
@@ -475,7 +492,7 @@ public sealed class EdmxAnalyzerTests
 
             var analyzer = new EdmxAnalyzer();
 
-            var report = analyzer.Analyze(root, new[] { project });
+            var report = Analyze(analyzer, root, new[] { project });
 
             Assert.Empty(report.Models);
         }
@@ -483,6 +500,19 @@ public sealed class EdmxAnalyzerTests
         {
             DeleteDirectory(root);
         }
+    }
+
+    private static EdmxAnalysisReport Analyze(
+        EdmxAnalyzer analyzer,
+        string scanPath,
+        IReadOnlyCollection<DiscoveredProject> projects)
+    {
+        var fileInventory = new ScanFileInventoryBuilder().Build(projects);
+
+        return analyzer.Analyze(
+            scanPath,
+            projects,
+            fileInventory);
     }
 
     private static DiscoveredProject CreateProject(string root)

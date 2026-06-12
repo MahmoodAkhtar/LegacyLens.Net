@@ -89,13 +89,13 @@ The `Commands` namespace contains the command model and scan orchestration types
 
 | Type | Purpose |
 |---|---|
-| `ScanCommand` | Orchestrates static discovery, analysis, main report writing, artifact-runner execution, and final `ScanResult` creation for `legacylens scan <path>`. |
-| `ScanContext` | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, and prioritised review areas for report writing and optional artifact runners. |
+| `ScanCommand` | Orchestrates static discovery, builds the shared file inventory once after project discovery, runs analysis, writes the main report, executes artifact runners, and creates the final `ScanResult` for `legacylens scan <path>`. |
+| `ScanContext` | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, prioritised review areas, and the shared `ScanFileInventory` for report writing and optional artifact runners. |
 | `ScanOptions` | Represents validated scan options from the CLI parser, including output selection, console mode, artifact selection, and optional upgrade target context. |
 | `ScanResult` | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer. |
 | `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `data-access-inventory.md`, `edmx-analysis.md`, and `class-dependencies.md`. |
 
-`ScanContext` is intentionally not an artifact runner and should not contain discovery, analysis, report-writing, or output-path resolution behaviour. It exists to reduce long parameter lists inside `ScanCommand` and to provide a stable input object for artifact runners. `ScanCommand` still owns when shared discovery runs, when shared analyzers run, when the main discovery report is written, which artifact runners are available, and how the final `ScanResult` is populated.
+`ScanContext` is intentionally not an artifact runner and should not contain discovery, analysis, report-writing, file-inventory-building, or output-path resolution behaviour. It exists to reduce long parameter lists inside `ScanCommand` and to provide a stable input object for artifact runners. `ScanCommand` still owns when shared discovery runs, when the shared file inventory is built, when shared analyzers run, when the main discovery report is written, which artifact runners are available, and how the final `ScanResult` is populated.
 
 ### Artifact Runners
 
@@ -117,6 +117,7 @@ Artifact runner implementation rules:
 - Keep optional artifact generation out of repeated `if` blocks inside `ScanCommand`.
 - Add a new runner when a new optional artifact is introduced.
 - Keep shared scan data on `ScanContext`; do not rediscover common solution/project/configuration facts inside runners.
+- Use `ScanContext.FileInventory` for artifact analyzers that need project-associated source/model files, such as class dependency, data-access, and EDMX analysis.
 - Keep artifact-specific analyzer and Markdown writer calls inside the relevant runner.
 - Use `ArtifactOutputPathResolver` for optional artifact output paths.
 - Use `Commands/Runners/` rather than `Commands/Artifacts/`, because `artifacts/` is a gitignored generated-output folder name.
@@ -150,6 +151,7 @@ LegacyLens.Core/
 ├── Configuration/
 ├── Dependencies/
 ├── Discovery/
+├── Files/
 ├── LegacyAspNet/
 ├── Models/
 └── Wcf/
@@ -246,6 +248,13 @@ Current analysis work includes:
 - mapping legacy ASP.NET artifact hints to `LegacyAspNetArtifact` evidence and source or artifact files
 - mapping configuration hints to `ConfigurationFile` evidence and configuration files
 
+
+### Analyzer Input Guidance
+
+Analyzers should consume already-discovered facts rather than rediscovering common input. In particular, analyzers that inspect C# source files, EDMX files, DBML files, T4 files, or migration folders should consume `ScanFileInventory` supplied by `ScanCommand`/`ScanContext`. This keeps file enumeration and exclusion behaviour centralised and avoids repeated IO.
+
+Tests should follow the same boundary as production code. If a refactor centralises input construction, tests should create that input explicitly rather than forcing analyzer overloads whose only purpose is to preserve an older test call shape.
+
 ### Upgrade Readiness
 
 The upgrade-readiness MVP addition should fit the existing static-first architecture. A suitable implementation should add focused analysis models and a Markdown writer rather than duplicating discovery logic.
@@ -304,13 +313,13 @@ For MVP, it is acceptable to start with connection strings, app settings with UR
 
 ### Data Access
 
-The data-access MVP addition should fit the existing static-first architecture. A suitable implementation should add focused analysis models and a Markdown writer rather than duplicating discovery logic. It should consume existing project, package, assembly, configuration, source-file, and modernisation evidence where useful.
+The data-access MVP addition should fit the existing static-first architecture. It uses focused analysis models and a Markdown writer rather than duplicating discovery logic. It should consume discovered project/package/assembly metadata, configuration evidence, and the shared `ScanFileInventory` for source-file, EDMX/T4/DBML, and migration-folder evidence.
 
 Likely core types:
 
 | Type | Purpose |
 |---|---|
-| `DataAccessAnalyzer` | Consumes discovered projects, package references, assembly references, configuration files, optional source-file indicators, EDMX/T4/DBML file evidence, and existing modernisation/package review evidence to produce data access findings. |
+| `DataAccessAnalyzer` | Consumes discovered projects, package references, assembly references, configuration files, and shared `ScanFileInventory` evidence to produce data access findings. |
 | `DataAccessInventoryReport` | Root model for `data-access-inventory.md`. |
 | `DataAccessFinding` | Evidence-backed data access finding with category, project, source path, evidence, confidence, and migration consideration. |
 | `DataAccessEvidence` | Evidence row containing source type, project name, file path, finding, and masked value where applicable. |
@@ -320,18 +329,18 @@ Likely core types:
 
 The analyzer should not connect to databases, validate credentials or connection strings, execute SQL, parse or validate full SQL syntax, inspect live schemas, compare schemas, run EF migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove unused queries or stored procedures, automatically migrate data access code, or guarantee EF6-to-EF Core or package compatibility. Sensitive values in connection strings and settings should be masked or redacted.
 
-For MVP, it is acceptable to start with connection strings, database provider names, known ORM/database package references, database-related assembly references, EDMX/T4/DBML file discovery where easy to scan, source-level class-name and token indicators, and migration folder evidence. If a scanner is not yet available or would require deeper parsing, the implementation should skip that rule rather than inventing evidence.
+For MVP, data-access source/model evidence should come from the shared file inventory: connection strings and provider names come from configuration discovery, package and assembly signals come from project discovery, and EDMX/T4/DBML/source/migration-folder evidence comes from `ScanFileInventory`. If a rule cannot produce clear static evidence, it should be skipped rather than inventing evidence.
 
 
 ### Class Dependencies
 
-The class-dependencies MVP addition should fit the existing static-first architecture. A suitable implementation should add focused source-analysis models, an analyzer, a Mermaid writer or helper, and a Markdown writer rather than changing the normal project dependency report.
+The class-dependencies MVP addition should fit the existing static-first architecture. It uses focused source-analysis models, an analyzer, a Mermaid writer/helper, and a Markdown writer rather than changing the normal project dependency report.
 
 Likely core types:
 
 | Type | Purpose |
 |---|---|
-| `ClassDependencyAnalyzer` | Scans C# source files under discovered projects and produces source-level type relationship findings. |
+| `ClassDependencyAnalyzer` | Consumes shared `ScanFileInventory` C# source-file evidence and produces source-level type relationship findings. |
 | `ClassDependencyReport` | Root model for `class-dependencies.md`. |
 | `DiscoveredType` | Source-defined type with name, full name, kind, project name, and source path. |
 | `ClassDependency` | Evidence-backed source-to-target type relationship with dependency kind, project, source path, line number, and evidence. |
@@ -342,7 +351,7 @@ Likely core types:
 | `ClassDependenciesMarkdownReportWriter` | Writes the `class-dependencies.md` artifact. |
 | `ClassDependencyMermaidDiagramWriter` | Writes focused Mermaid edges with dependency-kind labels where useful. |
 
-The analyzer should consume discovered projects where possible so each source file can be associated with a project. It may scan `.cs` files directly and should skip build output paths such as `bin` and `obj`.
+The analyzer should consume `ScanFileInventory` so each source file is already associated with a project and central exclusion rules have already been applied. It should not independently walk project directories or maintain separate build-output exclusion rules.
 
 The implementation should remain static and evidence-backed. It should not run MSBuild, require NuGet restore, execute code, resolve runtime dependency injection, understand reflection or dynamic loading, guarantee generated code behaviour, or claim to produce a runtime call graph.
 
@@ -350,13 +359,13 @@ For MVP, the report should favour useful review output over exhaustive semantic 
 
 ### EDMX Analysis
 
-The edmx-analysis MVP addition should fit the existing static-first architecture. A suitable implementation should add focused analysis models and a Markdown writer rather than duplicating broader data-access discovery logic. It should consume discovered projects for project association and then inspect `.edmx` files directly.
+The edmx-analysis MVP addition should fit the existing static-first architecture. It uses focused analysis models and a Markdown writer rather than duplicating broader data-access discovery logic. It should consume discovered projects for nearest-project association and the shared `ScanFileInventory` for `.edmx` and companion-file evidence.
 
 Likely core types:
 
 | Type | Purpose |
 |---|---|
-| `EdmxAnalyzer` | Discovers `.edmx` files, associates them with discovered projects where possible, parses EDMX XML safely, and produces an `EdmxAnalysisReport`. |
+| `EdmxAnalyzer` | Consumes shared `ScanFileInventory` EDMX evidence, associates EDMX files with the nearest discovered project where possible, parses EDMX XML safely, and produces an `EdmxAnalysisReport`. |
 | `EdmxAnalysisReport` | Root model for `edmx-analysis.md`. |
 | `DiscoveredEdmxModel` | Represents one EDMX file and its conceptual, storage, mapping, designer, companion-file, and concern evidence. |
 | `EdmxConceptualEntity` | Conceptual model entity details such as entity name, entity set, key properties, property count, and navigation-property count. |
@@ -402,6 +411,33 @@ Current discovery work includes:
 - package version and package target framework discovery from legacy `packages.config` files
 - package source format and source path tracking for package compatibility review
 - assembly reference discovery from `<Reference />` entries
+
+### Files
+
+The `Files` namespace centralises shared project-associated file discovery for analyzers that need to inspect source or model files. It prevents each analyzer from repeatedly walking project folders, re-reading the same files, and maintaining separate exclusion rules.
+
+Current file-inventory work includes:
+
+- building a `ScanFileInventory` once from discovered projects
+- representing project-associated files with `ScanFile`, including project name, project file path, project directory, full path, relative path, extension, and content
+- grouping discovered `.cs`, `.edmx`, `.dbml`, and `.tt` files
+- grouping discovered migration directories
+- using `SafeFileSystem` for safe file enumeration, safe directory enumeration, safe text reads, and generated-output/build-output path exclusion
+- consistently excluding source-irrelevant folders such as `bin`, `obj`, `output`, `reports`, `artifacts`, `Debug`, `Release`, `Log`, `Logs`, `TestResult*`, and `CodeCoverage`
+- returning empty collections rather than failing the scan when individual project directories or files cannot be read
+
+Likely core types:
+
+| Type | Purpose |
+|---|---|
+| `ScanFileInventoryBuilder` | Builds the shared inventory of project-associated files once from discovered projects. |
+| `ScanFileInventory` | Passive model grouping discovered `.cs`, `.edmx`, `.dbml`, `.tt`, and migration-folder evidence. |
+| `ScanFile` | Represents a project-associated file with project metadata, full path, relative path, extension, and content. |
+| `SafeFileSystem` | Internal helper for safe enumeration, safe text reads, and central generated-output/build-output exclusion rules. |
+
+`ScanCommand` should build `ScanFileInventory` once after project discovery and place it on `ScanContext`. Artifact runners and analyzers should consume that prepared inventory instead of rebuilding file discovery themselves.
+
+Analyzer methods that require source/model files should prefer inventory-based inputs. Avoid adding convenience overloads that rebuild `ScanFileInventory` internally merely to satisfy older tests; tests should be updated to build or pass the inventory explicitly when the refactored design requires it.
 
 ### LegacyAspNet
 

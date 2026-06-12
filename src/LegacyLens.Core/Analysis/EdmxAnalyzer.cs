@@ -1,5 +1,6 @@
 using System.Xml.Linq;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Files;
 
 namespace LegacyLens.Core.Analysis;
 
@@ -12,15 +13,55 @@ public sealed class EdmxAnalyzer
         ArgumentException.ThrowIfNullOrWhiteSpace(scanPath);
         ArgumentNullException.ThrowIfNull(projects);
 
-        var edmxFiles = DiscoverEdmxFiles(scanPath, projects);
+        var inventory = new ScanFileInventoryBuilder().Build(projects);
+
+        return Analyze(
+            scanPath,
+            projects,
+            inventory);
+    }
+
+    public EdmxAnalysisReport Analyze(
+        string scanPath,
+        IReadOnlyCollection<DiscoveredProject> projects,
+        ScanFileInventory fileInventory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(scanPath);
+        ArgumentNullException.ThrowIfNull(projects);
+        ArgumentNullException.ThrowIfNull(fileInventory);
+
+        var edmxFiles = DiscoverEdmxFiles(scanPath, projects, fileInventory);
 
         var models = edmxFiles
-            .Select(file => AnalyzeFile(file, FindNearestProject(file, projects)))
+            .Select(file => AnalyzeFile(file, FindProjectForEdmxFile(file, projects, fileInventory), fileInventory))
             .OrderBy(model => model.ProjectName ?? string.Empty, StringComparer.OrdinalIgnoreCase)
             .ThenBy(model => model.FilePath, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         return new EdmxAnalysisReport(models);
+    }
+
+    private static IReadOnlyList<string> DiscoverEdmxFiles(
+        string scanPath,
+        IEnumerable<DiscoveredProject> projects,
+        ScanFileInventory fileInventory)
+    {
+        var files = fileInventory.EdmxFiles
+            .Select(file => file.FullPath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (files.Count == 0)
+        {
+            foreach (var file in DiscoverEdmxFiles(scanPath, projects))
+            {
+                files.Add(file);
+            }
+        }
+
+        return files
+            .OrderBy(file => file, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static IReadOnlyList<string> DiscoverEdmxFiles(
@@ -57,7 +98,10 @@ public sealed class EdmxAnalyzer
             .ToArray();
     }
 
-    private static DiscoveredEdmxModel AnalyzeFile(string edmxFile, DiscoveredProject? project)
+    private static DiscoveredEdmxModel AnalyzeFile(
+        string edmxFile,
+        DiscoveredProject? project,
+        ScanFileInventory? fileInventory = null)
     {
         try
         {
@@ -66,7 +110,11 @@ public sealed class EdmxAnalyzer
 
             if (root is null)
             {
-                return CreateUnreadableModel(edmxFile, project, "EDMX XML document has no root element.");
+                return CreateUnreadableModel(
+                    edmxFile,
+                    project,
+                    "EDMX XML document has no root element.",
+                    fileInventory);
             }
 
             var namespaces = root
@@ -90,7 +138,7 @@ public sealed class EdmxAnalyzer
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            
+
             var complexTypes = conceptualSchemas
                 .SelectMany(schema => DirectChildren(schema, "ComplexType"))
                 .Select(type => GetAttribute(type, "Name"))
@@ -107,7 +155,7 @@ public sealed class EdmxAnalyzer
             var functionImports = ExtractFunctionImports(conceptualSchemas, mappingRoots);
             var storeFunctions = ExtractStoreFunctions(storageSchemas);
             var mappingFragments = ExtractMappingFragments(mappingRoots);
-            var companionFiles = ExtractCompanionFiles(edmxFile);
+            var companionFiles = ExtractCompanionFiles(edmxFile, fileInventory);
 
             var modificationFunctionMappingCount = mappingRoots
                 .SelectMany(rootElement => GetElements(rootElement, "ModificationFunctionMapping"))
@@ -166,15 +214,22 @@ public sealed class EdmxAnalyzer
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or System.Xml.XmlException)
         {
-            return CreateUnreadableModel(edmxFile, project, exception.Message);
+            return CreateUnreadableModel(
+                edmxFile,
+                project,
+                exception.Message,
+                fileInventory);
         }
     }
 
     private static DiscoveredEdmxModel CreateUnreadableModel(
         string edmxFile,
         DiscoveredProject? project,
-        string parseError)
+        string parseError,
+        ScanFileInventory? fileInventory = null)
     {
+        var companionFiles = ExtractCompanionFiles(edmxFile, fileInventory);
+
         var concerns = CreateUpgradeConcerns(
             Path.GetFileName(edmxFile),
             HasConceptualModel: false,
@@ -187,7 +242,7 @@ public sealed class EdmxAnalyzer
             ModificationFunctionMappingCount: 0,
             QueryViewCount: 0,
             DefiningQueryCount: 0,
-            CompanionFileCount: 0,
+            CompanionFileCount: companionFiles.Count,
             parseError);
 
         return new DiscoveredEdmxModel(
@@ -207,7 +262,7 @@ public sealed class EdmxAnalyzer
             Array.Empty<EdmxFunctionImport>(),
             Array.Empty<EdmxStoreFunction>(),
             Array.Empty<EdmxMappingFragment>(),
-            ExtractCompanionFiles(edmxFile),
+            companionFiles,
             concerns,
             ModificationFunctionMappingCount: 0,
             QueryViewCount: 0,
@@ -511,7 +566,78 @@ public sealed class EdmxAnalyzer
             .ToArray();
     }
 
-    private static IReadOnlyList<EdmxCompanionFile> ExtractCompanionFiles(string edmxFile)
+    private static IReadOnlyList<EdmxCompanionFile> ExtractCompanionFiles(
+        string edmxFile,
+        ScanFileInventory? fileInventory = null)
+    {
+        if (fileInventory is not null)
+        {
+            var companionFiles = ExtractCompanionFilesFromInventory(edmxFile, fileInventory);
+
+            if (companionFiles.Count > 0)
+            {
+                return companionFiles;
+            }
+        }
+
+        return ExtractCompanionFilesFromFileSystem(edmxFile);
+    }
+
+    private static IReadOnlyList<EdmxCompanionFile> ExtractCompanionFilesFromInventory(
+        string edmxFile,
+        ScanFileInventory fileInventory)
+    {
+        var directory = Path.GetDirectoryName(edmxFile);
+        var baseName = Path.GetFileNameWithoutExtension(edmxFile);
+
+        if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(baseName))
+        {
+            return Array.Empty<EdmxCompanionFile>();
+        }
+
+        var companions = new List<EdmxCompanionFile>();
+
+        foreach (var file in fileInventory.T4Files.Where(file => IsCompanionCandidateDirectory(file.FullPath, directory)))
+        {
+            if (Path.GetFileNameWithoutExtension(file.FullPath).Contains(baseName, StringComparison.OrdinalIgnoreCase) ||
+                FileLooksRelatedToEdmx(file))
+            {
+                companions.Add(new EdmxCompanionFile(
+                    "T4 template",
+                    file.FullPath,
+                    "T4 template found near EDMX file."));
+            }
+        }
+
+        foreach (var file in fileInventory.CSharpFiles.Where(file => IsCompanionCandidateDirectory(file.FullPath, directory)))
+        {
+            if (Path.GetFileName(file.FullPath).EndsWith(".Designer.cs", StringComparison.OrdinalIgnoreCase))
+            {
+                if (Path.GetFileNameWithoutExtension(file.FullPath).Contains(baseName, StringComparison.OrdinalIgnoreCase))
+                {
+                    companions.Add(new EdmxCompanionFile(
+                        "Designer generated code",
+                        file.FullPath,
+                        ".Designer.cs file found near EDMX file."));
+                }
+
+                continue;
+            }
+
+            if (Path.GetFileNameWithoutExtension(file.FullPath).Contains(baseName, StringComparison.OrdinalIgnoreCase) ||
+                FileLooksRelatedToEdmx(file))
+            {
+                companions.Add(new EdmxCompanionFile(
+                    "Generated or related code",
+                    file.FullPath,
+                    "C# file near EDMX file appears related to generated model or context code."));
+            }
+        }
+
+        return SortCompanionFiles(companions);
+    }
+
+    private static IReadOnlyList<EdmxCompanionFile> ExtractCompanionFilesFromFileSystem(string edmxFile)
     {
         var directory = Path.GetDirectoryName(edmxFile);
         var baseName = Path.GetFileNameWithoutExtension(edmxFile);
@@ -528,7 +654,10 @@ public sealed class EdmxAnalyzer
             if (Path.GetFileNameWithoutExtension(file).Contains(baseName, StringComparison.OrdinalIgnoreCase) ||
                 FileLooksRelatedToEdmx(file))
             {
-                companions.Add(new EdmxCompanionFile("T4 template", file, "T4 template found near EDMX file."));
+                companions.Add(new EdmxCompanionFile(
+                    "T4 template",
+                    file,
+                    "T4 template found near EDMX file."));
             }
         }
 
@@ -536,7 +665,10 @@ public sealed class EdmxAnalyzer
         {
             if (Path.GetFileNameWithoutExtension(file).Contains(baseName, StringComparison.OrdinalIgnoreCase))
             {
-                companions.Add(new EdmxCompanionFile("Designer generated code", file, ".Designer.cs file found near EDMX file."));
+                companions.Add(new EdmxCompanionFile(
+                    "Designer generated code",
+                    file,
+                    ".Designer.cs file found near EDMX file."));
             }
         }
 
@@ -550,16 +682,49 @@ public sealed class EdmxAnalyzer
             if (Path.GetFileNameWithoutExtension(file).Contains(baseName, StringComparison.OrdinalIgnoreCase) ||
                 FileLooksRelatedToEdmx(file))
             {
-                companions.Add(new EdmxCompanionFile("Generated or related code", file, "C# file near EDMX file appears related to generated model or context code."));
+                companions.Add(new EdmxCompanionFile(
+                    "Generated or related code",
+                    file,
+                    "C# file near EDMX file appears related to generated model or context code."));
             }
         }
 
-        return companions
+        return SortCompanionFiles(companions);
+    }
+
+    private static IReadOnlyList<EdmxCompanionFile> SortCompanionFiles(IEnumerable<EdmxCompanionFile> companionFiles)
+    {
+        return companionFiles
             .GroupBy(file => string.Join("|", file.Kind, file.FilePath), StringComparer.OrdinalIgnoreCase)
             .Select(group => group.First())
             .OrderBy(file => file.Kind, StringComparer.OrdinalIgnoreCase)
             .ThenBy(file => file.FilePath, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    private static bool IsCompanionCandidateDirectory(string filePath, string edmxDirectory)
+    {
+        var fileDirectory = Path.GetDirectoryName(filePath);
+
+        return !string.IsNullOrWhiteSpace(fileDirectory) &&
+               fileDirectory.Equals(edmxDirectory, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool FileLooksRelatedToEdmx(ScanFile file)
+    {
+        var fileName = Path.GetFileName(file.FullPath);
+
+        if (fileName.Contains("Context", StringComparison.OrdinalIgnoreCase) ||
+            fileName.Contains("Model", StringComparison.OrdinalIgnoreCase) ||
+            fileName.Contains("Entity", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return file.Content.Contains("ObjectContext", StringComparison.OrdinalIgnoreCase) ||
+               file.Content.Contains("EntityObject", StringComparison.OrdinalIgnoreCase) ||
+               file.Content.Contains("DbSet", StringComparison.OrdinalIgnoreCase) ||
+               file.Content.Contains("EntityFramework", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool FileLooksRelatedToEdmx(string filePath)
@@ -616,6 +781,33 @@ public sealed class EdmxAnalyzer
             .Attributes()
             .FirstOrDefault(attribute => attribute.Name.LocalName.Equals(localName, StringComparison.OrdinalIgnoreCase))
             ?.Value;
+    }
+
+    private static DiscoveredProject? FindProjectForEdmxFile(
+        string filePath,
+        IEnumerable<DiscoveredProject> projects,
+        ScanFileInventory fileInventory)
+    {
+        var nearestProject = FindNearestProject(filePath, projects);
+
+        if (nearestProject is not null)
+        {
+            return nearestProject;
+        }
+
+        var inventoryFile = fileInventory.EdmxFiles.FirstOrDefault(file =>
+            file.FullPath.Equals(filePath, StringComparison.OrdinalIgnoreCase));
+
+        if (inventoryFile is null)
+        {
+            return null;
+        }
+
+        return new DiscoveredProject
+        {
+            Name = inventoryFile.ProjectName,
+            ProjectFilePath = inventoryFile.ProjectFilePath
+        };
     }
 
     private static DiscoveredProject? FindNearestProject(string filePath, IEnumerable<DiscoveredProject> projects)

@@ -1,6 +1,7 @@
 ﻿using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Files;
 using LegacyLens.Core.LegacyAspNet;
 using LegacyLens.Core.Wcf;
 
@@ -18,4 +19,5 @@ public sealed record ScanContext(
     IReadOnlyList<DiscoveredLegacyAspNetArtifact> LegacyAspNetArtifacts,
     IReadOnlyList<DiscoveredConfigFile> ConfigFiles,
     IReadOnlyList<ModernisationHint> ModernisationHints,
-    IReadOnlyList<ModernisationReviewArea> ModernisationReviewAreas);
+    IReadOnlyList<ModernisationReviewArea> ModernisationReviewAreas,
+    ScanFileInventory FileInventory);

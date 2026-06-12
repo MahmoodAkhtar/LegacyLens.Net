@@ -3,6 +3,7 @@ using LegacyLens.Cli.Commands.Runners;
 using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
+using LegacyLens.Core.Files;
 using LegacyLens.Core.LegacyAspNet;
 using LegacyLens.Core.Wcf;
 using Xunit;
@@ -90,6 +91,7 @@ public sealed class ScanArtifactRunnerTests
             Array.Empty<DiscoveredLegacyAspNetArtifact>(),
             Array.Empty<DiscoveredConfigFile>(),
             Array.Empty<ModernisationHint>(),
-            Array.Empty<ModernisationReviewArea>());
+            Array.Empty<ModernisationReviewArea>(),
+            ScanFileInventory.Empty);
     }
 }
