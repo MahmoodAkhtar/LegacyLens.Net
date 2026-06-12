@@ -1,69 +1,60 @@
-using System.Text.RegularExpressions;
+using LegacyLens.Core.Discovery;
 using LegacyLens.Core.Files;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace LegacyLens.Core.Analysis;
 
 public sealed class ClassDependencyAnalyzer
 {
-    private static readonly Regex NamespaceRegex = new(@"^\s*namespace\s+(?<name>[A-Za-z_][\w.]*)(\s*;|\s*\{)?",
-        RegexOptions.Compiled | RegexOptions.Multiline);
-
-    private static readonly Regex TypeRegex =
-        new(
-            @"\b(?:(?:public|internal|private|protected|sealed|abstract|static|partial|readonly)\s+)*(?<kind>class|interface|record|struct|enum)\s+(?<name>[A-Za-z_][\w]*)(?<tail>[^\{;]*)",
-            RegexOptions.Compiled);
-
-    private static readonly Regex AttributeRegex =
-        new(@"\[(?<name>[A-Za-z_][\w.]*)(Attribute)?(?:\([^\]]*\))?\]", RegexOptions.Compiled);
-
-    private static readonly Regex NewRegex = new(@"\bnew\s+(?<type>[A-Za-z_][\w.<>]*)\s*\(", RegexOptions.Compiled);
-    private static readonly Regex TargetTypedNewRegex = new(@"=\s*new\s*\(", RegexOptions.Compiled);
-
-    private static readonly Regex StaticAccessRegex = new(
-        @"\b(?<type>ConfigurationManager|DateTime|File|Directory|Environment|HttpContext|DependencyResolver|ControllerBuilder|GlobalConfiguration|RouteTable|GlobalFilters|ModelBinders|ValueProviderFactories|SmtpClient|HttpClient|SqlConnection)\s*\.",
-        RegexOptions.Compiled);
-
-    private static readonly Regex FieldRegex =
-        new(
-            @"^\s*(?:private|protected|internal|public)\s+(?:static\s+)?(?:readonly\s+)?(?<type>[A-Za-z_][\w.<>?\[\],]*)\s+[A-Za-z_][\w]*\s*(?:=|;)",
-            RegexOptions.Compiled);
-
-    private static readonly Regex PropertyRegex =
-        new(
-            @"^\s*(?:public|internal|protected|private)\s+(?:static\s+)?(?<type>[A-Za-z_][\w.<>?\[\],]*)\s+[A-Za-z_][\w]*\s*\{",
-            RegexOptions.Compiled);
-
-    private static readonly Regex MethodRegex =
-        new(
-            @"^\s*(?:public|internal|protected|private)\s+(?:static\s+)?(?<return>[A-Za-z_][\w.<>?\[\],]*)\s+(?<name>[A-Za-z_][\w]*)\s*\((?<params>[^)]*)\)",
-            RegexOptions.Compiled);
-
-    private static readonly Regex LocalRegex = new(@"^\s*(?:var|(?<type>[A-Za-z_][\w.<>?\[\],]*))\s+[A-Za-z_][\w]*\s*=",
-        RegexOptions.Compiled);
-
-    private static readonly Regex ConstructorRegex =
-        new(@"^\s*(?:public|internal|protected|private)\s+(?<name>[A-Za-z_][\w]*)\s*\((?<params>[^)]*)\)",
-            RegexOptions.Compiled);
-
     private static readonly HashSet<string> IgnoredTypeNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "void", "string", "object", "bool", "byte", "short", "int", "long", "float", "double", "decimal", "char",
         "DateTime", "DateOnly", "TimeOnly", "Task", "ValueTask", "IEnumerable", "IReadOnlyList", "IReadOnlyCollection",
         "List", "Dictionary", "HashSet", "Array", "Nullable", "Action", "Func"
     };
-    
+
+    private static readonly HashSet<string> StaticAccessTypeNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ConfigurationManager",
+        "DateTime",
+        "File",
+        "Directory",
+        "Environment",
+        "HttpContext",
+        "DependencyResolver",
+        "ControllerBuilder",
+        "GlobalConfiguration",
+        "RouteTable",
+        "GlobalFilters",
+        "ModelBinders",
+        "ValueProviderFactories",
+        "SmtpClient",
+        "HttpClient",
+        "SqlConnection"
+    };
+
+    public ClassDependencyReport Analyze(IReadOnlyCollection<DiscoveredProject> projects)
+    {
+        ArgumentNullException.ThrowIfNull(projects);
+
+        var fileInventory = new ScanFileInventoryBuilder().Build(projects);
+
+        return Analyze(fileInventory);
+    }
+
     public ClassDependencyReport Analyze(ScanFileInventory fileInventory)
     {
         ArgumentNullException.ThrowIfNull(fileInventory);
 
         var sourceFiles = fileInventory.CSharpFiles
-            .Select(file => new SourceFileInfo(
-                file.ProjectName,
-                file.FullPath,
-                file.Content))
+            .Select(ParseSourceFile)
             .ToArray();
 
-        var discoveredTypes = DiscoverTypes(sourceFiles).ToArray();
+        var discoveredTypes = sourceFiles
+            .SelectMany(DiscoverTypes)
+            .ToArray();
 
         var knownTypes = discoveredTypes
             .GroupBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
@@ -98,34 +89,51 @@ public sealed class ClassDependencyAnalyzer
             hotspots,
             sourceFiles.Length);
     }
-    
-    private static IEnumerable<DiscoveredType> DiscoverTypes(IEnumerable<SourceFileInfo> sourceFiles)
+
+    private static SourceFileInfo ParseSourceFile(ScanFile file)
     {
-        foreach (var sourceFile in sourceFiles)
+        var syntaxTree = CSharpSyntaxTree.ParseText(file.Content);
+        var root = syntaxTree.GetCompilationUnitRoot();
+
+        return new SourceFileInfo(
+            file.ProjectName,
+            file.FullPath,
+            file.Content,
+            syntaxTree,
+            root);
+    }
+
+    private static IEnumerable<DiscoveredType> DiscoverTypes(SourceFileInfo sourceFile)
+    {
+        if (string.IsNullOrWhiteSpace(sourceFile.Source))
         {
-            if (string.IsNullOrWhiteSpace(sourceFile.Source))
+            yield break;
+        }
+
+        foreach (var declaration in sourceFile.Root.DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
+        {
+            if (!IsSupportedTypeDeclaration(declaration))
             {
                 continue;
             }
 
-            var namespaceName = NamespaceRegex.Match(sourceFile.Source) is { Success: true } matched
-                ? matched.Groups["name"].Value
-                : string.Empty;
+            var name = declaration.Identifier.Text;
 
-            foreach (Match match in TypeRegex.Matches(sourceFile.Source))
+            if (string.IsNullOrWhiteSpace(name))
             {
-                var name = match.Groups["name"].Value;
-                var kind = ParseTypeKind(match.Groups["kind"].Value);
-                var fullName = string.IsNullOrWhiteSpace(namespaceName) ? name : $"{namespaceName}.{name}";
-
-                yield return new DiscoveredType(
-                    name,
-                    fullName,
-                    kind,
-                    sourceFile.ProjectName,
-                    sourceFile.SourcePath,
-                    GetLineNumber(sourceFile.Source, match.Index));
+                continue;
             }
+
+            var fullName = CreateFullTypeName(declaration, name);
+            var kind = ParseTypeKind(declaration);
+
+            yield return new DiscoveredType(
+                name,
+                fullName,
+                kind,
+                sourceFile.ProjectName,
+                sourceFile.SourcePath,
+                GetLineNumber(sourceFile.SyntaxTree, declaration));
         }
     }
 
@@ -139,159 +147,227 @@ public sealed class ClassDependencyAnalyzer
             yield break;
         }
 
-        var sourceTypesInFile = discoveredTypes
-            .Where(type => string.Equals(type.SourcePath, sourceFile.SourcePath, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(type => type.LineNumber)
-            .ToArray();
-
-        if (sourceTypesInFile.Length == 0)
+        foreach (var typeDeclaration in sourceFile.Root.DescendantNodes().OfType<TypeDeclarationSyntax>())
         {
-            yield break;
-        }
+            var sourceType = FindDiscoveredType(sourceFile, discoveredTypes, typeDeclaration);
 
-        var lines = SplitLines(sourceFile.Source);
-        var currentType = sourceTypesInFile.First();
-
-        for (var i = 0; i < lines.Length; i++)
-        {
-            var lineNumber = i + 1;
-            var line = lines[i];
-            var trimmed = line.Trim();
-
-            var matchingType = sourceTypesInFile.LastOrDefault(type => type.LineNumber <= lineNumber);
-            if (matchingType is not null)
+            if (sourceType is null)
             {
-                currentType = matchingType;
+                continue;
             }
 
-            foreach (var dependency in DiscoverLineDependencies(sourceFile, currentType, line, lineNumber, knownTypes))
+            foreach (var dependency in DiscoverTypeDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
             {
                 yield return dependency;
             }
         }
     }
 
-    private static IEnumerable<ClassDependency> DiscoverLineDependencies(
+    private static IEnumerable<ClassDependency> DiscoverTypeDependencies(
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
-        string line,
-        int lineNumber,
+        TypeDeclarationSyntax typeDeclaration,
         IReadOnlyDictionary<string, DiscoveredType> knownTypes)
     {
-        foreach (var dependency in
-                 DiscoverDeclarationDependencies(sourceFile, sourceType, line, lineNumber, knownTypes))
+        foreach (var dependency in DiscoverBaseTypeDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
         {
             yield return dependency;
         }
 
-        foreach (Match match in AttributeRegex.Matches(line))
+        foreach (var dependency in DiscoverAttributeDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
         {
-            var targetType = NormaliseAttributeName(match.Groups["name"].Value);
-
-            if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: true))
-            {
-                yield return CreateDependency(sourceFile, sourceType, targetType, ClassDependencyKind.Attribute,
-                    lineNumber, match.Value);
-            }
+            yield return dependency;
         }
 
-        foreach (Match match in NewRegex.Matches(line))
+        foreach (var dependency in DiscoverFieldDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
         {
-            var targetType = SimplifyTypeName(match.Groups["type"].Value);
-
-            if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: true))
-            {
-                yield return CreateDependency(sourceFile, sourceType, targetType, ClassDependencyKind.ObjectCreation,
-                    lineNumber, match.Value);
-            }
+            yield return dependency;
         }
 
-        var fieldMatch = FieldRegex.Match(line);
-        if (fieldMatch.Success && TargetTypedNewRegex.IsMatch(line))
+        foreach (var dependency in DiscoverPropertyDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
         {
-            var targetType = SimplifyTypeName(fieldMatch.Groups["type"].Value);
-
-            if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: true))
-            {
-                yield return CreateDependency(sourceFile, sourceType, targetType, ClassDependencyKind.ObjectCreation,
-                    lineNumber, "new()");
-            }
+            yield return dependency;
         }
 
-        foreach (Match match in StaticAccessRegex.Matches(line))
+        foreach (var dependency in DiscoverConstructorDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
         {
-            var targetType = SimplifyTypeName(match.Groups["type"].Value);
-            yield return CreateDependency(sourceFile, sourceType, targetType, ClassDependencyKind.StaticMemberAccess,
-                lineNumber, match.Value);
+            yield return dependency;
         }
 
-        foreach (var genericArgument in ExtractGenericArguments(line))
+        foreach (var dependency in DiscoverMethodDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
         {
-            if (ShouldIncludeTarget(genericArgument, knownTypes, includeKnownFrameworkType: false))
-            {
-                yield return CreateDependency(sourceFile, sourceType, genericArgument,
-                    ClassDependencyKind.GenericTypeArgument, lineNumber, line.Trim());
-            }
+            yield return dependency;
+        }
+
+        foreach (var dependency in DiscoverLocalVariableDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
+        {
+            yield return dependency;
+        }
+
+        foreach (var dependency in DiscoverObjectCreationDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
+        {
+            yield return dependency;
+        }
+
+        foreach (var dependency in DiscoverStaticAccessDependencies(sourceFile, sourceType, typeDeclaration))
+        {
+            yield return dependency;
+        }
+
+        foreach (var dependency in DiscoverGenericArgumentDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
+        {
+            yield return dependency;
         }
     }
 
-    private static IEnumerable<ClassDependency> DiscoverDeclarationDependencies(
+    private static IEnumerable<ClassDependency> DiscoverBaseTypeDependencies(
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
-        string line,
-        int lineNumber,
+        TypeDeclarationSyntax typeDeclaration,
         IReadOnlyDictionary<string, DiscoveredType> knownTypes)
     {
-        var typeMatch = TypeRegex.Match(line);
-        if (typeMatch.Success)
+        if (typeDeclaration.BaseList is null)
         {
-            foreach (var inheritedType in ExtractInheritedTypes(typeMatch.Groups["tail"].Value))
+            yield break;
+        }
+
+        foreach (var baseType in typeDeclaration.BaseList.Types)
+        {
+            var targetType = SimplifyTypeName(baseType.Type.ToString());
+
+            if (!ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: true))
             {
-                if (!ShouldIncludeTarget(inheritedType, knownTypes, includeKnownFrameworkType: true))
+                continue;
+            }
+
+            var kind = IsInterfaceType(targetType, knownTypes)
+                ? ClassDependencyKind.InterfaceImplementation
+                : ClassDependencyKind.BaseClass;
+
+            yield return CreateDependency(
+                sourceFile,
+                sourceType,
+                targetType,
+                kind,
+                GetLineNumber(sourceFile.SyntaxTree, baseType),
+                baseType.ToString());
+        }
+    }
+
+    private static IEnumerable<ClassDependency> DiscoverAttributeDependencies(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        TypeDeclarationSyntax typeDeclaration,
+        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+    {
+        foreach (var attribute in OwnNodes<AttributeSyntax>(typeDeclaration))
+        {
+            var targetType = NormaliseAttributeName(attribute.Name.ToString());
+
+            if (!ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: true))
+            {
+                continue;
+            }
+
+            yield return CreateDependency(
+                sourceFile,
+                sourceType,
+                targetType,
+                ClassDependencyKind.Attribute,
+                GetLineNumber(sourceFile.SyntaxTree, attribute),
+                $"[{attribute}]");
+        }
+    }
+
+    private static IEnumerable<ClassDependency> DiscoverFieldDependencies(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        TypeDeclarationSyntax typeDeclaration,
+        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+    {
+        foreach (var field in OwnNodes<FieldDeclarationSyntax>(typeDeclaration))
+        {
+            var targetType = SimplifyTypeName(field.Declaration.Type.ToString());
+
+            if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: false))
+            {
+                yield return CreateDependency(
+                    sourceFile,
+                    sourceType,
+                    targetType,
+                    ClassDependencyKind.Field,
+                    GetLineNumber(sourceFile.SyntaxTree, field),
+                    GetDeclarationEvidence(field));
+            }
+
+            foreach (var variable in field.Declaration.Variables)
+            {
+                if (variable.Initializer?.Value is not ImplicitObjectCreationExpressionSyntax implicitNew)
                 {
                     continue;
                 }
 
-                var kind = IsInterfaceType(inheritedType, knownTypes)
-                    ? ClassDependencyKind.InterfaceImplementation
-                    : ClassDependencyKind.BaseClass;
-
-                yield return CreateDependency(sourceFile, sourceType, inheritedType, kind, lineNumber, line.Trim());
+                if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: true))
+                {
+                    yield return CreateDependency(
+                        sourceFile,
+                        sourceType,
+                        targetType,
+                        ClassDependencyKind.ObjectCreation,
+                        GetLineNumber(sourceFile.SyntaxTree, implicitNew),
+                        "new()");
+                }
             }
-
-            yield break;
         }
+    }
 
-        var fieldMatch = FieldRegex.Match(line);
-        if (fieldMatch.Success)
+    private static IEnumerable<ClassDependency> DiscoverPropertyDependencies(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        TypeDeclarationSyntax typeDeclaration,
+        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+    {
+        foreach (var property in OwnNodes<PropertyDeclarationSyntax>(typeDeclaration))
         {
-            var targetType = SimplifyTypeName(fieldMatch.Groups["type"].Value);
+            var targetType = SimplifyTypeName(property.Type.ToString());
 
             if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: false))
             {
-                yield return CreateDependency(sourceFile, sourceType, targetType, ClassDependencyKind.Field, lineNumber,
-                    line.Trim());
+                yield return CreateDependency(
+                    sourceFile,
+                    sourceType,
+                    targetType,
+                    ClassDependencyKind.Property,
+                    GetLineNumber(sourceFile.SyntaxTree, property),
+                    GetPropertyEvidence(property));
+            }
+
+            if (property.Initializer?.Value is ImplicitObjectCreationExpressionSyntax implicitNew &&
+                ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: true))
+            {
+                yield return CreateDependency(
+                    sourceFile,
+                    sourceType,
+                    targetType,
+                    ClassDependencyKind.ObjectCreation,
+                    GetLineNumber(sourceFile.SyntaxTree, implicitNew),
+                    "new()");
             }
         }
+    }
 
-        var propertyMatch = PropertyRegex.Match(line);
-        if (propertyMatch.Success)
+    private static IEnumerable<ClassDependency> DiscoverConstructorDependencies(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        TypeDeclarationSyntax typeDeclaration,
+        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+    {
+        foreach (var constructor in OwnNodes<ConstructorDeclarationSyntax>(typeDeclaration))
         {
-            var targetType = SimplifyTypeName(propertyMatch.Groups["type"].Value);
-
-            if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: false))
+            foreach (var parameter in constructor.ParameterList.Parameters)
             {
-                yield return CreateDependency(sourceFile, sourceType, targetType, ClassDependencyKind.Property,
-                    lineNumber, line.Trim());
-            }
-        }
+                var parameterType = SimplifyTypeName(parameter.Type?.ToString() ?? string.Empty);
 
-        var constructorMatch = ConstructorRegex.Match(line);
-        if (constructorMatch.Success &&
-            string.Equals(constructorMatch.Groups["name"].Value, sourceType.Name, StringComparison.OrdinalIgnoreCase))
-        {
-            foreach (var parameterType in ExtractParameterTypes(constructorMatch.Groups["params"].Value))
-            {
                 if (ShouldIncludeTarget(parameterType, knownTypes, includeKnownFrameworkType: false))
                 {
                     yield return CreateDependency(
@@ -299,46 +375,249 @@ public sealed class ClassDependencyAnalyzer
                         sourceType,
                         parameterType,
                         ClassDependencyKind.ConstructorParameter,
-                        lineNumber,
-                        line.Trim());
+                        GetLineNumber(sourceFile.SyntaxTree, constructor),
+                        GetConstructorEvidence(constructor));
                 }
             }
-
-            yield break;
         }
+    }
 
-        var methodMatch = MethodRegex.Match(line);
-        if (methodMatch.Success)
+    private static IEnumerable<ClassDependency> DiscoverMethodDependencies(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        TypeDeclarationSyntax typeDeclaration,
+        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+    {
+        foreach (var method in OwnNodes<MethodDeclarationSyntax>(typeDeclaration))
         {
-            var returnType = SimplifyTypeName(methodMatch.Groups["return"].Value);
+            var returnType = SimplifyTypeName(method.ReturnType.ToString());
 
             if (ShouldIncludeTarget(returnType, knownTypes, includeKnownFrameworkType: false))
             {
-                yield return CreateDependency(sourceFile, sourceType, returnType, ClassDependencyKind.ReturnType,
-                    lineNumber, line.Trim());
+                yield return CreateDependency(
+                    sourceFile,
+                    sourceType,
+                    returnType,
+                    ClassDependencyKind.ReturnType,
+                    GetLineNumber(sourceFile.SyntaxTree, method),
+                    GetMethodEvidence(method));
             }
 
-            foreach (var parameterType in ExtractParameterTypes(methodMatch.Groups["params"].Value))
+            foreach (var parameter in method.ParameterList.Parameters)
             {
+                var parameterType = SimplifyTypeName(parameter.Type?.ToString() ?? string.Empty);
+
                 if (ShouldIncludeTarget(parameterType, knownTypes, includeKnownFrameworkType: false))
                 {
-                    yield return CreateDependency(sourceFile, sourceType, parameterType,
-                        ClassDependencyKind.MethodParameter, lineNumber, line.Trim());
+                    yield return CreateDependency(
+                        sourceFile,
+                        sourceType,
+                        parameterType,
+                        ClassDependencyKind.MethodParameter,
+                        GetLineNumber(sourceFile.SyntaxTree, method),
+                        GetMethodEvidence(method));
                 }
             }
         }
+    }
 
-        var localMatch = LocalRegex.Match(line);
-        if (localMatch.Success && localMatch.Groups["type"].Success)
+    private static IEnumerable<ClassDependency> DiscoverLocalVariableDependencies(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        TypeDeclarationSyntax typeDeclaration,
+        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+    {
+        foreach (var local in OwnNodes<LocalDeclarationStatementSyntax>(typeDeclaration))
         {
-            var targetType = SimplifyTypeName(localMatch.Groups["type"].Value);
+            var targetType = SimplifyTypeName(local.Declaration.Type.ToString());
 
-            if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: false))
+            if (!local.Declaration.Type.IsVar &&
+                ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: false))
             {
-                yield return CreateDependency(sourceFile, sourceType, targetType, ClassDependencyKind.LocalVariable,
-                    lineNumber, line.Trim());
+                yield return CreateDependency(
+                    sourceFile,
+                    sourceType,
+                    targetType,
+                    ClassDependencyKind.LocalVariable,
+                    GetLineNumber(sourceFile.SyntaxTree, local),
+                    GetLocalDeclarationEvidence(local));
+            }
+
+            foreach (var variable in local.Declaration.Variables)
+            {
+                if (variable.Initializer?.Value is not ImplicitObjectCreationExpressionSyntax implicitNew)
+                {
+                    continue;
+                }
+
+                if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: true))
+                {
+                    yield return CreateDependency(
+                        sourceFile,
+                        sourceType,
+                        targetType,
+                        ClassDependencyKind.ObjectCreation,
+                        GetLineNumber(sourceFile.SyntaxTree, implicitNew),
+                        "new()");
+                }
             }
         }
+    }
+
+    private static IEnumerable<ClassDependency> DiscoverObjectCreationDependencies(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        TypeDeclarationSyntax typeDeclaration,
+        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+    {
+        foreach (var objectCreation in OwnNodes<ObjectCreationExpressionSyntax>(typeDeclaration))
+        {
+            var targetType = SimplifyTypeName(objectCreation.Type.ToString());
+
+            if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: true))
+            {
+                yield return CreateDependency(
+                    sourceFile,
+                    sourceType,
+                    targetType,
+                    ClassDependencyKind.ObjectCreation,
+                    GetLineNumber(sourceFile.SyntaxTree, objectCreation),
+                    GetObjectCreationEvidence(objectCreation));
+            }
+        }
+    }
+
+    private static IEnumerable<ClassDependency> DiscoverStaticAccessDependencies(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        TypeDeclarationSyntax typeDeclaration)
+    {
+        foreach (var memberAccess in OwnNodes<MemberAccessExpressionSyntax>(typeDeclaration))
+        {
+            var targetType = SimplifyTypeName(memberAccess.Expression.ToString());
+
+            if (!StaticAccessTypeNames.Contains(targetType))
+            {
+                continue;
+            }
+
+            yield return CreateDependency(
+                sourceFile,
+                sourceType,
+                targetType,
+                ClassDependencyKind.StaticMemberAccess,
+                GetLineNumber(sourceFile.SyntaxTree, memberAccess),
+                memberAccess.ToString());
+        }
+    }
+
+    private static IEnumerable<ClassDependency> DiscoverGenericArgumentDependencies(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        TypeDeclarationSyntax typeDeclaration,
+        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+    {
+        foreach (var genericName in OwnNodes<GenericNameSyntax>(typeDeclaration))
+        {
+            foreach (var argument in genericName.TypeArgumentList.Arguments)
+            {
+                var targetType = SimplifyTypeName(argument.ToString());
+
+                if (ShouldIncludeTarget(targetType, knownTypes, includeKnownFrameworkType: false))
+                {
+                    yield return CreateDependency(
+                        sourceFile,
+                        sourceType,
+                        targetType,
+                        ClassDependencyKind.GenericTypeArgument,
+                        GetLineNumber(sourceFile.SyntaxTree, argument),
+                        genericName.ToString());
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<TNode> OwnNodes<TNode>(TypeDeclarationSyntax owner)
+        where TNode : SyntaxNode
+    {
+        return owner
+            .DescendantNodes()
+            .OfType<TNode>()
+            .Where(node => node.Ancestors().OfType<TypeDeclarationSyntax>().FirstOrDefault() == owner);
+    }
+
+    private static DiscoveredType? FindDiscoveredType(
+        SourceFileInfo sourceFile,
+        IEnumerable<DiscoveredType> discoveredTypes,
+        TypeDeclarationSyntax typeDeclaration)
+    {
+        var lineNumber = GetLineNumber(sourceFile.SyntaxTree, typeDeclaration);
+
+        return discoveredTypes.FirstOrDefault(type =>
+            type.LineNumber == lineNumber &&
+            type.SourcePath.Equals(sourceFile.SourcePath, StringComparison.OrdinalIgnoreCase) &&
+            type.Name.Equals(typeDeclaration.Identifier.Text, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsSupportedTypeDeclaration(BaseTypeDeclarationSyntax declaration)
+    {
+        return declaration is ClassDeclarationSyntax or InterfaceDeclarationSyntax or RecordDeclarationSyntax
+            or StructDeclarationSyntax or EnumDeclarationSyntax;
+    }
+
+    private static string CreateFullTypeName(BaseTypeDeclarationSyntax declaration, string name)
+    {
+        var namespaceName = string.Join(
+            ".",
+            declaration
+                .Ancestors()
+                .OfType<BaseNamespaceDeclarationSyntax>()
+                .Reverse()
+                .Select(ns => ns.Name.ToString())
+                .Where(part => !string.IsNullOrWhiteSpace(part)));
+
+        var containingTypes = declaration
+            .Ancestors()
+            .OfType<BaseTypeDeclarationSyntax>()
+            .Reverse()
+            .Select(type => type.Identifier.Text)
+            .Where(part => !string.IsNullOrWhiteSpace(part));
+
+        var typeName = string.Join(".", containingTypes.Append(name));
+
+        return string.IsNullOrWhiteSpace(namespaceName)
+            ? typeName
+            : $"{namespaceName}.{typeName}";
+    }
+
+    private static ClassDiscoveredTypeKind ParseTypeKind(BaseTypeDeclarationSyntax declaration)
+    {
+        return declaration switch
+        {
+            InterfaceDeclarationSyntax => ClassDiscoveredTypeKind.Interface,
+            RecordDeclarationSyntax => ClassDiscoveredTypeKind.Record,
+            StructDeclarationSyntax => ClassDiscoveredTypeKind.Struct,
+            EnumDeclarationSyntax => ClassDiscoveredTypeKind.Enum,
+            _ => ClassDiscoveredTypeKind.Class
+        };
+    }
+
+    private static ClassDependency CreateDependency(
+        SourceFileInfo sourceFile,
+        DiscoveredType sourceType,
+        string targetType,
+        ClassDependencyKind kind,
+        int lineNumber,
+        string evidence)
+    {
+        return new ClassDependency(
+            sourceFile.ProjectName,
+            sourceFile.SourcePath,
+            lineNumber,
+            sourceType.Name,
+            SimplifyTypeName(targetType),
+            kind,
+            TrimEvidence(evidence));
     }
 
     private static IEnumerable<ClassDependencyConcern> CreateConcerns(ClassDependency dependency)
@@ -495,96 +774,6 @@ public sealed class ClassDependencyAnalyzer
         return "Several incoming source-level dependencies found.";
     }
 
-    private static ClassDependency CreateDependency(
-        SourceFileInfo sourceFile,
-        DiscoveredType sourceType,
-        string targetType,
-        ClassDependencyKind kind,
-        int lineNumber,
-        string evidence)
-    {
-        return new ClassDependency(
-            sourceFile.ProjectName,
-            sourceFile.SourcePath,
-            lineNumber,
-            sourceType.Name,
-            SimplifyTypeName(targetType),
-            kind,
-            TrimEvidence(evidence));
-    }
-
-    private static IEnumerable<string> ExtractInheritedTypes(string tail)
-    {
-        var colonIndex = tail.IndexOf(':', StringComparison.Ordinal);
-        if (colonIndex < 0)
-        {
-            yield break;
-        }
-
-        var inheritanceText = tail[(colonIndex + 1)..];
-        var whereIndex = inheritanceText.IndexOf(" where ", StringComparison.Ordinal);
-        if (whereIndex >= 0)
-        {
-            inheritanceText = inheritanceText[..whereIndex];
-        }
-
-        foreach (var candidate in inheritanceText.Split(',',
-                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var typeName = SimplifyTypeName(candidate);
-            if (!string.IsNullOrWhiteSpace(typeName))
-            {
-                yield return typeName;
-            }
-        }
-    }
-
-    private static IEnumerable<string> ExtractParameterTypes(string parameterText)
-    {
-        if (string.IsNullOrWhiteSpace(parameterText))
-        {
-            yield break;
-        }
-
-        foreach (var parameter in parameterText.Split(',',
-                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-        {
-            var parts = parameter
-                .Replace("ref ", string.Empty, StringComparison.OrdinalIgnoreCase)
-                .Replace("out ", string.Empty, StringComparison.OrdinalIgnoreCase)
-                .Replace("in ", string.Empty, StringComparison.OrdinalIgnoreCase)
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-            if (parts.Length < 2)
-            {
-                continue;
-            }
-
-            var typeName = SimplifyTypeName(parts[0]);
-            if (!string.IsNullOrWhiteSpace(typeName))
-            {
-                yield return typeName;
-            }
-        }
-    }
-
-    private static IEnumerable<string> ExtractGenericArguments(string line)
-    {
-        var matches = Regex.Matches(line, @"<(?<args>[A-Za-z_][\w.<>?,\s]*)>");
-        foreach (Match match in matches)
-        {
-            foreach (var argument in match.Groups["args"].Value
-                         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                var typeName = SimplifyTypeName(argument);
-                if (!string.IsNullOrWhiteSpace(typeName))
-                {
-                    yield return typeName;
-                }
-            }
-        }
-    }
-
     private static bool ShouldIncludeTarget(
         string targetType,
         IReadOnlyDictionary<string, DiscoveredType> knownTypes,
@@ -657,7 +846,18 @@ public sealed class ClassDependencyAnalyzer
 
     private static string SimplifyTypeName(string value)
     {
-        var typeName = value.Trim().Trim('?').Replace("[]", string.Empty, StringComparison.Ordinal);
+        var typeName = value
+            .Trim()
+            .Replace("global::", string.Empty, StringComparison.Ordinal)
+            .Replace("[]", string.Empty, StringComparison.Ordinal)
+            .Trim()
+            .TrimEnd('?');
+
+        if (typeName.StartsWith("System.Nullable<", StringComparison.OrdinalIgnoreCase))
+        {
+            typeName = typeName["System.Nullable<".Length..].TrimEnd('>');
+        }
+
         var genericIndex = typeName.IndexOf('<', StringComparison.Ordinal);
         if (genericIndex >= 0)
         {
@@ -681,23 +881,38 @@ public sealed class ClassDependencyAnalyzer
             : $"{name}Attribute";
     }
 
-    private static ClassDiscoveredTypeKind ParseTypeKind(string value)
+    private static int GetLineNumber(SyntaxTree syntaxTree, SyntaxNode node) =>
+        syntaxTree.GetLineSpan(node.Span).StartLinePosition.Line + 1;
+
+    private static string GetDeclarationEvidence(FieldDeclarationSyntax field)
     {
-        return value.ToLowerInvariant() switch
+        var firstVariable = field.Declaration.Variables.FirstOrDefault()?.Identifier.Text;
+
+        if (string.IsNullOrWhiteSpace(firstVariable))
         {
-            "interface" => ClassDiscoveredTypeKind.Interface,
-            "record" => ClassDiscoveredTypeKind.Record,
-            "struct" => ClassDiscoveredTypeKind.Struct,
-            "enum" => ClassDiscoveredTypeKind.Enum,
-            _ => ClassDiscoveredTypeKind.Class
-        };
+            return field.ToString();
+        }
+
+        return $"{field.Modifiers} {field.Declaration.Type} {firstVariable}".Trim();
     }
 
-    private static string[] SplitLines(string source) =>
-        source.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+    private static string GetPropertyEvidence(PropertyDeclarationSyntax property) =>
+        $"{property.Modifiers} {property.Type} {property.Identifier} {{".Trim();
 
-    private static int GetLineNumber(string source, int index) =>
-        source[..Math.Min(index, source.Length)].Count(character => character == '\n') + 1;
+    private static string GetConstructorEvidence(ConstructorDeclarationSyntax constructor) =>
+        $"{constructor.Modifiers} {constructor.Identifier}{constructor.ParameterList}".Trim();
+
+    private static string GetMethodEvidence(MethodDeclarationSyntax method) =>
+        $"{method.Modifiers} {method.ReturnType} {method.Identifier}{method.TypeParameterList}{method.ParameterList}".Trim();
+
+    private static string GetLocalDeclarationEvidence(LocalDeclarationStatementSyntax local) =>
+        local.Declaration.ToString();
+
+    private static string GetObjectCreationEvidence(ObjectCreationExpressionSyntax objectCreation)
+    {
+        var argumentList = objectCreation.ArgumentList?.ToString() ?? "()";
+        return $"new {objectCreation.Type}{argumentList}";
+    }
 
     private static string TrimEvidence(string evidence)
     {
@@ -716,5 +931,10 @@ public sealed class ClassDependencyAnalyzer
         string.Join("|", concern.SourcePath, concern.LineNumber, concern.SourceType, concern.TargetType,
             concern.DependencyKind, concern.Evidence);
 
-    private sealed record SourceFileInfo(string ProjectName, string SourcePath, string Source);
+    private sealed record SourceFileInfo(
+        string ProjectName,
+        string SourcePath,
+        string Source,
+        SyntaxTree SyntaxTree,
+        CompilationUnitSyntax Root);
 }

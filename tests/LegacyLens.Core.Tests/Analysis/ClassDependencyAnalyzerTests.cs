@@ -488,6 +488,151 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
             concern.DependencyKind == ClassDependencyKind.ConstructorParameter);
     }
 
+    [Fact]
+    public void Analyze_ParsesMultilineConstructorParameters()
+    {
+        WriteSourceFile(
+            "OrderService.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public class OrderRepository
+            {
+            }
+
+            public class OrderService
+            {
+                public OrderService(
+                    OrderRepository repository)
+                {
+                }
+            }
+            """);
+
+        var analyzer = new ClassDependencyAnalyzer();
+
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
+
+        Assert.Contains(report.Dependencies, dependency =>
+            dependency.SourceType == "OrderService" &&
+            dependency.TargetType == "OrderRepository" &&
+            dependency.Kind == ClassDependencyKind.ConstructorParameter);
+    }
+    
+    [Fact]
+    public void Analyze_UsesSyntaxOwnershipForNestedTypes()
+    {
+        WriteSourceFile(
+            "OuterService.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public class OuterDependency
+            {
+            }
+
+            public class InnerDependency
+            {
+            }
+
+            public class OuterService
+            {
+                private readonly OuterDependency _outerDependency;
+
+                public class InnerService
+                {
+                    private readonly InnerDependency _innerDependency;
+                }
+            }
+            """);
+
+        var analyzer = new ClassDependencyAnalyzer();
+
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
+
+        Assert.Contains(report.Dependencies, dependency =>
+            dependency.SourceType == "OuterService" &&
+            dependency.TargetType == "OuterDependency" &&
+            dependency.Kind == ClassDependencyKind.Field);
+
+        Assert.Contains(report.Dependencies, dependency =>
+            dependency.SourceType == "InnerService" &&
+            dependency.TargetType == "InnerDependency" &&
+            dependency.Kind == ClassDependencyKind.Field);
+
+        Assert.DoesNotContain(report.Dependencies, dependency =>
+            dependency.SourceType == "OuterService" &&
+            dependency.TargetType == "InnerDependency");
+    }
+    
+    [Fact]
+    public void Analyze_IgnoresDependencyLookingTextInCommentsAndStrings()
+    {
+        WriteSourceFile(
+            "OrderService.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public class OrderRepository
+            {
+            }
+
+            public class OrderService
+            {
+                public void Run()
+                {
+                    // new OrderRepository()
+                    var text = "new OrderRepository()";
+                }
+            }
+            """);
+
+        var analyzer = new ClassDependencyAnalyzer();
+
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
+
+        Assert.DoesNotContain(report.Dependencies, dependency =>
+            dependency.SourceType == "OrderService" &&
+            dependency.TargetType == "OrderRepository" &&
+            dependency.Kind == ClassDependencyKind.ObjectCreation);
+    }
+    
+    [Fact]
+    public void Analyze_DiscoversTargetTypedNewForLocalVariable()
+    {
+        WriteSourceFile(
+            "OrderService.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public class OrderRepository
+            {
+            }
+
+            public class OrderService
+            {
+                public void Run()
+                {
+                    OrderRepository repository = new();
+                }
+            }
+            """);
+
+        var analyzer = new ClassDependencyAnalyzer();
+
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
+
+        Assert.Contains(report.Dependencies, dependency =>
+            dependency.SourceType == "OrderService" &&
+            dependency.TargetType == "OrderRepository" &&
+            dependency.Kind == ClassDependencyKind.LocalVariable);
+
+        Assert.Contains(report.Dependencies, dependency =>
+            dependency.SourceType == "OrderService" &&
+            dependency.TargetType == "OrderRepository" &&
+            dependency.Kind == ClassDependencyKind.ObjectCreation);
+    }
+    
     public void Dispose()
     {
         if (Directory.Exists(_rootPath))
