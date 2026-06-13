@@ -13,7 +13,7 @@ public sealed class ConfigurationInventoryArtifactRunner : IScanArtifactRunner
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        return context.Options.ShouldWriteConfigurationInventory;
+        return context.Options.ShouldWriteArtifact(ArtifactName);
     }
 
     public ScanArtifactResult Run(ScanContext context)

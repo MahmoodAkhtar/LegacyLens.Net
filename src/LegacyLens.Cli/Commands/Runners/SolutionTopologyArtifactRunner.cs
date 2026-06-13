@@ -13,7 +13,7 @@ public sealed class SolutionTopologyArtifactRunner : IScanArtifactRunner
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        return context.Options.ShouldWriteSolutionTopology;
+        return context.Options.ShouldWriteArtifact(ArtifactName);
     }
 
     public ScanArtifactResult Run(ScanContext context)

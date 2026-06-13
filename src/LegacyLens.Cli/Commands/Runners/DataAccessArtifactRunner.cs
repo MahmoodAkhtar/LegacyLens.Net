@@ -1,4 +1,4 @@
-﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Analysis;
 using LegacyLens.Reporting.Markdown;
 
 namespace LegacyLens.Cli.Commands.Runners;
@@ -13,7 +13,7 @@ public sealed class DataAccessArtifactRunner : IScanArtifactRunner
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        return context.Options.ShouldWriteDataAccess;
+        return context.Options.ShouldWriteArtifact(ArtifactName);
     }
 
     public ScanArtifactResult Run(ScanContext context)

@@ -35,8 +35,8 @@ Options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, and class-dependencies.
---upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
+--artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.
+--upgrade-target <tfm>  Optional target-framework context for upgrade-readiness or upgrade-blockers report wording only; does not change discovery scope or perform compatibility checks.
 -h, --help             Show help.
 --version              Show version.
 ```
@@ -52,6 +52,10 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports
 legacylens scan C:\Repos\LegacyApp --format markdown
 legacylens scan C:\Repos\LegacyApp --quiet
 legacylens scan C:\Repos\LegacyApp --verbose
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology,class-dependencies,data-access
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all --upgrade-target net8.0
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-readiness --upgrade-target net8.0
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-readiness
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers --upgrade-target net8.0
@@ -61,6 +65,7 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts configura
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts data-access
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts edmx-analysis
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-dependencies
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology
 legacylens --help
 legacylens --version
 ```
@@ -99,6 +104,60 @@ When `--output-dir` is used, the report file is written as:
 
 Use either `--output` or `--output-dir`, not both.
 
+### Artifact Selection
+
+The main `discovery-report.md` is always generated. The optional `--artifacts <value>` option controls which additional artifact reports are generated from the same scan.
+
+`--artifacts` accepts:
+
+- one artifact name, for example `solution-topology`
+- a comma-separated list of artifact names, for example `solution-topology,class-dependencies,data-access`
+- the special value `all`, which generates every supported optional artifact
+
+Supported artifact names are:
+
+- `upgrade-readiness`
+- `upgrade-blockers`
+- `external-dependencies`
+- `configuration-inventory`
+- `data-access`
+- `edmx-analysis`
+- `class-dependencies`
+- `solution-topology`
+- `all`
+
+Artifact matching is case-insensitive. Comma-separated values may include spaces around commas, so both of these are valid:
+
+```bash
+legacylens scan <path> --artifacts solution-topology,class-dependencies
+legacylens scan <path> --artifacts solution-topology, class-dependencies, data-access
+```
+
+Duplicate artifact names are ignored so the same report is not generated twice.
+
+`all` must be used by itself. For example, this should be rejected with a clear validation error:
+
+```bash
+legacylens scan <path> --artifacts all,data-access
+```
+
+Unknown artifact names should produce a clear validation error that lists the supported values.
+
+`--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when the selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it does not change discovery scope or perform compatibility checks:
+
+```bash
+legacylens scan <path> --artifacts upgrade-readiness --upgrade-target net8.0
+legacylens scan <path> --artifacts upgrade-blockers --upgrade-target net8.0
+legacylens scan <path> --artifacts upgrade-readiness,upgrade-blockers --upgrade-target net8.0
+legacylens scan <path> --artifacts all --upgrade-target net8.0
+```
+
+`--upgrade-target <tfm>` should be rejected when none of the selected artifacts are upgrade-related:
+
+```bash
+legacylens scan <path> --artifacts data-access --upgrade-target net8.0
+```
+
 ### Upgrade Readiness Artifact
 
 The MVP scope now includes an optional `upgrade-readiness` artifact that should produce:
@@ -113,15 +172,14 @@ Intended usage:
 legacylens scan <path> --output-dir ./output --artifacts upgrade-readiness --upgrade-target net8.0
 ```
 
-The `--upgrade-target` option is optional:
+The `--upgrade-target` option is optional wording context only:
 
 ```bash
 legacylens scan <path> --output-dir ./output --artifacts upgrade-readiness
 ```
 
-When no upgrade target is provided, the report should still be generated using general upgrade-readiness wording. The report should remain static and evidence-backed. It should not claim to build the solution, run tests, restore NuGet packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate the codebase, or guarantee compatibility with any destination framework.
+When no upgrade target wording context is provided, the report should still be generated using general upgrade-readiness wording. The report should remain static and evidence-backed. It should not claim to build the solution, run tests, restore NuGet packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate the codebase, or guarantee compatibility with any destination framework.
 
-For the first implementation, prefer the smallest command support needed to generate `upgrade-readiness-report.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
 ### Upgrade Blockers Artifact
 
@@ -137,15 +195,14 @@ Intended usage:
 legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers --upgrade-target net8.0
 ```
 
-The `--upgrade-target` option is optional:
+The `--upgrade-target` option is optional wording context only:
 
 ```bash
 legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers
 ```
 
-When no upgrade target is provided, the report should still be generated using general upgrade-blocker wording. The report should remain static and evidence-backed. It should identify visible blockers, migration decisions, and higher-risk areas that may complicate upgrade planning, but it should not claim to build the solution, run tests, restore NuGet packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate the codebase, prove that migration is impossible, or guarantee compatibility with any destination framework.
+When no upgrade target wording context is provided, the report should still be generated using general upgrade-blocker wording. The report should remain static and evidence-backed. It should identify visible blockers, migration decisions, and higher-risk areas that may complicate upgrade planning, but it should not claim to build the solution, run tests, restore NuGet packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate the codebase, prove that migration is impossible, or guarantee compatibility with any destination framework.
 
-For the first implementation, prefer the smallest command support needed to generate `upgrade-blockers.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
 ### External Dependencies Artifact
 
@@ -165,7 +222,6 @@ The report should remain static, evidence-backed, and security-conscious. It sho
 
 The report should not claim to connect to databases, call HTTP APIs, validate credentials, verify network reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, or guarantee completeness. Sensitive values such as passwords, API keys, tokens, SAS tokens, access keys, client secrets, private feed credentials, and connection string secrets should be masked or redacted.
 
-For the first implementation, prefer the smallest command support needed to generate `external-dependencies.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
 
 ### Configuration Inventory Artifact
@@ -186,7 +242,6 @@ The report should remain static, evidence-backed, and security-conscious. It sho
 
 The report should not claim to run the application, apply transforms, validate credentials, connect to external systems, prove production usage, prove a setting is used or unused, fully evaluate runtime configuration inheritance, resolve deployment-time substitutions, or guarantee completeness. Sensitive values such as passwords, API keys, tokens, SAS tokens, storage account keys, client secrets, private feed credentials, and connection string secrets should be masked or redacted.
 
-For the first implementation, prefer the smallest command support needed to generate `configuration-inventory.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
 ### Data Access Artifact
 
@@ -206,7 +261,6 @@ The report should remain static, evidence-backed, and security-conscious. It sho
 
 The report should not claim to connect to databases, validate credentials, validate connection strings, execute SQL, parse or validate full SQL syntax, inspect live schemas, compare schemas, run EF migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove a query or stored procedure is unused, automatically migrate data access code, or guarantee EF6-to-EF Core or package compatibility. Sensitive values such as passwords, user names where appropriate, access tokens, API keys, and embedded credentials should be masked or redacted.
 
-For the first implementation, prefer the smallest command support needed to generate `data-access-inventory.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
 ### EDMX Analysis Artifact
 
@@ -226,8 +280,25 @@ The report should remain static and evidence-backed. It should discover `.edmx` 
 
 The report should not claim to connect to a database, validate the EDMX against a live database, generate EF Core models, convert EDMX to EF Core, run NuGet restore, build the solution, guarantee migration compatibility, fully understand custom T4 templates, or claim that all EF Core equivalents are direct one-to-one replacements.
 
-For the first implementation, prefer the smallest command support needed to generate `edmx-analysis.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
+
+### Solution Topology Artifact
+
+The MVP scope now includes an optional `solution-topology` artifact that should produce:
+
+```text
+<output-dir>/solution-topology.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts solution-topology
+```
+
+The report should remain static and evidence-backed. It should help a .NET developer understand solution membership, project relationships, dependency direction, entry points, configuration hotspots, and likely ownership or review boundaries before onboarding, refactoring, or upgrade planning.
+
+The report should not claim to build the solution, restore NuGet packages, execute code, infer runtime call graphs, or prove architectural intent.
 
 ### Class Dependencies Artifact
 
@@ -249,7 +320,6 @@ The report should include coupling summaries, high-dependency hotspots, hardcode
 
 The report should not claim to build the solution, restore NuGet packages, resolve runtime dependency injection, execute code, understand reflection or dynamic loading, fully understand generated code, prove runtime usage, or produce a runtime call graph.
 
-For the first implementation, prefer the smallest command support needed to generate `class-dependencies.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
 ### Console Output Modes
 
@@ -287,13 +357,16 @@ The CLI currently validates the following:
 - the supported command is `scan`
 - a scan path is required
 - unknown options are rejected
-- `--artifacts upgrade-readiness` should be supported when the upgrade-readiness artifact is implemented
-- `--artifacts upgrade-blockers` should be supported when the upgrade-blockers artifact is implemented
-- `--artifacts external-dependencies` should be supported when the external-dependencies artifact is implemented
-- `--artifacts data-access` should be supported when the data-access artifact is implemented
-- `--artifacts edmx-analysis` should be supported when the edmx-analysis artifact is implemented
-- `--artifacts class-dependencies` should be supported when the class-dependencies artifact is implemented
-- `--upgrade-target <tfm>` should be accepted as optional context for upgrade-readiness and upgrade-blockers wording
+- `--artifacts` accepts one supported artifact name
+- `--artifacts` accepts a comma-separated list of supported artifact names
+- `--artifacts all` generates every supported optional artifact
+- artifact names are matched case-insensitively
+- comma-separated artifact names tolerate spaces around commas
+- duplicate artifact names are de-duplicated before artifact generation
+- unknown artifact names are rejected with a clear validation error listing supported values
+- `all` cannot be combined with other artifact names
+- `--upgrade-target <tfm>` should be accepted as optional upgrade report wording context only when `upgrade-readiness`, `upgrade-blockers`, or `all` is selected
+- `--upgrade-target <tfm>` should be rejected when none of the selected artifacts are upgrade-related because there is no upgrade report wording context to apply
 - option values are required for `--output`, `-o`, `--output-dir`, and `--format`
 - only `markdown` is currently supported for `--format`
 - `--output` and `--output-dir` cannot be used together

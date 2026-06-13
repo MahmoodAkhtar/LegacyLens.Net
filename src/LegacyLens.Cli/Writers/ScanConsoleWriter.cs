@@ -43,8 +43,9 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  --verbose              Print detailed discovery output.");
         Console.WriteLine("  -h, --help             Show help.");
         Console.WriteLine("  --version              Show version.");
-        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, and solution-topology.");
-        Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.");
+        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.");
+        Console.WriteLine("                           Supported artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, solution-topology, all.");
+        Console.WriteLine("  --upgrade-target <tfm>  Optional target-framework context for upgrade report wording only; valid with upgrade-readiness, upgrade-blockers, or all.");
     }
 
     public void WriteVersion()

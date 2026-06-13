@@ -25,6 +25,8 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope data-access artifact that produces `data-access-inventory.md` with a static, evidence-backed inventory of data access technologies, patterns, and migration concerns
 - an MVP-scope edmx-analysis artifact that produces `edmx-analysis.md` with a static, evidence-backed analysis of EF EDMX conceptual, storage, mapping, designer, generated-file, and EF Core migration concern signals
 - an MVP-scope class-dependencies artifact that produces `class-dependencies.md` with static, evidence-backed source-level type relationship analysis, coupling hotspots, hardcoded concrete dependencies, static dependency concerns, and focused Mermaid diagrams with dependency-kind edge labels
+- an MVP-scope solution-topology artifact that produces `solution-topology.md` with static, evidence-backed solution, project, dependency, and ownership-boundary orientation information
+- flexible artifact selection from a single scan command, including one artifact, a comma-separated subset of artifacts, or every supported artifact using `--artifacts all`
 
 ## Quick start
 
@@ -57,13 +59,37 @@ By default, the Markdown report is written to:
 
 For full command usage, see [docs/usage.md](docs/usage.md).
 
+### Optional artifact selection
+
+The normal `discovery-report.md` is always generated. Optional artifacts can be selected from the same scan command.
+
+Generate one focused artifact:
+
+```bash
+legacylens scan <path> --artifacts solution-topology
+```
+
+Generate a selected subset of artifacts:
+
+```bash
+legacylens scan <path> --artifacts solution-topology,class-dependencies,data-access
+```
+
+Generate every supported optional artifact:
+
+```bash
+legacylens scan <path> --artifacts all
+```
+
+Artifact names are case-insensitive, comma-separated values may contain spaces around commas, duplicate names are ignored, and `all` must not be combined with other artifact names. `--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when the selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it does not change discovery scope or perform compatibility checks.
+
 The MVP scope now also includes an optional upgrade-readiness artifact:
 
 ```bash
 legacylens scan <path> --output-dir ./output --artifacts upgrade-readiness --upgrade-target net8.0
 ```
 
-`--upgrade-target` is optional. When omitted, the report should use general upgrade-readiness language and avoid claiming compatibility with any specific destination framework.
+`--upgrade-target` is optional wording context only. When omitted, the report should use general upgrade-readiness language and avoid claiming compatibility with any specific destination framework.
 
 The MVP scope now also includes an optional upgrade-blockers artifact:
 
@@ -71,7 +97,7 @@ The MVP scope now also includes an optional upgrade-blockers artifact:
 legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers --upgrade-target net8.0
 ```
 
-`--upgrade-target` is optional. When omitted, the report should use general upgrade-blocker language and avoid claiming compatibility with any specific destination framework.
+`--upgrade-target` is optional wording context only. When omitted, the report should use general upgrade-blocker language and avoid claiming compatibility with any specific destination framework.
 
 The MVP scope now also includes an optional external-dependencies artifact:
 
@@ -113,6 +139,14 @@ legacylens scan <path> --output-dir ./output --artifacts class-dependencies
 ```
 
 This report should analyse `.cs` source files and identify source-level relationships between types, including constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, inheritance, interface implementations, attributes, and generic type usage. It should remain static and evidence-backed, include dependency-kind labels in focused Mermaid diagrams, and avoid claiming to understand runtime dependency injection, reflection, dynamic loading, generated code behaviour, or runtime call graphs.
+
+The MVP scope now also includes an optional solution-topology artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts solution-topology
+```
+
+This report should help a developer understand solution membership, project relationships, dependency direction, entry points, configuration hotspots, and likely ownership or review boundaries using static evidence only.
 
 ## Example output
 

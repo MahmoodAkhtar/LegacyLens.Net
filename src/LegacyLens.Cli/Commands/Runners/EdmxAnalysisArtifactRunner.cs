@@ -1,4 +1,4 @@
-﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Analysis;
 using LegacyLens.Reporting.Markdown;
 
 namespace LegacyLens.Cli.Commands.Runners;
@@ -13,7 +13,7 @@ public sealed class EdmxAnalysisArtifactRunner : IScanArtifactRunner
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        return context.Options.ShouldWriteEdmxAnalysis;
+        return context.Options.ShouldWriteArtifact(ArtifactName);
     }
 
     public ScanArtifactResult Run(ScanContext context)

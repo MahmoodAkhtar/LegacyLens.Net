@@ -120,7 +120,16 @@ Current MVP functionality includes implemented capabilities and newly required M
 - optional `--artifacts data-access` command support for producing the data-access artifact
 - optional `--artifacts edmx-analysis` command support for producing the edmx-analysis artifact
 - optional `--artifacts class-dependencies` command support for producing the class-dependencies artifact
-- optional `--upgrade-target <tfm>` command support for upgrade-readiness and upgrade-blockers report context
+- optional `--artifacts solution-topology` command support for producing the solution-topology artifact
+- optional `--artifacts <name1,name2>` command support for generating a selected comma-separated subset of optional artifacts
+- optional `--artifacts all` command support for generating every supported optional artifact
+- case-insensitive artifact name matching
+- support for spaces around commas in comma-separated artifact selection
+- artifact selection de-duplication so duplicate names do not generate duplicate reports
+- clear validation errors for unknown artifact names, including a list of supported values
+- validation that `all` cannot be combined with other artifact names
+- normal `discovery-report.md` generation regardless of optional artifact selection
+- optional `--upgrade-target <tfm>` command support as upgrade report wording context only when selected artifacts include upgrade-readiness, upgrade-blockers, or all; it does not change discovery scope or perform compatibility checks
 - static class dependency analysis for identifying source-level type relationships and coupling concerns
 - class-dependencies report generation as `class-dependencies.md`
 - class-dependencies discovery of source-defined types such as classes, interfaces, records, structs, and enums where useful
@@ -131,6 +140,10 @@ Current MVP functionality includes implemented capabilities and newly required M
 - class-dependencies focused Mermaid diagram generation with dependency-kind edge labels
 - class-dependencies evidence reporting with project name, source path, line number, source type, target type, dependency kind, and concise source evidence where possible
 - class-dependencies notes and limitations explaining static no-build analysis and that findings mean “requires review”, not “proven runtime usage”
+- static solution-topology analysis for onboarding and codebase orientation
+- solution-topology report generation as `solution-topology.md`
+- solution-topology reporting of solution membership, project relationships, dependency direction, entry-point indicators, configuration concentration, and suggested review boundaries where static evidence exists
+- solution-topology notes and limitations explaining static no-build analysis and that the report is orientation evidence, not a proven runtime architecture model
 - static configuration-inventory analysis for understanding the visible configuration surface of a legacy .NET codebase
 - configuration-inventory report generation as `configuration-inventory.md`
 - configuration-inventory discovery of visible configuration files such as `App.config`, `Web.config`, `*.config`, `appsettings.json`, `appsettings.*.json`, `.settings` files, and relevant build/package configuration files where useful

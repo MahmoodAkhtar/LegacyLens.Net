@@ -2,6 +2,30 @@ namespace LegacyLens.Cli.Commands;
 
 public sealed class ScanOptions
 {
+    public const string AllArtifactsSelection = "all";
+    public const string UpgradeReadinessArtifact = "upgrade-readiness";
+    public const string UpgradeBlockersArtifact = "upgrade-blockers";
+    public const string ExternalDependenciesArtifact = "external-dependencies";
+    public const string ConfigurationInventoryArtifact = "configuration-inventory";
+    public const string DataAccessArtifact = "data-access";
+    public const string EdmxAnalysisArtifact = "edmx-analysis";
+    public const string ClassDependenciesArtifact = "class-dependencies";
+    public const string SolutionTopologyArtifact = "solution-topology";
+
+    public static readonly IReadOnlyList<string> SupportedArtifactNames =
+    [
+        UpgradeReadinessArtifact,
+        UpgradeBlockersArtifact,
+        ExternalDependenciesArtifact,
+        ConfigurationInventoryArtifact,
+        DataAccessArtifact,
+        EdmxAnalysisArtifact,
+        ClassDependenciesArtifact,
+        SolutionTopologyArtifact
+    ];
+
+    private readonly IReadOnlyList<string> _selectedArtifacts = Array.Empty<string>();
+
     public required string Path { get; init; }
     public string? Output { get; init; }
     public string? OutputDirectory { get; init; }
@@ -12,27 +36,44 @@ public sealed class ScanOptions
     public string? Artifacts { get; init; }
     public string? UpgradeTarget { get; init; }
 
-    public bool ShouldWriteUpgradeReadiness =>
-        string.Equals(Artifacts, "upgrade-readiness", StringComparison.OrdinalIgnoreCase);
+    public IReadOnlyList<string> SelectedArtifacts
+    {
+        get => _selectedArtifacts;
+        init => _selectedArtifacts = value
+            .Where(artifact => !string.IsNullOrWhiteSpace(artifact))
+            .Select(artifact => artifact.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
 
-    public bool ShouldWriteUpgradeBlockers =>
-        string.Equals(Artifacts, "upgrade-blockers", StringComparison.OrdinalIgnoreCase);
+    public bool ShouldWriteAllArtifacts { get; init; }
 
-    public bool ShouldWriteExternalDependencies =>
-        string.Equals(Artifacts, "external-dependencies", StringComparison.OrdinalIgnoreCase);
+    public bool ShouldWriteUpgradeReadiness => ShouldWriteArtifact(UpgradeReadinessArtifact);
 
-    public bool ShouldWriteConfigurationInventory =>
-        string.Equals(Artifacts, "configuration-inventory", StringComparison.OrdinalIgnoreCase);
-    
-    public bool ShouldWriteDataAccess =>
-        string.Equals(Artifacts, "data-access", StringComparison.OrdinalIgnoreCase);
-    
-    public bool ShouldWriteEdmxAnalysis =>
-        string.Equals(Artifacts, "edmx-analysis", StringComparison.OrdinalIgnoreCase);
-    
-    public bool ShouldWriteClassDependencies =>
-        string.Equals(Artifacts, "class-dependencies", StringComparison.OrdinalIgnoreCase);
+    public bool ShouldWriteUpgradeBlockers => ShouldWriteArtifact(UpgradeBlockersArtifact);
 
-    public bool ShouldWriteSolutionTopology =>
-        string.Equals(Artifacts, "solution-topology", StringComparison.OrdinalIgnoreCase);
+    public bool ShouldWriteExternalDependencies => ShouldWriteArtifact(ExternalDependenciesArtifact);
+
+    public bool ShouldWriteConfigurationInventory => ShouldWriteArtifact(ConfigurationInventoryArtifact);
+
+    public bool ShouldWriteDataAccess => ShouldWriteArtifact(DataAccessArtifact);
+
+    public bool ShouldWriteEdmxAnalysis => ShouldWriteArtifact(EdmxAnalysisArtifact);
+
+    public bool ShouldWriteClassDependencies => ShouldWriteArtifact(ClassDependenciesArtifact);
+
+    public bool ShouldWriteSolutionTopology => ShouldWriteArtifact(SolutionTopologyArtifact);
+
+    public bool ShouldWriteArtifact(string artifactName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(artifactName);
+
+        return ShouldWriteAllArtifacts ||
+               SelectedArtifacts.Contains(artifactName, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public bool HasUpgradeRelatedArtifactSelection =>
+        ShouldWriteAllArtifacts ||
+        ShouldWriteArtifact(UpgradeReadinessArtifact) ||
+        ShouldWriteArtifact(UpgradeBlockersArtifact);
 }

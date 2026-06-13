@@ -212,7 +212,7 @@ MVP scope:
 
 - Add an `upgrade-readiness` capability that can produce `upgrade-readiness-report.md`.
 - Use existing static discovery evidence where possible, including project targets, project references, package metadata, assembly references, WCF findings, legacy ASP.NET artifacts, configuration files, and existing modernisation hints.
-- Support optional upgrade target context, for example `--upgrade-target net8.0`, without claiming guaranteed compatibility.
+- Support optional upgrade target wording context, for example `--upgrade-target net8.0`, without changing discovery scope or claiming guaranteed compatibility.
 - Classify project-level readiness using `Lower risk candidate`, `Moderate review required`, `Higher risk / review first`, and `Unknown`.
 - Report possible upgrade concerns with supporting evidence and cautious wording.
 - Include package upgrade considerations where package data exists.
@@ -232,7 +232,7 @@ Out of scope for MVP:
 - Automatic migration.
 - Definitive pass/fail compatibility results for `net8.0`, `net10.0`, or any other destination framework.
 
-Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/upgrade-readiness-report.md` without over-engineering the CLI.
+Implementation should use the MVP artifact selection model rather than one-off command handling.
 
 ### Step 5c: Upgrade blockers report for upgrade planning
 
@@ -242,7 +242,7 @@ MVP scope:
 
 - Add an `upgrade-blockers` capability that can produce `upgrade-blockers.md`.
 - Use existing static discovery evidence where possible, including project targets, package metadata, assembly references, direct DLL or `HintPath` references where available, WCF findings, legacy ASP.NET artifacts, configuration files, existing modernisation hints, and package compatibility/static package review information.
-- Support optional upgrade target context, for example `--upgrade-target net8.0`, without claiming guaranteed compatibility.
+- Support optional upgrade target wording context, for example `--upgrade-target net8.0`, without changing discovery scope or claiming guaranteed compatibility.
 - Group visible blockers into focused categories such as `Legacy ASP.NET / System.Web`, `WCF / ServiceModel`, `EF6 / EDMX / Data Access`, `Package Management`, `Direct Assembly References`, `Configuration / Runtime Coupling`, `Windows-only / Platform-specific APIs`, `Custom Build / MSBuild Behaviour`, and `Unknown / Requires Manual Review`.
 - Assign impact labels using `High`, `Medium`, `Low`, or `Unknown`.
 - Report why each blocker matters, the supporting evidence, and the migration decisions required.
@@ -262,7 +262,7 @@ Out of scope for MVP:
 - Claims that a blocker proves the project cannot be upgraded.
 - Rewrite recommendations without supporting evidence.
 
-Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/upgrade-blockers.md` without over-engineering the CLI. The report should be more focused and decision-oriented than `upgrade-readiness-report.md`, not a duplicate of it.
+Implementation should use the MVP artifact selection model rather than one-off command handling. The report should be more focused and decision-oriented than `upgrade-readiness-report.md`, not a duplicate of it.
 
 
 ### Step 5d: External dependencies inventory for migration, deployment, and onboarding
@@ -287,7 +287,7 @@ Out of scope for MVP:
 - Proving that a dependency is active, proving that a dependency is unused, or guaranteeing completeness.
 - Printing full secrets or raw sensitive values.
 
-Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/external-dependencies.md` without over-engineering the CLI. The report should be distinct from configuration inventory, upgrade readiness, upgrade blockers, and data-access inventory; its focus is systems and resources outside the repository that may affect runtime, build, migration, deployment, testing, or onboarding.
+Implementation should use the MVP artifact selection model rather than one-off command handling. The report should be distinct from configuration inventory, upgrade readiness, upgrade blockers, and data-access inventory; its focus is systems and resources outside the repository that may affect runtime, build, migration, deployment, testing, or onboarding.
 
 
 ### Step 5e: Data access inventory for migration and refactoring planning
@@ -318,7 +318,7 @@ Out of scope for MVP:
 - Automatically migrating EF6, EDMX, NHibernate, Dapper, or ADO.NET code.
 - Guaranteed EF6-to-EF Core or package compatibility results.
 
-Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/data-access-inventory.md` without over-engineering the CLI.
+Implementation should use the MVP artifact selection model rather than one-off command handling.
 
 ### Step 5f: EDMX analysis report for EF Core migration planning
 
@@ -350,7 +350,7 @@ Out of scope for MVP:
 - Full semantic understanding of custom T4 templates.
 - Claiming that all EF Core equivalents are direct one-to-one replacements.
 
-Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/edmx-analysis.md` without over-engineering the CLI.
+Implementation should use the MVP artifact selection model rather than one-off command handling.
 
 
 ### Step 5g: Configuration inventory for upgrade, deployment, and onboarding review
@@ -387,6 +387,35 @@ Post-MVP ideas:
 - Hosting/deployment configuration mapping across CI/CD files, infrastructure files, and cloud hosting settings.
 - Richer migration mapping for custom configuration sections and options binding.
 
+
+
+### Step 5i: CLI artifact selection for optional report generation
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Support `--artifacts <name>` for generating one optional artifact.
+- Support `--artifacts <name1,name2,name3>` for generating a selected comma-separated subset of optional artifacts.
+- Support `--artifacts all` for generating every supported optional artifact.
+- Keep the normal `discovery-report.md` generated for every successful scan regardless of optional artifact selection.
+- Match artifact names case-insensitively.
+- Tolerate spaces around commas in comma-separated artifact selections.
+- De-duplicate artifact names so duplicate selections do not generate duplicate reports.
+- Reject unknown artifact names with a clear validation error that lists supported values.
+- Reject invalid combinations where `all` is combined with other artifact names.
+- Allow `--upgrade-target <tfm>` as upgrade report wording context only when selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`.
+- Reject `--upgrade-target <tfm>` when none of the selected artifacts are upgrade-related.
+- Keep the artifact runner model so optional artifact generation is not implemented as repeated `if` blocks inside `ScanCommand`.
+- Update help text, usage documentation, parser validation, runner tests, parser tests, and console-output tests.
+
+Out of scope for MVP:
+
+- User-defined custom artifact names.
+- Plugin-based artifact discovery.
+- Dynamic artifact loading.
+- Artifact dependency graphs.
+- Parallel artifact execution unless introduced later for performance reasons.
 
 ### Step 6: Legacy ASP.NET artifact discovery
 
@@ -473,5 +502,5 @@ Out of scope for MVP:
 - Runtime call graphs.
 - Proving that a dependency is always used or unused at runtime.
 
-Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/class-dependencies.md` without over-engineering the CLI.
+Implementation should use the MVP artifact selection model rather than one-off command handling.
 

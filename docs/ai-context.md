@@ -31,8 +31,8 @@ Important options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, and class-dependencies.
---upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
+--artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.
+--upgrade-target <tfm>  Optional target-framework context for upgrade-readiness or upgrade-blockers report wording only; does not change discovery scope or perform compatibility checks.
 -h, --help             Show help.
 --version              Show version.
 ```
@@ -45,7 +45,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, and configuration API usage, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, and configuration API usage, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, and a separate `solution-topology.md` artifact for solution/project relationship orientation.
 
 ## Current implemented capability summary
 
@@ -67,6 +67,27 @@ LegacyLens.NET currently discovers:
 - EDMX analysis inputs such as `.edmx` files, CSDL conceptual entities/entity sets/keys/navigation properties/complex types/function imports, SSDL storage entity sets/tables/views/columns/functions/defining queries, MSL mappings/scalar properties/function import mappings/modification function mappings/query views, designer metadata, and companion generated files where discoverable
 - class dependency analysis inputs such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, generic type usage, coupling hotspots, hardcoded concrete dependencies, and static dependency concerns where discoverable
 
+
+## MVP artifact selection addition
+
+`--artifacts` is MVP scope as a flexible optional artifact selection capability. It supports one artifact name, a comma-separated list of artifact names, or the special value `all`.
+
+Examples:
+
+```bash
+legacylens scan <path> --artifacts solution-topology
+legacylens scan <path> --artifacts solution-topology,class-dependencies,data-access
+legacylens scan <path> --artifacts all
+```
+
+The normal `discovery-report.md` is always generated. Artifact names are case-insensitive. Comma-separated values may contain spaces around commas. Duplicate artifact names should be de-duplicated so reports are not generated twice. Unknown artifact names should produce a clear validation error listing the supported values. `all` must not be combined with other artifact names.
+
+Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, and `solution-topology`.
+
+`--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it should be rejected when none of the selected artifacts are upgrade-related. It must not change discovery scope, enable extra analysis, or imply compatibility checking.
+
+Implementation should keep the artifact runner model. Prefer a parsed artifact selection model on `ScanOptions`, such as selected artifact names, `ShouldWriteAllArtifacts`, and `ShouldWriteArtifact(string artifactName)`. Avoid returning to repeated artifact `if` blocks inside `ScanCommand`.
+
 ## MVP package compatibility review addition
 
 Package compatibility review is now MVP scope. It should enrich package discovery with package version, project target framework, package target framework where available, source format, source path, and possible compatibility concerns. It should remain static and evidence-backed, and it should not be described as full NuGet restore, transitive dependency resolution, online package lookup, package asset inspection, or guaranteed compatibility checking against a destination framework.
@@ -83,7 +104,7 @@ Intended command shape:
 legacylens scan <path> --output-dir ./output --artifacts upgrade-readiness --upgrade-target net8.0
 ```
 
-`--upgrade-target` is optional. If omitted, use general upgrade-readiness wording.
+`--upgrade-target` is optional wording context only. If omitted, use general upgrade-readiness wording.
 
 The capability must not claim to build the solution, run tests, restore packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate code, or guarantee compatibility with any destination framework. Use cautious wording such as `Possible concern`, `Requires review`, `Evidence found`, `May need migration work`, and `Likely upgrade consideration`.
 
@@ -99,7 +120,7 @@ Intended command shape:
 legacylens scan <path> --output-dir ./output --artifacts upgrade-blockers --upgrade-target net8.0
 ```
 
-`--upgrade-target` is optional. If omitted, use general upgrade-blocker wording.
+`--upgrade-target` is optional wording context only. If omitted, use general upgrade-blocker wording.
 
 The report should include a summary, target, blocker overview, upgrade blockers and decisions table, blocker details, evidence, why each blocker matters, decisions required, suggested review order, and notes/limitations. It must not claim to build the solution, run tests, restore packages, resolve transitive dependencies, inspect NuGet package assets, automatically migrate code, prove migration is impossible, or guarantee compatibility with any destination framework. Use cautious wording such as `Possible blocker`, `Potential blocker`, `Requires review`, `Migration decision required`, `Evidence found`, `May complicate upgrade`, and `May require replacement or redesign`.
 

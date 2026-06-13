@@ -2,6 +2,11 @@
 
 This document captures the detailed discovery capabilities currently described for LegacyLens.NET.
 
+
+## CLI Artifact Selection Note
+
+The MVP artifact selection capability changes how optional reports are generated from the CLI; it does not add new static discovery signals by itself. `--artifacts` should allow one artifact name, a comma-separated subset of artifact names, or `all`, while the normal `discovery-report.md` is always generated. Discovery and analysis scope remains defined by the specific selected artifacts.
+
 ## What LegacyLens.NET Can Do Without Building the Solution
 
 LegacyLens.NET is designed to inspect source files directly.

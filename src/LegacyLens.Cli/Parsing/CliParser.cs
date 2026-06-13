@@ -5,15 +5,7 @@ namespace LegacyLens.Cli.Parsing;
 public sealed class CliParser
 {
     private const string MarkdownFormat = "markdown";
-    private const string UpgradeReadinessArtifact = "upgrade-readiness";
-    private const string UpgradeBlockersArtifact = "upgrade-blockers";
-    private const string ExternalDependenciesArtifact = "external-dependencies";
-    private const string ConfigurationInventoryArtifact = "configuration-inventory";
-    private const string DataAccessArtifact = "data-access";
-    private const string EdmxAnalysisArtifact = "edmx-analysis";
-    private const string ClassDependenciesArtifact = "class-dependencies";
-    private const string SolutionTopologyArtifact = "solution-topology";
-    
+
     public CliParseResult Parse(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -55,6 +47,8 @@ public sealed class CliParser
         var quiet = false;
         var verbose = false;
         string? artifacts = null;
+        string[] selectedArtifacts = [];
+        var shouldWriteAllArtifacts = false;
         string? upgradeTarget = null;
 
         for (var i = 0; i < args.Length; i++)
@@ -107,7 +101,16 @@ public sealed class CliParser
 
             if (arg.Equals("--artifacts", StringComparison.OrdinalIgnoreCase))
             {
-                if (!TryReadOptionValue(args, ref i, arg, out artifacts, out var error))
+                if (!TryReadArtifactOptionValue(args, ref i, arg, path is not null, out artifacts, out var error))
+                {
+                    return CliParseResult.Error(error);
+                }
+
+                if (!TryParseArtifactSelection(
+                        artifacts,
+                        out selectedArtifacts,
+                        out shouldWriteAllArtifacts,
+                        out error))
                 {
                     return CliParseResult.Error(error);
                 }
@@ -158,19 +161,7 @@ public sealed class CliParser
             return CliParseResult.Error("Use either --quiet or --verbose, not both.");
         }
 
-        if (!string.IsNullOrWhiteSpace(artifacts) && !IsSupportedArtifact(artifacts))
-        {
-            return CliParseResult.Error(
-                "Only the upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, and solution-topology artifacts are currently supported.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(upgradeTarget) &&
-            !IsUpgradeArtifact(artifacts))
-        {
-            return CliParseResult.Error("Use --upgrade-target with --artifacts upgrade-readiness or --artifacts upgrade-blockers.");
-        }
-
-        return CliParseResult.Scan(new ScanOptions
+        var options = new ScanOptions
         {
             Path = path,
             Output = output,
@@ -179,27 +170,113 @@ public sealed class CliParser
             Quiet = quiet,
             Verbose = verbose,
             Artifacts = artifacts,
+            SelectedArtifacts = selectedArtifacts,
+            ShouldWriteAllArtifacts = shouldWriteAllArtifacts,
             UpgradeTarget = upgradeTarget
-        });
+        };
+
+        if (!string.IsNullOrWhiteSpace(upgradeTarget) &&
+            !options.HasUpgradeRelatedArtifactSelection)
+        {
+            return CliParseResult.Error(
+                "Use --upgrade-target only as upgrade report wording context when --artifacts includes upgrade-readiness, upgrade-blockers, or all.");
+        }
+
+        return CliParseResult.Scan(options);
+    }
+
+    private static bool TryParseArtifactSelection(
+        string artifacts,
+        out string[] selectedArtifacts,
+        out bool shouldWriteAllArtifacts,
+        out string error)
+    {
+        selectedArtifacts = [];
+        shouldWriteAllArtifacts = false;
+        error = string.Empty;
+
+        var artifactNames = artifacts
+            .Split(',', StringSplitOptions.TrimEntries)
+            .ToArray();
+
+        if (artifactNames.Length == 0 || artifactNames.Any(string.IsNullOrWhiteSpace))
+        {
+            error = $"Artifact selection must include at least one artifact name. Supported values are: {CreateSupportedArtifactList(includeAll: true)}.";
+            return false;
+        }
+
+        if (artifactNames.Any(artifact => artifact.Equals(ScanOptions.AllArtifactsSelection, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (artifactNames.Length > 1)
+            {
+                error = "Use --artifacts all by itself. It cannot be combined with other artifact names.";
+                return false;
+            }
+
+            shouldWriteAllArtifacts = true;
+            return true;
+        }
+
+        var unknownArtifacts = artifactNames
+            .Where(artifact => !IsSupportedArtifact(artifact))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (unknownArtifacts.Length > 0)
+        {
+            error = $"Unknown artifact name(s): {string.Join(", ", unknownArtifacts)}. Supported values are: {CreateSupportedArtifactList(includeAll: true)}.";
+            return false;
+        }
+
+        selectedArtifacts = artifactNames
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return true;
     }
 
     private static bool IsSupportedArtifact(string artifact)
     {
-        return artifact.Equals(UpgradeReadinessArtifact, StringComparison.OrdinalIgnoreCase) ||
-               artifact.Equals(UpgradeBlockersArtifact, StringComparison.OrdinalIgnoreCase) ||
-               artifact.Equals(ExternalDependenciesArtifact, StringComparison.OrdinalIgnoreCase) ||
-               artifact.Equals(ConfigurationInventoryArtifact, StringComparison.OrdinalIgnoreCase) ||
-               artifact.Equals(DataAccessArtifact, StringComparison.OrdinalIgnoreCase) ||
-               artifact.Equals(EdmxAnalysisArtifact, StringComparison.OrdinalIgnoreCase) ||
-               artifact.Equals(ClassDependenciesArtifact, StringComparison.OrdinalIgnoreCase) ||
-               artifact.Equals(SolutionTopologyArtifact, StringComparison.OrdinalIgnoreCase);
+        return ScanOptions.SupportedArtifactNames.Contains(
+            artifact,
+            StringComparer.OrdinalIgnoreCase);
     }
-    
-    private static bool IsUpgradeArtifact(string? artifact)
+
+    private static string CreateSupportedArtifactList(bool includeAll)
     {
-        return artifact is not null &&
-               (artifact.Equals(UpgradeReadinessArtifact, StringComparison.OrdinalIgnoreCase) ||
-                artifact.Equals(UpgradeBlockersArtifact, StringComparison.OrdinalIgnoreCase));
+        var supportedValues = includeAll
+            ? ScanOptions.SupportedArtifactNames.Append(ScanOptions.AllArtifactsSelection)
+            : ScanOptions.SupportedArtifactNames;
+
+        return string.Join(", ", supportedValues);
+    }
+
+    private static bool TryReadArtifactOptionValue(
+        IReadOnlyList<string> args,
+        ref int index,
+        string optionName,
+        bool scanPathHasAlreadyBeenRead,
+        out string value,
+        out string error)
+    {
+        if (!TryReadOptionValue(args, ref index, optionName, out value, out error))
+        {
+            return false;
+        }
+
+        if (!scanPathHasAlreadyBeenRead)
+        {
+            return true;
+        }
+
+        while (index + 1 < args.Count &&
+               !args[index + 1].StartsWith("-", StringComparison.Ordinal))
+        {
+            index++;
+            value = $"{value} {args[index]}";
+        }
+
+        return true;
     }
 
     private static bool TryReadOptionValue(

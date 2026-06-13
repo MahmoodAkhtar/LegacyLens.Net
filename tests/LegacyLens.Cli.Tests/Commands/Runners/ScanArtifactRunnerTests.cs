@@ -15,14 +15,14 @@ public sealed class ScanArtifactRunnerTests
     public static TheoryData<IScanArtifactRunner, string> ArtifactRunners =>
         new()
         {
-            { new UpgradeReadinessArtifactRunner(), "upgrade-readiness" },
-            { new UpgradeBlockersArtifactRunner(), "upgrade-blockers" },
-            { new ExternalDependenciesArtifactRunner(), "external-dependencies" },
-            { new ConfigurationInventoryArtifactRunner(), "configuration-inventory" },
-            { new DataAccessArtifactRunner(), "data-access" },
-            { new EdmxAnalysisArtifactRunner(), "edmx-analysis" },
-            { new ClassDependenciesArtifactRunner(), "class-dependencies" },
-            { new SolutionTopologyArtifactRunner(), "solution-topology" }
+            { new UpgradeReadinessArtifactRunner(), ScanOptions.UpgradeReadinessArtifact },
+            { new UpgradeBlockersArtifactRunner(), ScanOptions.UpgradeBlockersArtifact },
+            { new ExternalDependenciesArtifactRunner(), ScanOptions.ExternalDependenciesArtifact },
+            { new ConfigurationInventoryArtifactRunner(), ScanOptions.ConfigurationInventoryArtifact },
+            { new DataAccessArtifactRunner(), ScanOptions.DataAccessArtifact },
+            { new EdmxAnalysisArtifactRunner(), ScanOptions.EdmxAnalysisArtifact },
+            { new ClassDependenciesArtifactRunner(), ScanOptions.ClassDependenciesArtifact },
+            { new SolutionTopologyArtifactRunner(), ScanOptions.SolutionTopologyArtifact }
         };
 
     [Theory]
@@ -49,13 +49,28 @@ public sealed class ScanArtifactRunnerTests
 
     [Theory]
     [MemberData(nameof(ArtifactRunners))]
+    public void ShouldRun_WhenAllArtifactsAreSelected_ReturnsTrue(
+        IScanArtifactRunner runner,
+        string _)
+    {
+        var context = CreateContextForAllArtifacts();
+
+        var shouldRun = runner.ShouldRun(context);
+
+        Assert.True(shouldRun);
+    }
+
+    [Theory]
+    [MemberData(nameof(ArtifactRunners))]
     public void ShouldRun_WhenDifferentArtifactIsSelected_ReturnsFalse(
         IScanArtifactRunner runner,
         string artifactName)
     {
-        var differentArtifact = artifactName.Equals("upgrade-readiness", StringComparison.OrdinalIgnoreCase)
-            ? "upgrade-blockers"
-            : "upgrade-readiness";
+        var differentArtifact = artifactName.Equals(
+            ScanOptions.UpgradeReadinessArtifact,
+            StringComparison.OrdinalIgnoreCase)
+            ? ScanOptions.UpgradeBlockersArtifact
+            : ScanOptions.UpgradeReadinessArtifact;
 
         var context = CreateContext(differentArtifact);
 
@@ -77,14 +92,40 @@ public sealed class ScanArtifactRunnerTests
     {
         var scanPath = Directory.GetCurrentDirectory();
 
-        return new ScanContext(
+        return CreateContext(
             scanPath,
-            Path.Combine(scanPath, "output", "discovery-report.md"),
             new ScanOptions
             {
                 Path = scanPath,
-                Artifacts = artifact
-            },
+                Artifacts = artifact,
+                SelectedArtifacts = artifact is null
+                    ? []
+                    : [artifact]
+            });
+    }
+
+    private static ScanContext CreateContextForAllArtifacts()
+    {
+        var scanPath = Directory.GetCurrentDirectory();
+
+        return CreateContext(
+            scanPath,
+            new ScanOptions
+            {
+                Path = scanPath,
+                Artifacts = ScanOptions.AllArtifactsSelection,
+                ShouldWriteAllArtifacts = true
+            });
+    }
+
+    private static ScanContext CreateContext(
+        string scanPath,
+        ScanOptions options)
+    {
+        return new ScanContext(
+            scanPath,
+            Path.Combine(scanPath, "output", "discovery-report.md"),
+            options,
             Array.Empty<DiscoveredSolution>(),
             Array.Empty<DiscoveredProject>(),
             Array.Empty<WcfEndpoint>(),

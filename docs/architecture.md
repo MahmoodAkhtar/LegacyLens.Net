@@ -92,15 +92,33 @@ The `Commands` namespace contains the command model and scan orchestration types
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ScanCommand`                | Orchestrates static discovery, builds the shared file inventory once after project discovery, runs analysis, writes the main report, executes artifact runners, and creates the final `ScanResult` for `legacylens scan <path>`.                                                                                              |
 | `ScanContext`                | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, prioritised review areas, and the shared `ScanFileInventory` for report writing and optional artifact runners. |
-| `ScanOptions`                | Represents validated scan options from the CLI parser, including output selection, console mode, artifact selection, and optional upgrade target context.                                                                                                                                                                     |
+| `ScanOptions`                | Represents validated scan options from the CLI parser, including output selection, console mode, parsed artifact selection, and optional upgrade report wording context.                                                                                                                                                                     |
 | `ScanResult`                 | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer.                                                                                                                                                                                                           |
-| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, and `class-dependencies.md`.                                                                      |
+| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, `class-dependencies.md`, and `solution-topology.md`.                                                                      |
+
+
+### Artifact Selection Model
+
+`ScanOptions` should expose parsed artifact selection rather than treating `--artifacts` as only one raw artifact string. The selection model should support:
+
+* no optional artifacts selected
+* one selected artifact name
+* a comma-separated set of selected artifact names
+* the special `all` selection
+* case-insensitive matching
+* duplicate de-duplication
+* a helper such as `ShouldWriteAllArtifacts`
+* a helper such as `ShouldWriteArtifact(string artifactName)`
+
+The normal `discovery-report.md` remains outside optional artifact selection and should always be generated for a successful scan.
+
+`--upgrade-target <tfm>` validation should be based on the parsed selection. It is optional target-framework context for upgrade report wording only. It is valid when the selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and invalid when the selected artifacts contain no upgrade-related artifact. It must not change discovery scope, enable extra analysis, or imply compatibility checking.
 
 `ScanContext` is intentionally not an artifact runner and should not contain discovery, analysis, report-writing, file-inventory-building, or output-path resolution behaviour. It exists to reduce long parameter lists inside `ScanCommand` and to provide a stable input object for artifact runners. `ScanCommand` still owns when shared discovery runs, when the shared file inventory is built, when shared analyzers run, when the main discovery report is written, which artifact runners are available, and how the final `ScanResult` is populated.
 
 ### Artifact Runners
 
-The `Commands.Runners` namespace contains focused optional artifact-generation runners. Each runner decides whether it should run for the current `ScanOptions`, consumes the shared `ScanContext`, performs only the analysis needed for its artifact, writes its Markdown report, and returns a `ScanArtifactResult`.
+The `Commands.Runners` namespace contains focused optional artifact-generation runners. Each runner decides whether it should run for the current parsed artifact selection on `ScanOptions`, consumes the shared `ScanContext`, performs only the analysis needed for its artifact, writes its Markdown report, and returns a `ScanArtifactResult`.
 
 | Type                                 | Purpose                                                                                         |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------- |
@@ -113,10 +131,12 @@ The `Commands.Runners` namespace contains focused optional artifact-generation r
 | `DataAccessArtifactRunner`           | Produces `data-access-inventory.md` when `--artifacts data-access` is selected.                 |
 | `EdmxAnalysisArtifactRunner`         | Produces `edmx-analysis.md` when `--artifacts edmx-analysis` is selected.                       |
 | `ClassDependenciesArtifactRunner`    | Produces `class-dependencies.md` when `--artifacts class-dependencies` is selected.             |
+| `SolutionTopologyArtifactRunner`     | Produces `solution-topology.md` when `--artifacts solution-topology` is selected.               |
 
 Artifact runner implementation rules:
 
 * Keep optional artifact generation out of repeated `if` blocks inside `ScanCommand`.
+* Runner `ShouldRun` methods should use the parsed artifact selection, for example `context.Options.ShouldWriteArtifact(ArtifactName)`, so single, multiple, and `all` selections behave consistently.
 * Add a new runner when a new optional artifact is introduced.
 * Keep shared scan data on `ScanContext`; do not rediscover common solution/project/configuration facts inside runners.
 * Use `ScanContext.FileInventory` for artifact analyzers that need project-associated source/model files, such as class dependency, data-access, and EDMX analysis.
@@ -134,7 +154,7 @@ The normal `discovery-report.md` output-path resolution currently remains inside
 
 ### Parsing
 
-The `Parsing` namespace contains command-line parsing and validation. It should validate the public CLI contract before `ScanCommand` runs. Examples include required scan path validation, unsupported option handling, mutually exclusive `--output` and `--output-dir`, mutually exclusive `--quiet` and `--verbose`, supported artifact values, and valid use of `--upgrade-target`.
+The `Parsing` namespace contains command-line parsing and validation. It should validate the public CLI contract before `ScanCommand` runs. Examples include required scan path validation, unsupported option handling, mutually exclusive `--output` and `--output-dir`, mutually exclusive `--quiet` and `--verbose`, supported artifact values, comma-separated artifact values, `all`, invalid combinations such as `all,data-access`, duplicate de-duplication, and valid use of `--upgrade-target` as upgrade report wording context only.
 
 ### Writers
 

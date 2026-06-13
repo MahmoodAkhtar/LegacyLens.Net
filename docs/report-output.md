@@ -189,6 +189,90 @@ Markdown report generated: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\out
 
 ---
 
+
+## Optional Artifact Selection Console Output
+
+The main `discovery-report.md` is always generated. When optional artifacts are selected, the console output should also show the generated artifact paths.
+
+A focused artifact run such as:
+
+```bash
+legacylens scan <path> --artifacts solution-topology
+```
+
+should generate the main report and the selected optional artifact:
+
+```text
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
+
+Solution topology report generated:
+C:\Path\To\LegacyApp\output\solution-topology.md
+```
+
+A selected subset such as:
+
+```bash
+legacylens scan <path> --artifacts solution-topology,class-dependencies,data-access
+```
+
+should show each generated optional artifact once:
+
+```text
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
+
+Data access inventory generated:
+C:\Path\To\LegacyApp\output\data-access-inventory.md
+
+Class dependencies report generated:
+C:\Path\To\LegacyApp\output\class-dependencies.md
+
+Solution topology report generated:
+C:\Path\To\LegacyApp\output\solution-topology.md
+```
+
+A full evidence-pack run such as:
+
+```bash
+legacylens scan <path> --artifacts all
+```
+
+should show every supported optional artifact path, in addition to the main report path:
+
+```text
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
+
+Upgrade readiness report generated:
+C:\Path\To\LegacyApp\output\upgrade-readiness-report.md
+
+Upgrade blockers report generated:
+C:\Path\To\LegacyApp\output\upgrade-blockers.md
+
+External dependencies report generated:
+C:\Path\To\LegacyApp\output\external-dependencies.md
+
+Configuration inventory generated:
+C:\Path\To\LegacyApp\output\configuration-inventory.md
+
+Data access inventory generated:
+C:\Path\To\LegacyApp\output\data-access-inventory.md
+
+EDMX analysis report generated:
+C:\Path\To\LegacyApp\output\edmx-analysis.md
+
+Class dependencies report generated:
+C:\Path\To\LegacyApp\output\class-dependencies.md
+
+Solution topology report generated:
+C:\Path\To\LegacyApp\output\solution-topology.md
+```
+
+Quiet and verbose modes should follow the same artifact selection rules and should not print duplicate artifact paths when duplicate names are supplied.
+
+---
+
 ## Upgrade Readiness Report Output
 
 The MVP scope now includes a separate upgrade-readiness Markdown artifact:
@@ -197,7 +281,7 @@ The MVP scope now includes a separate upgrade-readiness Markdown artifact:
 output/upgrade-readiness-report.md
 ```
 
-The upgrade-readiness report should be static and evidence-backed. It should help a developer decide what to review before attempting a migration, but it should not present a pass/fail compatibility result or claim that LegacyLens.NET built the solution, restored packages, resolved transitive dependencies, inspected NuGet package assets, or guaranteed compatibility with a requested target framework.
+The upgrade-readiness report should be static and evidence-backed. It should help a developer decide what to review before attempting a migration, but it should not present a pass/fail compatibility result or claim that LegacyLens.NET built the solution, restored packages, resolved transitive dependencies, inspected NuGet package assets, or guaranteed compatibility with a target framework supplied as report wording context.
 
 Representative structure:
 
@@ -206,13 +290,13 @@ Representative structure:
 
 ## Summary
 
-This report is based on static source and configuration discovery. It highlights upgrade planning signals that may need review before migration. It does not prove compatibility with the requested target framework.
+This report is based on static source and configuration discovery. It highlights upgrade planning signals that may need review before migration. It does not prove compatibility with the target framework supplied as report wording context.
 
 ## Target
 
 | Item | Value |
 |---|---|
-| Requested upgrade target | net8.0 |
+| Upgrade target wording context | net8.0 |
 | Analysis mode | Static / no-build |
 | Compatibility guarantee | No |
 
@@ -298,7 +382,7 @@ The MVP scope now includes a separate upgrade-blockers Markdown artifact:
 output/upgrade-blockers.md
 ```
 
-The upgrade-blockers report should be a static, evidence-backed blocker and decision report for .NET upgrade planning. It should help a developer identify visible technical blockers, migration decisions, and higher-risk areas that may complicate an upgrade, but it should not present a pass/fail compatibility result or claim that LegacyLens.NET built the solution, restored packages, resolved transitive dependencies, inspected NuGet package assets, proved that migration is impossible, or guaranteed compatibility with a requested target framework.
+The upgrade-blockers report should be a static, evidence-backed blocker and decision report for .NET upgrade planning. It should help a developer identify visible technical blockers, migration decisions, and higher-risk areas that may complicate an upgrade, but it should not present a pass/fail compatibility result or claim that LegacyLens.NET built the solution, restored packages, resolved transitive dependencies, inspected NuGet package assets, proved that migration is impossible, or guaranteed compatibility with a target framework supplied as report wording context.
 
 Representative structure:
 
@@ -313,7 +397,7 @@ This report is based on static source and configuration discovery. It highlights
 
 | Item | Value |
 |---|---|
-| Requested upgrade target | net8.0 |
+| Upgrade target wording context | net8.0 |
 | Analysis mode | Static / no-build |
 | Compatibility guarantee | No |
 
