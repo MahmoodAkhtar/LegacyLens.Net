@@ -99,6 +99,7 @@ public sealed class ScanCommand
         var dataAccessResult = FindArtifactResult(artifactResults, "data-access");
         var edmxAnalysisResult = FindArtifactResult(artifactResults, "edmx-analysis");
         var classDependenciesResult = FindArtifactResult(artifactResults, "class-dependencies");
+        var solutionTopologyResult = FindArtifactResult(artifactResults, "solution-topology");
 
         return new ScanResult
         {
@@ -133,7 +134,10 @@ public sealed class ScanCommand
             EdmxAnalysisReport = edmxAnalysisResult?.Report as EdmxAnalysisReport,
 
             ClassDependenciesOutputPath = classDependenciesResult?.OutputPath,
-            ClassDependenciesReport = classDependenciesResult?.Report as ClassDependencyReport
+            ClassDependenciesReport = classDependenciesResult?.Report as ClassDependencyReport,
+
+            SolutionTopologyOutputPath = solutionTopologyResult?.OutputPath,
+            SolutionTopologyReport = solutionTopologyResult?.Report as SolutionTopologyReport
         };
     }
 
@@ -145,7 +149,8 @@ public sealed class ScanCommand
         new ConfigurationInventoryArtifactRunner(),
         new DataAccessArtifactRunner(),
         new EdmxAnalysisArtifactRunner(),
-        new ClassDependenciesArtifactRunner()
+        new ClassDependenciesArtifactRunner(),
+        new SolutionTopologyArtifactRunner()
     ];
 
     private static ScanArtifactResult? FindArtifactResult(

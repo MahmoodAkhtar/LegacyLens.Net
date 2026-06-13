@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using LegacyLens.Cli.Commands;
 
 namespace LegacyLens.Cli.Writers;
@@ -43,7 +43,7 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  --verbose              Print detailed discovery output.");
         Console.WriteLine("  -h, --help             Show help.");
         Console.WriteLine("  --version              Show version.");
-        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, and class-dependencies.");
+        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, and solution-topology.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.");
     }
 
@@ -104,6 +104,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ClassDependenciesOutputPath))
         {
             Console.WriteLine($"Class dependencies report generated: {result.ClassDependenciesOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.SolutionTopologyOutputPath))
+        {
+            Console.WriteLine($"Solution topology report generated: {result.SolutionTopologyOutputPath}");
         }
     }
 
@@ -196,6 +201,13 @@ public sealed class ScanConsoleWriter
             Console.WriteLine("Class dependencies report generated:");
             Console.WriteLine(result.ClassDependenciesOutputPath);
         }
+
+        if (!string.IsNullOrWhiteSpace(result.SolutionTopologyOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Solution topology report generated:");
+            Console.WriteLine(result.SolutionTopologyOutputPath);
+        }
     }
 
     private static void WriteVerbose(ScanResult result)
@@ -252,6 +264,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ClassDependenciesOutputPath))
         {
             Console.WriteLine($"Class dependencies report generated: {result.ClassDependenciesOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.SolutionTopologyOutputPath))
+        {
+            Console.WriteLine($"Solution topology report generated: {result.SolutionTopologyOutputPath}");
         }
     }
 

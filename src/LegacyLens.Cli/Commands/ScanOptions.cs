@@ -32,4 +32,7 @@ public sealed class ScanOptions
     
     public bool ShouldWriteClassDependencies =>
         string.Equals(Artifacts, "class-dependencies", StringComparison.OrdinalIgnoreCase);
+
+    public bool ShouldWriteSolutionTopology =>
+        string.Equals(Artifacts, "solution-topology", StringComparison.OrdinalIgnoreCase);
 }

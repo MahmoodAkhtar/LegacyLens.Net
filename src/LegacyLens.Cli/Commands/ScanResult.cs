@@ -42,6 +42,9 @@ public sealed class ScanResult
     public string? ClassDependenciesOutputPath { get; init; }
     public ClassDependencyReport? ClassDependenciesReport { get; init; }
 
+    public string? SolutionTopologyOutputPath { get; init; }
+    public SolutionTopologyReport? SolutionTopologyReport { get; init; }
+
     public int ProjectReferenceCount => Projects.Sum(x => x.ProjectReferences.Count);
     public int PackageReferenceCount => Projects.Sum(x => x.PackageReferences.Count);
     public int AssemblyReferenceCount => Projects.Sum(x => x.AssemblyReferences.Count);

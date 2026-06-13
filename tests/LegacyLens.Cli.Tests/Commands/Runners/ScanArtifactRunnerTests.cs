@@ -1,4 +1,4 @@
-﻿using LegacyLens.Cli.Commands;
+using LegacyLens.Cli.Commands;
 using LegacyLens.Cli.Commands.Runners;
 using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Configuration;
@@ -21,7 +21,8 @@ public sealed class ScanArtifactRunnerTests
             { new ConfigurationInventoryArtifactRunner(), "configuration-inventory" },
             { new DataAccessArtifactRunner(), "data-access" },
             { new EdmxAnalysisArtifactRunner(), "edmx-analysis" },
-            { new ClassDependenciesArtifactRunner(), "class-dependencies" }
+            { new ClassDependenciesArtifactRunner(), "class-dependencies" },
+            { new SolutionTopologyArtifactRunner(), "solution-topology" }
         };
 
     [Theory]
