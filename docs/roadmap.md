@@ -353,6 +353,41 @@ Out of scope for MVP:
 Implementation should be incremental. If artifact selection is not yet generalised, add only enough command support to produce `output/edmx-analysis.md` without over-engineering the CLI.
 
 
+### Step 5g: Configuration inventory for upgrade, deployment, and onboarding review
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add a `configuration-inventory` capability that can produce `configuration-inventory.md`.
+- Use existing static discovery evidence and shared file inventory where possible, including discovered projects, configuration files, and source files.
+- Discover visible configuration files such as `App.config`, `Web.config`, `*.config`, environment-specific transforms, `appsettings.json`, `appsettings.*.json`, `.settings` files, and useful build/package configuration files such as `NuGet.config` where relevant.
+- Identify app settings, connection strings, custom configuration sections, WCF configuration, ASP.NET/IIS configuration, binding redirects, authentication and authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP/mail settings, and configuration API usage where feasible.
+- Mask or redact sensitive values before Markdown output.
+- Include analysis scope, configuration overview, configuration files, app settings, connection strings, configuration sections, environment transforms, binding redirects, WCF configuration, ASP.NET configuration, authentication and authorization configuration, logging and diagnostics configuration, Entity Framework configuration, SMTP/mail configuration, configuration API usage, suggested files to review first, migration considerations, suggested questions to ask the team, and notes/limitations.
+- Add unit tests for analyzer rules, masking/redaction, CLI artifact selection, and Markdown output.
+
+Out of scope for MVP:
+
+- Running the application.
+- Applying configuration transforms.
+- Full runtime configuration inheritance evaluation.
+- Deployment substitution resolution.
+- Credential, certificate, token, or connection string validation.
+- Connecting to configured services or external systems.
+- Production environment mapping.
+- Proving setting usage or proving that a setting is unused.
+- Dedicated secrets scanning beyond masking values that are included in this report.
+- Guaranteed completeness.
+
+Post-MVP ideas:
+
+- Deeper transform comparison that shows changed keys without claiming runtime application.
+- Dedicated secrets scanner with severity and remediation guidance.
+- Hosting/deployment configuration mapping across CI/CD files, infrastructure files, and cloud hosting settings.
+- Richer migration mapping for custom configuration sections and options binding.
+
+
 ### Step 6: Legacy ASP.NET artifact discovery
 
 Status: Implemented with conditional quality gates

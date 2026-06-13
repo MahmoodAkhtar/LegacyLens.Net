@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings"
+              CurrentProfile="(Default)">
+    <Profiles>
+        <Profile Name="(Default)" />
+    </Profiles>
+
+    <Settings>
+        <Setting Name="ApiBaseUrl"
+                 Type="System.String"
+                 Scope="Application">
+            <Value Profile="(Default)">https://legacy-api.example.local</Value>
+        </Setting>
+
+        <Setting Name="LegacyMode"
+                 Type="System.Boolean"
+                 Scope="Application">
+            <Value Profile="(Default)">true</Value>
+        </Setting>
+
+        <Setting Name="CustomerCacheMinutes"
+                 Type="System.Int32"
+                 Scope="Application">
+            <Value Profile="(Default)">15</Value>
+        </Setting>
+
+        <Setting Name="LastSelectedCustomerId"
+                 Type="System.Int32"
+                 Scope="User">
+            <Value Profile="(Default)">0</Value>
+        </Setting>
+    </Settings>
+</SettingsFile>

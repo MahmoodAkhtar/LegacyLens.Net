@@ -81,6 +81,7 @@ Even if the solution does not build, it can still discover useful information fr
 - upgrade-blockers analysis inputs for `upgrade-blockers.md`, using existing static evidence such as `System.Web`, legacy ASP.NET artifacts, WCF/System.ServiceModel, EF6/EDMX/data-access indicators where available, `packages.config`, assembly references, direct DLL or `HintPath` references where available, configuration indicators, and existing modernisation/package review findings
 - external-dependencies analysis inputs for `external-dependencies.md`, using static evidence such as connection strings, app settings, URL-like values, WCF endpoints, messaging/cache/email/cloud package indicators, UNC or local path values, private NuGet feeds, and direct assembly or vendor DLL references where discoverable
 - data-access analysis inputs for `data-access-inventory.md`, using static evidence such as connection strings, provider names, database packages, database assembly references, EF6, EF Core, EDMX files, EF T4 templates, LINQ to SQL `.dbml` files, ADO.NET indicators, Dapper indicators, NHibernate indicators, raw SQL strings where feasible, stored procedure indicators where feasible, repository and unit-of-work class names, and migration folders where discoverable
+- configuration-inventory analysis inputs for `configuration-inventory.md`, using static evidence such as configuration files, app settings, connection strings, custom configuration sections, environment transforms, WCF `system.serviceModel` sections, ASP.NET/IIS `system.web` and `system.webServer` sections, binding redirects, authentication and authorization settings, logging/diagnostics sections, Entity Framework configuration, SMTP/mail settings, and configuration API usage such as `ConfigurationManager.AppSettings`, `ConfigurationManager.ConnectionStrings`, `IConfiguration`, and `GetSection` where discoverable
 - edmx-analysis inputs for `edmx-analysis.md`, using static EDMX XML evidence such as CSDL conceptual entities, entity sets, keys, associations, navigation properties, complex types, function imports, SSDL storage entity sets, tables, views, columns, store functions, defining queries, MSL entity mappings, scalar property mappings, association mappings, function import mappings, modification function mappings, query views, designer metadata, and companion T4/generated files where discoverable
 - class-dependencies inputs for `class-dependencies.md`, using static C# source evidence such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, inheritance, interface implementations, attributes, generic type usage, coupling hotspots, hardcoded concrete dependencies, and static dependency concerns where discoverable
 
@@ -92,6 +93,8 @@ This makes it useful for old or broken solutions where restoring packages, insta
 > Note: upgrade-blockers is now MVP scope as a separate static report artifact. It should produce `upgrade-blockers.md` and should use existing discovered evidence to identify visible technical blockers, migration decisions, and higher-risk areas that may complicate upgrade planning. It should not claim to build the solution, restore packages, resolve transitive dependencies, inspect package assets, prove migration is impossible, automatically migrate code, or guarantee compatibility with a destination framework.
 
 > Note: external-dependencies is now MVP scope as a separate static report artifact. It should produce `external-dependencies.md` and should use existing discovered evidence to identify possible runtime and build-time dependencies outside the repository. It should not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness.
+
+> Note: configuration-inventory is now MVP scope as a separate static report artifact. It should produce `configuration-inventory.md` and should use static repository evidence to identify visible configuration files, sections, settings, transforms, and migration-relevant configuration concerns. It should not claim to run the application, apply transforms, validate credentials, connect to external systems, prove production usage, prove settings are used or unused, fully evaluate runtime configuration inheritance, resolve deployment-time substitutions, expose secrets, or guarantee completeness. Sensitive values should be masked or redacted.
 
 > Note: data-access is now MVP scope as a separate static report artifact. It should produce `data-access-inventory.md` and should use existing discovered evidence to identify visible data access technologies, patterns, and migration concerns. It should not claim to connect to databases, validate credentials or connection strings, execute SQL, inspect schemas, run migrations, scaffold EF Core models, reverse-engineer databases, prove runtime usage, prove a query or stored procedure is unused, automatically migrate data access code, or guarantee compatibility.
 
@@ -1209,6 +1212,49 @@ The generated report should include:
 
 ---
 
+
+## Configuration Inventory Analysis
+
+The `configuration-inventory` capability should analyse visible repository configuration evidence and produce `configuration-inventory.md` without building or running the solution.
+
+Current MVP discovery expectations include:
+
+- finding common configuration files such as `App.config`, `Web.config`, `*.config`, `appsettings.json`, `appsettings.*.json`, `.settings` files, and useful build/package configuration files such as `NuGet.config` where relevant
+- associating configuration findings with the nearest discovered project where possible, so settings from a project-owned file such as `Web.config` are reported against that project rather than `Unknown`
+- detecting `appSettings` entries from XML configuration files and preserving key names with safe values
+- detecting `connectionStrings` entries from XML configuration files and preserving name, provider name where available, source file, and safe value
+- detecting custom configuration sections from `configSections`
+- detecting environment-specific transform files such as `Web.Release.config`
+- detecting WCF `system.serviceModel` sections
+- detecting ASP.NET/IIS `system.web` and `system.webServer` sections
+- detecting binding redirects
+- detecting authentication and authorization sections
+- detecting logging and diagnostics sections such as `system.diagnostics`, `log4net`, `nlog`, or `serilog`
+- detecting Entity Framework configuration sections
+- detecting SMTP and mail settings
+- detecting configuration API usage in source files, such as `ConfigurationManager.AppSettings`, `ConfigurationManager.ConnectionStrings`, `IConfiguration`, and `GetSection`
+- flattening JSON configuration files into configuration-path keys where feasible, for example `ConnectionStrings:RabbitMQ`, `RabbitMQ:HostName`, and `RabbitMQ:QueueName`
+- reporting JSON scalar values with safe masking rather than only reporting that an `appsettings*.json` file exists, where feasible
+- treating structural findings, such as file presence or section presence, as findings with no scalar value rather than unknown values
+- applying value-aware masking so useful non-secret parts are preserved and sensitive parts are redacted, for example connection-string passwords, URI credentials, API keys, tokens, and client secrets
+
+The generated `configuration-inventory.md` report should include summary counts, analysis scope, configuration overview, grouped configuration values by source file, suggested files to review first, migration considerations, suggested questions to ask the team, and notes/limitations.
+
+The detailed findings should be grouped first by project and source file, then by category within each file. Per-file tables should use compact columns such as `Name`, `Value`, `Evidence`, and `Requires Review`. The report should use `Value` to mean "the discovered value with sensitive parts masked where needed". For structural findings with no scalar value, such as `Web.config`, `system.serviceModel`, `bindingRedirect`, or `NuGet.config`, the report should show `N/A` rather than `Unknown`.
+
+Out of scope for MVP:
+
+- running the application
+- applying config transforms
+- validating config syntax beyond safe parsing where implemented
+- validating credentials or connection strings
+- connecting to configured services
+- proving production runtime behaviour
+- proving that a setting is used or unused
+- fully evaluating runtime configuration inheritance
+- resolving all deployment-time substitutions
+- guaranteeing completeness
+- exposing full secrets or sensitive values
 
 ## Data Access Analysis
 

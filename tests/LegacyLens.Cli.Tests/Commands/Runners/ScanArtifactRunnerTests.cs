@@ -18,6 +18,7 @@ public sealed class ScanArtifactRunnerTests
             { new UpgradeReadinessArtifactRunner(), "upgrade-readiness" },
             { new UpgradeBlockersArtifactRunner(), "upgrade-blockers" },
             { new ExternalDependenciesArtifactRunner(), "external-dependencies" },
+            { new ConfigurationInventoryArtifactRunner(), "configuration-inventory" },
             { new DataAccessArtifactRunner(), "data-access" },
             { new EdmxAnalysisArtifactRunner(), "edmx-analysis" },
             { new ClassDependenciesArtifactRunner(), "class-dependencies" }

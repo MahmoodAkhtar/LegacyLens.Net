@@ -31,7 +31,7 @@ Important options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, data-access, edmx-analysis, and class-dependencies.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, and class-dependencies.
 --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
@@ -45,7 +45,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, and configuration API usage, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis.
 
 ## Current implemented capability summary
 
@@ -120,6 +120,36 @@ The report should group findings such as connection strings, HTTP/API URLs, WCF 
 
 The report should include a summary, analysis scope, dependency overview, dependency table, category-specific sections, suggested questions to ask the team, and notes/limitations. It must not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness. Sensitive values should be masked or redacted. Use cautious wording such as `Possible external dependency`, `Evidence found`, `Requires confirmation`, `Configured dependency`, `May indicate dependency`, and `Potential runtime dependency`.
 
+
+## MVP configuration-inventory addition
+
+`configuration-inventory` is now an MVP-scope capability. It should produce `configuration-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed inventory of visible configuration files, configuration values, configuration sections, transforms, and migration-relevant configuration concerns in a .NET codebase.
+
+Intended command shape:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts configuration-inventory
+```
+
+The report should identify visible configuration files, app settings, connection strings, custom sections, environment transforms, WCF configuration, ASP.NET/IIS sections, binding redirects, authentication and authorization settings, logging configuration, Entity Framework configuration, SMTP settings, JSON configuration values, and configuration API usage where discoverable.
+
+Detailed configuration findings should be grouped by project and source file, then by category within each file. This makes it easier for a .NET developer to find which file contains a setting. Per-file detail tables should use compact columns such as `Name`, `Value`, `Evidence`, and `Requires Review`, rather than repeating `Category` and `Source File` on every row.
+
+Value semantics:
+
+- `Value` means the discovered value with sensitive parts masked where needed.
+- Use `N/A` for structural findings with no scalar value, such as file presence, section presence, binding redirects, transforms, `.settings` files, and `NuGet.config` file-level findings.
+- Do not render missing scalar values as `Unknown` unless the analyzer genuinely tried and failed to determine a value.
+- Preserve useful non-secret parts of connection-string-like values while masking embedded credentials.
+- For AMQP/RabbitMQ URI values, prefer output such as `amqp://***:***@rabbitmq-dev:5672/sample` rather than full redaction where possible.
+
+The capability must not claim to run the application, apply transforms, validate credentials, connect to external systems, prove production usage, prove a setting is used or unused, fully evaluate runtime configuration inheritance, resolve deployment-time substitutions, expose full secrets, or guarantee completeness. Sensitive values should be masked or redacted. Use cautious wording such as `Configuration evidence found`, `Possible runtime configuration`, `Requires review`, `May need migration`, `Configured setting`, and `Potential migration concern`.
+
+Security expectations:
+
+- Do not print full secrets into Markdown reports.
+- Mask or redact passwords, API keys, tokens, client secrets, connection string passwords, URI credentials, SAS tokens, storage account keys, certificate/private-key material, private feed credentials, and usernames inside sensitive values where appropriate.
+- For connection strings, prefer reporting name, source file, provider name where available, safe value, embedded credential indicator where useful, redaction status, and possible migration concern rather than the full raw value.
 
 ## MVP data-access addition
 

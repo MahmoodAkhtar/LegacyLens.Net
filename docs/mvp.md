@@ -116,6 +116,7 @@ Current MVP functionality includes implemented capabilities and newly required M
 - optional `--artifacts upgrade-readiness` command support for producing the upgrade-readiness artifact
 - optional `--artifacts upgrade-blockers` command support for producing the upgrade-blockers artifact
 - optional `--artifacts external-dependencies` command support for producing the external-dependencies artifact
+- optional `--artifacts configuration-inventory` command support for producing the configuration-inventory artifact
 - optional `--artifacts data-access` command support for producing the data-access artifact
 - optional `--artifacts edmx-analysis` command support for producing the edmx-analysis artifact
 - optional `--artifacts class-dependencies` command support for producing the class-dependencies artifact
@@ -130,6 +131,14 @@ Current MVP functionality includes implemented capabilities and newly required M
 - class-dependencies focused Mermaid diagram generation with dependency-kind edge labels
 - class-dependencies evidence reporting with project name, source path, line number, source type, target type, dependency kind, and concise source evidence where possible
 - class-dependencies notes and limitations explaining static no-build analysis and that findings mean “requires review”, not “proven runtime usage”
+- static configuration-inventory analysis for understanding the visible configuration surface of a legacy .NET codebase
+- configuration-inventory report generation as `configuration-inventory.md`
+- configuration-inventory discovery of visible configuration files such as `App.config`, `Web.config`, `*.config`, `appsettings.json`, `appsettings.*.json`, `.settings` files, and relevant build/package configuration files where useful
+- configuration-inventory reporting for app settings, connection strings, custom configuration sections, environment transforms, WCF configuration, ASP.NET/IIS configuration, binding redirects, authentication and authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP/mail settings, and configuration API usage where discoverable
+- configuration-inventory sensitive value masking for passwords, API keys, tokens, client secrets, SAS tokens, storage account keys, private feed credentials, and connection string secrets
+- configuration-inventory suggested files to review first based on concentration of configuration evidence and migration relevance
+- configuration-inventory migration considerations and suggested team questions for upgrade, deployment, onboarding, and environment setup
+- configuration-inventory notes and limitations explaining static no-build analysis and that findings mean “requires review”, not “proven runtime behaviour”
 - static upgrade-readiness analysis for upgrade planning
 - upgrade-readiness report generation as `upgrade-readiness-report.md`
 - upgrade-readiness current project target reporting
@@ -169,6 +178,41 @@ Current MVP functionality includes implemented capabilities and newly required M
 - edmx-analysis upgrade concern reporting for EDMX usage, stored procedure/function mappings, complex types, query-backed entities, defining queries, designer metadata, generated files, malformed EDMX files, and EF Core migration review points
 - edmx-analysis notes/limitations explaining static no-build analysis and that findings do not represent database validation, EF Core model generation, automatic conversion, or compatibility guarantees
 
+
+### Configuration Inventory Artifact
+
+The `configuration-inventory` capability is an MVP-scope addition. It should produce `configuration-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed inventory for understanding visible configuration files, configuration values, configuration sections, settings, transforms, and migration-relevant configuration concerns before upgrade, deployment, onboarding, or refactoring work starts.
+
+MVP scope:
+
+- Add a `configuration-inventory` capability that can produce `configuration-inventory.md`.
+- Use existing project discovery, configuration discovery, and shared file inventory where possible rather than duplicating broad scan logic.
+- Discover visible configuration files such as `App.config`, `Web.config`, `*.config`, `Web.Debug.config`, `Web.Release.config`, `appsettings.json`, `appsettings.*.json`, `.settings` files, and useful build/package configuration files such as `NuGet.config` where relevant.
+- Associate configuration files and configuration findings with discovered projects where possible.
+- Report app settings with key names and values where values are discoverable, masking or redacting sensitive parts.
+- Report connection strings by name, source file, provider where available, and safe value where useful, without dumping full raw secrets.
+- Flatten JSON configuration files into setting-path rows where feasible, for example `ConnectionStrings:RabbitMQ` and `RabbitMQ:HostName`, with sensitive values masked.
+- Report custom sections, WCF `system.serviceModel` configuration, ASP.NET/IIS `system.web` and `system.webServer` sections, binding redirects, authentication and authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP/mail settings, and configuration API usage where feasible.
+- Group detailed report output by project and source file, then by category within each file, so developers can quickly see which setting is in which file.
+- Use `Value` as the report column for discovered values with sensitive parts masked where needed.
+- Use `N/A`, not `Unknown`, for structural findings that do not have a scalar value.
+- Mask or redact sensitive values such as passwords, API keys, tokens, client secrets, SAS tokens, storage account keys, certificate/private-key material, private feed credentials, URI credentials, and connection string secrets.
+- Include summary counts, analysis scope, configuration overview, configuration values by source file, suggested files to review first, migration considerations, suggested questions to ask the team, and notes/limitations.
+- Add unit tests for analyzer rules, project attribution, JSON setting flattening where implemented, masking/redaction, CLI artifact selection, and Markdown output.
+
+Out of scope for MVP:
+
+- Running the application.
+- Applying config transforms.
+- Validating configuration syntax beyond safe parsing where implemented.
+- Validating credentials, certificates, connection strings, or tokens.
+- Connecting to configured services or external systems.
+- Proving production runtime behaviour.
+- Proving a setting is used or unused.
+- Fully evaluating runtime configuration inheritance.
+- Resolving deployment-time substitutions.
+- Guaranteeing completeness.
+- Exposing full secrets or sensitive values.
 
 ### Class Dependencies Artifact
 

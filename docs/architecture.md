@@ -66,6 +66,7 @@ LegacyLens.Cli/
 ├── Commands/
 │   ├── Runners/
 │   │   ├── ClassDependenciesArtifactRunner.cs
+│   │   ├── ConfigurationInventoryArtifactRunner.cs
 │   │   ├── DataAccessArtifactRunner.cs
 │   │   ├── EdmxAnalysisArtifactRunner.cs
 │   │   ├── ExternalDependenciesArtifactRunner.cs
@@ -93,7 +94,7 @@ The `Commands` namespace contains the command model and scan orchestration types
 | `ScanContext`                | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, prioritised review areas, and the shared `ScanFileInventory` for report writing and optional artifact runners. |
 | `ScanOptions`                | Represents validated scan options from the CLI parser, including output selection, console mode, artifact selection, and optional upgrade target context.                                                                                                                                                                     |
 | `ScanResult`                 | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer.                                                                                                                                                                                                           |
-| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `data-access-inventory.md`, `edmx-analysis.md`, and `class-dependencies.md`.                                                                      |
+| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, and `class-dependencies.md`.                                                                      |
 
 `ScanContext` is intentionally not an artifact runner and should not contain discovery, analysis, report-writing, file-inventory-building, or output-path resolution behaviour. It exists to reduce long parameter lists inside `ScanCommand` and to provide a stable input object for artifact runners. `ScanCommand` still owns when shared discovery runs, when the shared file inventory is built, when shared analyzers run, when the main discovery report is written, which artifact runners are available, and how the final `ScanResult` is populated.
 
@@ -108,6 +109,7 @@ The `Commands.Runners` namespace contains focused optional artifact-generation r
 | `UpgradeReadinessArtifactRunner`     | Produces `upgrade-readiness-report.md` when `--artifacts upgrade-readiness` is selected.        |
 | `UpgradeBlockersArtifactRunner`      | Produces `upgrade-blockers.md` when `--artifacts upgrade-blockers` is selected.                 |
 | `ExternalDependenciesArtifactRunner` | Produces `external-dependencies.md` when `--artifacts external-dependencies` is selected.       |
+| `ConfigurationInventoryArtifactRunner` | Produces `configuration-inventory.md` when `--artifacts configuration-inventory` is selected.   |
 | `DataAccessArtifactRunner`           | Produces `data-access-inventory.md` when `--artifacts data-access` is selected.                 |
 | `EdmxAnalysisArtifactRunner`         | Produces `edmx-analysis.md` when `--artifacts edmx-analysis` is selected.                       |
 | `ClassDependenciesArtifactRunner`    | Produces `class-dependencies.md` when `--artifacts class-dependencies` is selected.             |
@@ -187,6 +189,7 @@ Current analysis work includes:
 * producing upgrade-readiness analysis models for a separate `upgrade-readiness-report.md` artifact
 * producing upgrade-blockers analysis models for a separate `upgrade-blockers.md` artifact
 * producing external-dependencies analysis models for a separate `external-dependencies.md` artifact
+* producing configuration-inventory analysis models for a separate `configuration-inventory.md` artifact
 * producing data-access analysis models for a separate `data-access-inventory.md` artifact
 * producing EDMX analysis models for a separate `edmx-analysis.md` artifact
 * producing class dependency analysis models for a separate `class-dependencies.md` artifact
@@ -307,6 +310,29 @@ Likely core types:
 The analyzer should not connect to databases, call HTTP APIs, validate URLs, validate credentials, check server reachability, inspect production infrastructure, run the application, execute code, prove production usage, prove unused dependencies, expose secrets, or guarantee completeness.
 
 For MVP, it is acceptable to start with connection strings, app settings with URL/path/queue/cache/email-like keys, WCF endpoint configuration, known infrastructure packages, direct assembly references, and `NuGet.config` package sources if easy to scan. If a scanner is not yet available or would require deeper parsing, the implementation should skip that rule rather than inventing evidence.
+
+### Configuration Inventory
+
+The configuration-inventory analysis area supports the optional `configuration-inventory.md` artifact. It should use shared project discovery, configuration discovery, and file inventory data where possible rather than rediscovering common scan facts.
+
+Expected implementation shape:
+
+```text
+LegacyLens.Core/Analysis/
+├── ConfigurationInventoryAnalyzer.cs
+└── ConfigurationInventoryReport.cs
+
+LegacyLens.Reporting/Markdown/
+└── ConfigurationInventoryMarkdownReportWriter.cs
+
+LegacyLens.Cli/Commands/Runners/
+└── ConfigurationInventoryArtifactRunner.cs
+```
+
+The analyzer should remain static and evidence-backed. It may inspect visible configuration files and source files for configuration API usage, but it must not run the application, apply transforms, validate credentials, connect to external systems, prove production usage, prove setting usage or non-usage, resolve deployment-time substitutions, or expose secrets.
+
+Sensitive configuration values should be masked or redacted before they reach Markdown output. This applies to passwords, API keys, tokens, client secrets, SAS tokens, storage account keys, private feed credentials, and connection string secrets.
+
 
 ### Data Access
 

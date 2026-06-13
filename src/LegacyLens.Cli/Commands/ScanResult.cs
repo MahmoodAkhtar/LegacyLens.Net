@@ -29,6 +29,9 @@ public sealed class ScanResult
 
     public string? ExternalDependenciesOutputPath { get; init; }
     public ExternalDependenciesReport? ExternalDependenciesReport { get; init; }
+
+    public string? ConfigurationInventoryOutputPath { get; init; }
+    public ConfigurationInventoryReport? ConfigurationInventoryReport { get; init; }
     
     public string? DataAccessOutputPath { get; init; }
     public DataAccessInventoryReport? DataAccessReport { get; init; }

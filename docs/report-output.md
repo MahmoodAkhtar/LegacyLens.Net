@@ -594,6 +594,216 @@ This report is based on static source and configuration discovery. It identifies
 ---
 
 
+## Configuration Inventory Report Output
+
+The MVP scope includes a separate configuration-inventory Markdown artifact:
+
+```text
+output/configuration-inventory.md
+```
+
+The configuration inventory report should be static, evidence-backed, and security-conscious. It should help a developer understand visible configuration files, configuration values, configuration sections, transforms, and migration-relevant configuration concerns. It should not claim that LegacyLens.NET ran the application, applied transforms, validated credentials, contacted external systems, proved production usage, proved that a setting is used or unused, fully evaluated runtime configuration inheritance, resolved deployment-time substitutions, exposed secrets, or produced a complete runtime configuration map.
+
+The detailed findings should be optimised for a .NET developer trying to answer: "which file contains this setting and what value was found?" To make that easy to scan, the report should group detailed configuration findings by project and source file, then by configuration category inside each file. The detailed per-file tables should avoid repeating `Category` and `Source File` as row columns when those values are already shown by headings.
+
+Value-column semantics:
+
+- Use `Value`, not `Masked Value`, in the generated Markdown tables.
+- The `Value` column means "the discovered value, with sensitive parts masked where needed".
+- Use `N/A` for structural findings that do not have a scalar value, such as `Web.config`, `system.serviceModel`, `bindingRedirect`, `appsettings.json`, or `NuGet.config` file-level findings.
+- Do not use `Unknown` for missing values unless the tool genuinely attempted to determine a value and could not.
+- Connection-string-like values should preserve useful non-secret parts while masking embedded credentials, for example `Server=legacy-sql;Database=SampleLegacyApp;User Id=***;Password=***;` or `amqp://***:***@rabbitmq-dev:5672/sample`.
+
+Representative structure:
+
+```markdown
+# Configuration Inventory
+
+## Summary
+
+This report is based on static source and configuration discovery. It identifies visible configuration files, settings, sections, transforms, and configuration API usage that may need review before upgrade, deployment, onboarding, or migration work begins. It does not prove runtime usage or production behaviour.
+
+## Analysis Scope
+
+| Item | Value |
+|---|---|
+| Analysis mode | Static / no-build |
+| Application run | No |
+| Config transforms applied | No |
+| External systems validated | No |
+| Secret values printed | No |
+| Runtime usage proven | No |
+| Completeness guarantee | No |
+
+## Configuration Overview
+
+| Category | Findings |
+|---|---:|
+| Configuration files | 4 |
+| App settings | 8 |
+| Connection strings | 2 |
+| Custom sections | 3 |
+| Environment transforms | 2 |
+| JSON settings | 12 |
+| WCF configuration | 1 |
+| ASP.NET / IIS configuration | 2 |
+| Binding redirects | 5 |
+
+## Configuration Values by Source File
+
+### SampleLegacyApp.Web — Web.config
+
+#### App Settings
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| ApiBaseUrl | https://legacy-api.example.local | App setting configured. | Yes |
+| RabbitMQConnectionString | amqp://***:***@rabbitmq-dev:5672/sample | App setting configured. | Yes |
+| ClientSecret | *** | App setting configured. | Yes |
+
+#### Connection Strings
+
+| Name | Provider | Value | Evidence | Requires Review |
+|---|---|---|---|---|
+| MainDatabase | System.Data.SqlClient | Server=legacy-sql;Database=SampleLegacyApp;User Id=***;Password=***; | Connection string configured with provider System.Data.SqlClient. | Yes |
+
+#### Custom Sections
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| legacyCustomSettings | N/A | Custom configuration section declared. | Yes |
+| entityFramework | N/A | Custom configuration section declared with type System.Data.Entity.Internal.ConfigFile.EntityFrameworkSection, EntityFramework. | Yes |
+
+#### WCF Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| system.serviceModel | N/A | WCF system.serviceModel configuration section found. | Yes |
+
+#### ASP.NET / IIS Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| ASP.NET / IIS configuration | N/A | system.web or system.webServer configuration section found. | Yes |
+
+#### Authentication and Authorization Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| authentication / authorization | N/A | Authentication or authorization configuration section found. | Yes |
+
+#### Logging and Diagnostics Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| logging / diagnostics | N/A | Logging or diagnostics configuration section found. | Yes |
+
+#### Entity Framework Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| entityFramework | N/A | Entity Framework configuration section found. | Yes |
+
+#### SMTP and Mail Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| SMTP / mailSettings | N/A | SMTP or mailSettings configuration section found. | Yes |
+
+#### Binding Redirects
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| Newtonsoft.Json | N/A | Assembly binding redirect found. | Yes |
+
+### SampleLegacyApp.Web — Web.Release.config
+
+#### Environment Transforms
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| Web.Release.config | N/A | Environment-specific configuration transform file found. | Yes |
+
+### SampleLegacyApp.Web — appsettings.json
+
+#### JSON Settings
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| ConnectionStrings:RabbitMQ | amqp://***:***@rabbitmq-dev:5672/sample | JSON setting configured. | Yes |
+| RabbitMQ:HostName | rabbitmq-dev | JSON setting configured. | Yes |
+| RabbitMQ:Port | 5672 | JSON setting configured. | Yes |
+| RabbitMQ:UserName | *** | JSON setting configured. | Yes |
+| RabbitMQ:Password | *** | JSON setting configured. | Yes |
+| RabbitMQ:VirtualHost | sample | JSON setting configured. | Yes |
+| RabbitMQ:QueueName | sample.customer.events | JSON setting configured. | Yes |
+
+### SampleLegacyApp.Web — appsettings.Development.json
+
+#### JSON Settings
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| ConnectionStrings:RabbitMQ | amqp://***:***@localhost:5672/ | JSON setting configured. | Yes |
+| RabbitMQ:HostName | localhost | JSON setting configured. | Yes |
+| RabbitMQ:Password | *** | JSON setting configured. | Yes |
+
+### SampleLegacyApp.Web — Properties/Settings.settings
+
+#### Settings File
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| Settings.settings | N/A | .settings file found. | Yes |
+
+### SampleLegacyApp.Web — NuGet.config
+
+#### Build and Package Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| NuGet.config | N/A | NuGet.config file found. | Yes |
+
+## Suggested Files to Review First
+
+| Source File | Findings | Requires Review | Categories |
+|---|---:|---:|---|
+| Web.config | 24 | 24 | App settings, connection strings, WCF, ASP.NET/IIS, EF, SMTP |
+| appsettings.json | 12 | 12 | JSON settings |
+| appsettings.Development.json | 12 | 12 | JSON settings |
+| Web.Release.config | 1 | 1 | Environment transform |
+
+## Migration Considerations
+
+- Review app settings for migration to `appsettings.json`, environment variables, options pattern, or secret store.
+- Review connection strings for provider compatibility, environment-specific replacement, and secret handling.
+- Review `Web.config` sections before ASP.NET Core migration.
+- Review `system.serviceModel` endpoints, bindings, behaviours, and security settings.
+- Review binding redirects because modern .NET handles assembly resolution differently.
+- Review transforms and deployment substitutions because this static analysis does not apply transforms.
+- Review custom sections because they may need options binding, custom providers, or explicit migration code.
+
+## Suggested Questions to Ask the Team
+
+- Which configuration files are used in local development?
+- Which configuration files are used in production?
+- Are config transforms applied by the build or deployment pipeline?
+- Where are secrets stored outside the repository?
+- Which settings are environment-specific?
+- Which settings are supplied by deployment tooling or hosting infrastructure?
+- Are any configuration values safe to remove, or do they need runtime verification first?
+
+## Notes and Limitations
+
+- This report is based on static repository evidence only.
+- LegacyLens.NET did not run the application.
+- LegacyLens.NET did not apply configuration transforms.
+- LegacyLens.NET did not validate credentials, connection strings, certificates, or tokens.
+- LegacyLens.NET did not connect to configured services or external systems.
+- LegacyLens.NET did not prove that a setting is used or unused at runtime.
+- Sensitive values should remain masked or redacted before reports are shared.
+```
+
 ## Data Access Inventory Report Output
 
 The MVP scope now includes a separate data-access Markdown artifact:

@@ -95,6 +95,7 @@ public sealed class ScanCommand
         var upgradeReadinessResult = FindArtifactResult(artifactResults, "upgrade-readiness");
         var upgradeBlockersResult = FindArtifactResult(artifactResults, "upgrade-blockers");
         var externalDependenciesResult = FindArtifactResult(artifactResults, "external-dependencies");
+        var configurationInventoryResult = FindArtifactResult(artifactResults, "configuration-inventory");
         var dataAccessResult = FindArtifactResult(artifactResults, "data-access");
         var edmxAnalysisResult = FindArtifactResult(artifactResults, "edmx-analysis");
         var classDependenciesResult = FindArtifactResult(artifactResults, "class-dependencies");
@@ -122,6 +123,9 @@ public sealed class ScanCommand
             ExternalDependenciesOutputPath = externalDependenciesResult?.OutputPath,
             ExternalDependenciesReport = externalDependenciesResult?.Report as ExternalDependenciesReport,
 
+            ConfigurationInventoryOutputPath = configurationInventoryResult?.OutputPath,
+            ConfigurationInventoryReport = configurationInventoryResult?.Report as ConfigurationInventoryReport,
+
             DataAccessOutputPath = dataAccessResult?.OutputPath,
             DataAccessReport = dataAccessResult?.Report as DataAccessInventoryReport,
 
@@ -138,6 +142,7 @@ public sealed class ScanCommand
         new UpgradeReadinessArtifactRunner(),
         new UpgradeBlockersArtifactRunner(),
         new ExternalDependenciesArtifactRunner(),
+        new ConfigurationInventoryArtifactRunner(),
         new DataAccessArtifactRunner(),
         new EdmxAnalysisArtifactRunner(),
         new ClassDependenciesArtifactRunner()

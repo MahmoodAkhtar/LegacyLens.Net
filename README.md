@@ -21,6 +21,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope upgrade-readiness artifact that produces `upgrade-readiness-report.md` with static, evidence-backed upgrade planning signals
 - an MVP-scope upgrade-blockers artifact that produces `upgrade-blockers.md` with static, evidence-backed blocker and migration decision signals
 - an MVP-scope external-dependencies artifact that produces `external-dependencies.md` with a static, evidence-backed inventory of possible runtime and build-time dependencies outside the repository
+- an MVP-scope configuration-inventory artifact that produces `configuration-inventory.md` with a static, evidence-backed inventory of configuration files, configuration sections, app settings, connection strings, environment transforms, WCF/ASP.NET/IIS configuration, binding redirects, authentication/authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP settings, and configuration API usage where discoverable
 - an MVP-scope data-access artifact that produces `data-access-inventory.md` with a static, evidence-backed inventory of data access technologies, patterns, and migration concerns
 - an MVP-scope edmx-analysis artifact that produces `edmx-analysis.md` with a static, evidence-backed analysis of EF EDMX conceptual, storage, mapping, designer, generated-file, and EF Core migration concern signals
 - an MVP-scope class-dependencies artifact that produces `class-dependencies.md` with static, evidence-backed source-level type relationship analysis, coupling hotspots, hardcoded concrete dependencies, static dependency concerns, and focused Mermaid diagrams with dependency-kind edge labels
@@ -79,6 +80,15 @@ legacylens scan <path> --output-dir ./output --artifacts external-dependencies
 ```
 
 This report should identify possible databases, HTTP/API URLs, WCF/service endpoints, queues, SMTP/email settings, Redis/cache indicators, file shares, cloud service packages, private package feeds, direct vendor DLL references, and infrastructure-related configuration using static evidence only. It should mask sensitive values and avoid claiming that any external system was contacted, verified, reachable, active in production, or complete.
+
+
+The MVP scope now also includes an optional configuration-inventory artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts configuration-inventory
+```
+
+This report should identify visible configuration files, app settings, connection strings, custom sections, environment-specific transforms, WCF configuration, ASP.NET/IIS configuration, binding redirects, authentication and authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP settings, and configuration API usage using static evidence only. It should mask sensitive values and avoid claiming that the application was run, transforms were applied, credentials were validated, external systems were contacted, production usage was proven, or the configuration map is complete.
 
 The MVP scope now also includes an optional data-access artifact:
 
@@ -142,7 +152,7 @@ For detailed report examples, see [docs/report-output.md](docs/report-output.md)
 
 LegacyLens.NET is currently in late MVP development and is focused on hardening the first usable discovery baseline.
 
-The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, data access inventory, EDMX analysis, and class dependency analysis.
+The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, configuration inventory, data access inventory, EDMX analysis, and class dependency analysis.
 
 The current implementation can scan a folder containing .NET solutions and projects and discover:
 
@@ -235,6 +245,15 @@ The `external-dependencies` capability is an MVP-scope addition. It should produ
 The report should group evidence such as connection strings, HTTP/API URLs, WCF endpoints, queue-related settings or packages, SMTP/email settings, Redis/cache indicators, file shares, cloud service packages, private NuGet feeds, direct vendor DLL references, and infrastructure-related configuration. It should help a developer identify what needs confirmation before migration, testing, deployment, onboarding, or environment setup.
 
 This capability should remain static, evidence-backed, and security-conscious. It must not claim to connect to external systems, validate credentials, verify reachability, inspect production infrastructure, prove production usage, prove that a dependency is unused, expose secrets, or guarantee completeness. Sensitive values should be masked or redacted.
+
+
+### MVP-scope configuration-inventory artifact
+
+The `configuration-inventory` capability is an MVP-scope addition. It should produce `configuration-inventory.md` as a separate Markdown artifact focused on the visible configuration surface of a legacy .NET codebase.
+
+The report should group evidence such as `App.config`, `Web.config`, `*.config`, environment-specific transforms, `appsettings.json`, `.settings` files, app settings, connection strings, custom sections, WCF `system.serviceModel` configuration, ASP.NET/IIS `system.web` and `system.webServer` sections, binding redirects, authentication and authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP/mail settings, and configuration API usage such as `ConfigurationManager.AppSettings`, `ConfigurationManager.ConnectionStrings`, `IConfiguration`, and `GetSection` where discoverable.
+
+This capability should remain static, evidence-backed, and security-conscious. It must not claim to run the application, apply transforms, validate credentials, connect to external systems, prove production usage, prove that settings are used or unused, fully evaluate runtime configuration inheritance, resolve deployment-time substitutions, expose secrets, or guarantee completeness. Sensitive values should be masked or redacted.
 
 ### MVP-scope data-access artifact
 

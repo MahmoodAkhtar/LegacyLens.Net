@@ -43,7 +43,7 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  --verbose              Print detailed discovery output.");
         Console.WriteLine("  -h, --help             Show help.");
         Console.WriteLine("  --version              Show version.");
-        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness, upgrade-blockers, external-dependencies, data-access, edmx-analysis, and class-dependencies.");
+        Console.WriteLine("  --artifacts <value>     Optional artifact selection. Supports upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, and class-dependencies.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.");
     }
 
@@ -84,6 +84,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ExternalDependenciesOutputPath))
         {
             Console.WriteLine($"External dependencies report generated: {result.ExternalDependenciesOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.ConfigurationInventoryOutputPath))
+        {
+            Console.WriteLine($"Configuration inventory generated: {result.ConfigurationInventoryOutputPath}");
         }
         
         if (!string.IsNullOrWhiteSpace(result.DataAccessOutputPath))
@@ -163,6 +168,13 @@ public sealed class ScanConsoleWriter
             Console.WriteLine("External dependencies report generated:");
             Console.WriteLine(result.ExternalDependenciesOutputPath);
         }
+
+        if (!string.IsNullOrWhiteSpace(result.ConfigurationInventoryOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Configuration inventory generated:");
+            Console.WriteLine(result.ConfigurationInventoryOutputPath);
+        }
         
         if (!string.IsNullOrWhiteSpace(result.DataAccessOutputPath))
         {
@@ -220,6 +232,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ExternalDependenciesOutputPath))
         {
             Console.WriteLine($"External dependencies report generated: {result.ExternalDependenciesOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.ConfigurationInventoryOutputPath))
+        {
+            Console.WriteLine($"Configuration inventory generated: {result.ConfigurationInventoryOutputPath}");
         }
         
         if (!string.IsNullOrWhiteSpace(result.DataAccessOutputPath))

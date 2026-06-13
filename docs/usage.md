@@ -35,7 +35,7 @@ Options:
 --format <format>      Report format. Currently only markdown is supported.
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
---artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, data-access, edmx-analysis, and class-dependencies.
+--artifacts <value>     Optional artifact selection. MVP target includes upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, and class-dependencies.
 --upgrade-target <tfm>  Optional requested target framework for upgrade-readiness or upgrade-blockers wording.
 -h, --help             Show help.
 --version              Show version.
@@ -57,6 +57,7 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-r
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers --upgrade-target net8.0
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-blockers
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts external-dependencies
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts configuration-inventory
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts data-access
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts edmx-analysis
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-dependencies
@@ -166,6 +167,26 @@ The report should not claim to connect to databases, call HTTP APIs, validate cr
 
 For the first implementation, prefer the smallest command support needed to generate `external-dependencies.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
+
+### Configuration Inventory Artifact
+
+The MVP scope now includes an optional `configuration-inventory` artifact that should produce:
+
+```text
+<output-dir>/configuration-inventory.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts configuration-inventory
+```
+
+The report should remain static, evidence-backed, and security-conscious. It should identify visible configuration files, app settings, connection strings, custom sections, environment transforms, WCF configuration, ASP.NET/IIS sections, binding redirects, authentication and authorization settings, logging configuration, Entity Framework configuration, SMTP settings, and configuration API usage where discoverable.
+
+The report should not claim to run the application, apply transforms, validate credentials, connect to external systems, prove production usage, prove a setting is used or unused, fully evaluate runtime configuration inheritance, resolve deployment-time substitutions, or guarantee completeness. Sensitive values such as passwords, API keys, tokens, SAS tokens, storage account keys, client secrets, private feed credentials, and connection string secrets should be masked or redacted.
+
+For the first implementation, prefer the smallest command support needed to generate `configuration-inventory.md`. Do not over-engineer artifact selection if the existing CLI structure is not ready for a broader artifact system.
 
 ### Data Access Artifact
 
