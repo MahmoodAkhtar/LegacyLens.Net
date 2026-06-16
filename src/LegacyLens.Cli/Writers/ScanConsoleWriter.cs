@@ -1,3 +1,4 @@
+
 using System.Reflection;
 using LegacyLens.Cli.Commands;
 
@@ -115,11 +116,6 @@ public sealed class ScanConsoleWriter
 
     private static void WriteNormal(ScanResult result)
     {
-        Console.WriteLine("LegacyLens.NET");
-        Console.WriteLine();
-        Console.WriteLine($"Scan path: {result.ScanPath}");
-        Console.WriteLine($"Report: {result.OutputPath}");
-        Console.WriteLine();
         Console.WriteLine("Summary:");
         Console.WriteLine($"- Solutions discovered: {result.Solutions.Count}");
         Console.WriteLine($"- Projects discovered: {result.Projects.Count}");
@@ -213,12 +209,6 @@ public sealed class ScanConsoleWriter
 
     private static void WriteVerbose(ScanResult result)
     {
-        Console.WriteLine("LegacyLens.NET");
-        Console.WriteLine();
-        Console.WriteLine($"Scan path: {result.ScanPath}");
-        Console.WriteLine($"Report: {result.OutputPath}");
-        Console.WriteLine();
-
         WriteProjects(result);
         WriteWcfEndpoints(result);
         WriteWcfServiceContracts(result);

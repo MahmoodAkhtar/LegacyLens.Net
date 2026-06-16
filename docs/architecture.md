@@ -80,6 +80,7 @@ LegacyLens.Cli/
 │   ├── ScanOptions.cs
 │   └── ScanResult.cs
 ├── Parsing/
+├── Progress/
 ├── Writers/
 └── Program.cs
 ```
@@ -90,7 +91,7 @@ The `Commands` namespace contains the command model and scan orchestration types
 
 | Type                         | Purpose                                                                                                                                                                                                                                                                                                                       |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ScanCommand`                | Orchestrates static discovery, builds the shared file inventory once after project discovery, runs analysis, writes the main report, executes artifact runners, and creates the final `ScanResult` for `legacylens scan <path>`.                                                                                              |
+| `ScanCommand`                | Orchestrates static discovery, reports phase-based progress through a CLI progress abstraction, builds the shared file inventory once after project discovery, runs analysis, writes the main report, executes artifact runners, and creates the final `ScanResult` for `legacylens scan <path>`.                                                                                              |
 | `ScanContext`                | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, prioritised review areas, and the shared `ScanFileInventory` for report writing and optional artifact runners. |
 | `ScanOptions`                | Represents validated scan options from the CLI parser, including output selection, console mode, parsed artifact selection, and optional upgrade report wording context.                                                                                                                                                                     |
 | `ScanResult`                 | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer.                                                                                                                                                                                                           |
@@ -155,6 +156,14 @@ The normal `discovery-report.md` output-path resolution currently remains inside
 ### Parsing
 
 The `Parsing` namespace contains command-line parsing and validation. It should validate the public CLI contract before `ScanCommand` runs. Examples include required scan path validation, unsupported option handling, mutually exclusive `--output` and `--output-dir`, mutually exclusive `--quiet` and `--verbose`, supported artifact values, comma-separated artifact values, `all`, invalid combinations such as `all,data-access`, duplicate de-duplication, and valid use of `--upgrade-target` as upgrade report wording context only.
+
+### Progress
+
+The `Progress` namespace should contain the CLI-only progress reporting abstraction for phase-based visual scan feedback. Progress reporting belongs in `LegacyLens.Cli` because it is console UX and must not leak into `LegacyLens.Core` discovery or analysis code.
+
+A small abstraction such as `IScanProgressReporter` should be preferred over scattering `Console.WriteLine` calls through `ScanCommand`. The reporter should support scan start, phase start, phase completion with optional counts/details, verbose details, artifact-generation progress, and completion duration. Implementations may be split by console mode, for example normal, quiet, and verbose reporters, or a single reporter may take `ScanOptions` or a console mode enum.
+
+The progress model should remain phase-based rather than percentage-based. A simple `| / - \` spinner prefix may be used for the currently running phase, but it should complement completed phase messages and counts. Spinner/progress output should be disabled for `--quiet`, easy to suppress in tests, and robust when output is redirected. A deterministic line-based spinner prefix is acceptable for MVP; a continuously animated spinner is optional only if it remains simple and testable.
 
 ### Writers
 

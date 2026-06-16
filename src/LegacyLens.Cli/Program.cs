@@ -1,5 +1,7 @@
+
 using LegacyLens.Cli.Commands;
 using LegacyLens.Cli.Parsing;
+using LegacyLens.Cli.Progress;
 using LegacyLens.Cli.Writers;
 
 var parser = new CliParser();
@@ -25,9 +27,11 @@ try
             return 2;
 
         case CliParseResultKind.Scan:
-            var command = new ScanCommand();
-            var result = command.Execute(parseResult.Options!);
-            consoleWriter.Write(result, parseResult.Options!);
+            var options = parseResult.Options!;
+            var progressReporter = ScanProgressReporterFactory.Create(options);
+            var command = new ScanCommand(progressReporter);
+            var result = command.Execute(options);
+            consoleWriter.Write(result, options);
             return 0;
 
         default:

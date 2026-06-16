@@ -4,7 +4,7 @@ This document describes the console output and generated Markdown report produce
 
 ## Sample Console Output
 
-The normal `legacylens scan <path>` output is intentionally concise.
+The normal `legacylens scan <path>` output is intentionally concise, but it should provide phase-based visual progress while the scan is running. This progress output is console UX only; it does not change generated Markdown report content or discovery semantics.
 
 Example default console output:
 
@@ -13,6 +13,30 @@ LegacyLens.NET
 
 Scan path: C:\Path\To\LegacyApp
 Report: C:\Path\To\LegacyApp\output\discovery-report.md
+
+Scanning...
+
+| Discovering projects...
+✓ Projects discovered: 4
+/ Building file inventory...
+✓ Source/config/model files indexed: 128
+- Discovering solutions...
+✓ Solutions discovered: 1
+\ Scanning WCF configuration...
+✓ WCF endpoints discovered: 3
+✓ WCF behaviours discovered: 2
+| Scanning WCF service contracts...
+✓ WCF service contracts discovered: 1
+/ Scanning configuration files...
+✓ Configuration files discovered: 1
+- Scanning legacy ASP.NET artifacts...
+✓ Legacy ASP.NET artifacts discovered: 50
+\ Analysing modernisation hints...
+✓ Modernisation hints discovered: 77
+| Writing discovery-report.md...
+✓ discovery-report.md generated
+
+Completed in 00:00:07
 
 Summary:
 - Solutions discovered: 1
@@ -35,6 +59,8 @@ Top review areas:
 Markdown report generated:
 C:\Path\To\LegacyApp\output\discovery-report.md
 ```
+
+Do not use a percentage progress bar for MVP. The scan workload is discovered progressively as solutions, projects, source files, configuration files, EDMX files, and optional artifact work are found. A simple `| / - \` spinner prefix may be used for the currently running phase, but completed phase messages and useful counts should remain the primary progress signal. Quiet mode should suppress progress and spinner output. Verbose mode should keep phase progress and add deeper diagnostic detail where useful.
 
 The latest sample report confirms the current sample output shape: 1 solution, 4 projects, 4 project references, 5 package references, 2 assembly references, 3 WCF endpoints, 1 WCF service contract, 2 WCF behaviours, 50 legacy ASP.NET artifacts, and 1 configuration file. The modernisation review summary currently totals 77 modernisation hints across the prioritised review areas.
 
@@ -192,7 +218,7 @@ Markdown report generated: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\out
 
 ## Optional Artifact Selection Console Output
 
-The main `discovery-report.md` is always generated. When optional artifacts are selected, the console output should also show the generated artifact paths.
+The main `discovery-report.md` is always generated. When optional artifacts are selected, progress output should include selected artifact generation as a distinct phase, and the final console output should also show the generated artifact paths.
 
 A focused artifact run such as:
 
@@ -269,7 +295,7 @@ Solution topology report generated:
 C:\Path\To\LegacyApp\output\solution-topology.md
 ```
 
-Quiet and verbose modes should follow the same artifact selection rules and should not print duplicate artifact paths when duplicate names are supplied.
+Quiet and verbose modes should follow the same artifact selection rules and should not print duplicate artifact paths when duplicate names are supplied. Quiet mode should suppress non-essential progress and spinner output. Verbose mode should include normal phase progress plus useful per-project, per-file, per-phase, or per-artifact diagnostics where that helps troubleshoot slow scans.
 
 ---
 

@@ -27,6 +27,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope class-dependencies artifact that produces `class-dependencies.md` with static, evidence-backed source-level type relationship analysis, coupling hotspots, hardcoded concrete dependencies, static dependency concerns, and focused Mermaid diagrams with dependency-kind edge labels
 - an MVP-scope solution-topology artifact that produces `solution-topology.md` with static, evidence-backed solution, project, dependency, and ownership-boundary orientation information
 - flexible artifact selection from a single scan command, including one artifact, a comma-separated subset of artifacts, or every supported artifact using `--artifacts all`
+- phase-based visual progress feedback during scans, including concise current-phase messages, useful completed counts, optional simple spinner prefixes, elapsed time, selected artifact generation progress, and final output paths
 
 ## Quick start
 
@@ -150,13 +151,37 @@ This report should help a developer understand solution membership, project rela
 
 ## Example output
 
-The normal `legacylens scan <path>` output is intentionally concise:
+The normal `legacylens scan <path>` output is intentionally concise, but should show phase-based progress while the scan is running so large scans do not appear frozen:
 
 ```text
 LegacyLens.NET
 
 Scan path: C:\Path\To\LegacyApp
 Report: C:\Path\To\LegacyApp\output\discovery-report.md
+
+Scanning...
+
+| Discovering projects...
+✓ Projects discovered: 4
+/ Building file inventory...
+✓ Source/config/model files indexed: 128
+- Discovering solutions...
+✓ Solutions discovered: 1
+\ Scanning WCF configuration...
+✓ WCF endpoints discovered: 3
+✓ WCF behaviours discovered: 2
+| Scanning WCF service contracts...
+✓ WCF service contracts discovered: 1
+/ Scanning configuration files...
+✓ Configuration files discovered: 1
+- Scanning legacy ASP.NET artifacts...
+✓ Legacy ASP.NET artifacts discovered: 50
+\ Analysing modernisation hints...
+✓ Modernisation hints discovered: 77
+| Writing discovery-report.md...
+✓ discovery-report.md generated
+
+Completed in 00:00:07
 
 Summary:
 - Solutions discovered: 1
@@ -180,13 +205,15 @@ Markdown report generated:
 C:\Path\To\LegacyApp\output\discovery-report.md
 ```
 
+The simple `| / - \` spinner prefixes are current-phase feedback only. They should not be treated as a percentage progress bar, because the total scan workload is discovered progressively. `--quiet` suppresses non-essential progress and spinner output. `--verbose` keeps phase progress and may add deeper per-project, per-file, per-phase, or per-artifact diagnostics.
+
 For detailed report examples, see [docs/report-output.md](docs/report-output.md).
 
 ## Current Status
 
 LegacyLens.NET is currently in late MVP development and is focused on hardening the first usable discovery baseline.
 
-The current MVP already provides a standalone CLI scan command that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, configuration inventory, data access inventory, EDMX analysis, and class dependency analysis.
+The current MVP already provides a standalone CLI scan command with phase-based visual progress feedback that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, configuration inventory, data access inventory, EDMX analysis, and class dependency analysis.
 
 The current implementation can scan a folder containing .NET solutions and projects and discover:
 

@@ -26,6 +26,28 @@ Additional discovery, analysis, or reporting work should block the MVP only when
 
 The MVP should not remain open merely because deeper analysis could be added later. Further work is required before MVP only when it fixes a clear false positive, false negative, duplicated finding, misleading evidence source, or confusing prioritisation issue in the current sample output.
 
+### Step 0a: Visual progress feedback
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Show phase-based progress while `legacylens scan <path>` is running so large scans do not appear frozen.
+- Show current phase messages for major scan stages such as project discovery, shared file inventory creation, solution discovery, WCF/configuration scanning, legacy ASP.NET scanning, modernisation analysis, report writing, and selected optional artifact generation.
+- Show completed phase messages with useful counts once known.
+- Use elapsed duration and final generated report/artifact paths in the console output.
+- Support a simple `| / - \` spinner or spinner-like prefix for the currently running phase where suitable.
+- Suppress non-essential progress and spinner output in `--quiet`.
+- Preserve normal phase progress and add useful per-project, per-file, per-phase, or per-artifact diagnostics in `--verbose`.
+- Keep progress reporting behind a CLI abstraction so it remains testable and does not spread direct console writes through scan orchestration.
+
+Out of scope for MVP:
+
+- Percentage progress bars.
+- Runtime estimates based on unproven total workload.
+- Complex continuously animated spinner implementations unless they remain deterministic and easy to test.
+- Any change to static discovery semantics or generated Markdown report contents.
+
 ### Step 1: Static solution and project discovery
 
 Status: Implemented

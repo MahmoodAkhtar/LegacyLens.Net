@@ -37,6 +37,12 @@ Important options:
 --version              Show version.
 ```
 
+## Visual progress feedback
+
+Visual progress feedback is MVP scope as a CLI console UX capability. It should make long scans feel active and trustworthy by showing phase-based progress rather than a misleading percentage progress bar. Normal mode should show concise current-phase messages, completed phase messages, useful counts once known, elapsed duration, selected artifact generation progress, and final generated output paths. A simple `| / - \` spinner or spinner-like prefix may be used for the currently running phase, but it should complement completed phase messages and counts rather than replace them.
+
+`--quiet` should suppress non-essential progress and spinner output, while keeping essential final generated-path output and errors. `--verbose` should include normal phase progress plus useful per-project, per-file, per-phase, or per-artifact details for troubleshooting slow scans. Keep progress reporting in `LegacyLens.Cli`, preferably behind an abstraction such as `IScanProgressReporter`, and do not put console output in `LegacyLens.Core`. This capability must not change discovery semantics, artifact selection semantics, or generated Markdown report contents.
+
 ## Current output
 
 By default, the report is generated at:

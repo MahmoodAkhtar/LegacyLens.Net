@@ -70,6 +70,33 @@ legacylens --help
 legacylens --version
 ```
 
+### Visual Progress Feedback
+
+By default, `legacylens scan <path>` should print concise phase-based progress while the scan is running. This is intended to reassure users during large scans without implying a misleading percentage complete value. The progress output should show the current scan phase, completed phase messages, useful counts once known, selected artifact generation progress, elapsed duration, and final output paths.
+
+Normal progress output may use a simple `| / - \` spinner prefix for the currently running phase:
+
+```text
+Scanning...
+
+| Discovering projects...
+✓ Projects discovered: 42
+/ Building file inventory...
+✓ Source/config/model files indexed: 1,284
+- Scanning WCF configuration...
+✓ WCF endpoints discovered: 12
+\ Writing discovery-report.md...
+✓ discovery-report.md generated
+
+Completed in 00:01:34
+```
+
+The spinner is optional current-phase feedback. It should complement completed phase messages and counts, not replace them. A continuously animated spinner is not required for MVP; a deterministic line-based spinner prefix is acceptable and easier to test.
+
+When `--quiet` is used, progress messages and spinner output should be suppressed. Quiet output should keep only essential final generated-path output and errors.
+
+When `--verbose` is used, normal phase progress should still be shown, with additional useful diagnostics such as project, file, phase, or artifact details where that helps troubleshoot slow scans.
+
 ### Report Output
 
 By default, LegacyLens.NET writes the Markdown report to:

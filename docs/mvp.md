@@ -12,6 +12,14 @@ Current MVP functionality includes implemented capabilities and newly required M
 - `--format markdown` command option
 - `--quiet` console output mode
 - `--verbose` console output mode
+- phase-based visual progress feedback during scans so large scans do not appear frozen
+- current scan phase messages for major steps such as project discovery, shared file inventory building, solution discovery, WCF/configuration scanning, legacy ASP.NET scanning, modernisation analysis, main report writing, and selected optional artifact generation
+- completed phase messages with useful counts once known
+- optional simple `| / - \` spinner/current-phase prefix in normal and verbose console output where suitable
+- no percentage progress bar for MVP, because the full scan workload is discovered progressively
+- `--quiet` suppression of non-essential progress and spinner output
+- `--verbose` progress details for useful per-project, per-file, per-phase, or per-artifact diagnostics
+- elapsed scan duration and generated output paths in final console output
 - `--help`, `-h`, and `--version` command support
 - CLI validation for missing commands, missing scan paths, unknown options, unsupported formats, and invalid option combinations
 - static `.sln` discovery

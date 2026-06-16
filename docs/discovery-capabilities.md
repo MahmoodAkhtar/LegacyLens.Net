@@ -7,6 +7,10 @@ This document captures the detailed discovery capabilities currently described f
 
 The MVP artifact selection capability changes how optional reports are generated from the CLI; it does not add new static discovery signals by itself. `--artifacts` should allow one artifact name, a comma-separated subset of artifact names, or `all`, while the normal `discovery-report.md` is always generated. Discovery and analysis scope remains defined by the specific selected artifacts.
 
+## Visual Progress Feedback Note
+
+The MVP visual progress feedback capability changes the CLI runtime experience only. It should show phase-based progress, optional simple spinner/current-phase feedback, completed counts, elapsed duration, selected artifact generation progress, and final output paths while a scan runs. It does not add static discovery signals, change analysis scope, change artifact selection semantics, or change generated Markdown report contents.
+
 ## What LegacyLens.NET Can Do Without Building the Solution
 
 LegacyLens.NET is designed to inspect source files directly.

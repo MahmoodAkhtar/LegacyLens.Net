@@ -57,9 +57,7 @@ TestResult.xml
 nunit-*.xml
 
 # LegacyLens generated output
-artifacts/
 output/
-reports/
 
 # Rider / JetBrains
 .idea/
