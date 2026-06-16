@@ -36,16 +36,18 @@ MVP scope:
 - Show current phase messages for major scan stages such as project discovery, shared file inventory creation, solution discovery, WCF/configuration scanning, legacy ASP.NET scanning, modernisation analysis, report writing, and selected optional artifact generation.
 - Show completed phase messages with useful counts once known.
 - Use elapsed duration and final generated report/artifact paths in the console output.
-- Support a simple `| / - \` spinner or spinner-like prefix for the currently running phase where suitable.
+- Support a real animated `| / - \` spinner for the currently running phase in interactive console output.
+- Update the active spinner on the same console line, then stop cleanly and replace it with a completed `✓ ...` message containing useful counts or generated-file details.
 - Suppress non-essential progress and spinner output in `--quiet`.
-- Preserve normal phase progress and add useful per-project, per-file, per-phase, or per-artifact diagnostics in `--verbose`.
+- Disable animation when output is redirected or the console is non-interactive so logs remain deterministic and readable.
+- Preserve normal phase progress and add useful per-project, per-file, per-phase, or per-artifact diagnostics in `--verbose`, without corrupting active spinner output.
 - Keep progress reporting behind a CLI abstraction so it remains testable and does not spread direct console writes through scan orchestration.
+- Ensure active spinner work stops safely on success or failure and does not leave background tasks, timers, or console state behind.
 
 Out of scope for MVP:
 
 - Percentage progress bars.
 - Runtime estimates based on unproven total workload.
-- Complex continuously animated spinner implementations unless they remain deterministic and easy to test.
 - Any change to static discovery semantics or generated Markdown report contents.
 
 ### Step 1: Static solution and project discovery

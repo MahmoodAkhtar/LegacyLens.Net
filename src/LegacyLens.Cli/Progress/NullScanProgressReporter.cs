@@ -27,4 +27,8 @@ public sealed class NullScanProgressReporter : IScanProgressReporter
     public void ScanCompleted()
     {
     }
+
+    public void Dispose()
+    {
+    }
 }

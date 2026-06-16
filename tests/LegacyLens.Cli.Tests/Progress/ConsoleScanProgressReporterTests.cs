@@ -5,11 +5,11 @@ namespace LegacyLens.Cli.Tests.Progress;
 public sealed class ConsoleScanProgressReporterTests
 {
     [Fact]
-    public void Reporter_WritesPhaseProgressWithDeterministicSpinnerPrefixes()
+    public void Reporter_WhenAnimationIsDisabled_WritesStableLineBasedPhaseProgress()
     {
         var output = CaptureConsoleOutput(() =>
         {
-            var reporter = new ConsoleScanProgressReporter(verbose: false);
+            using var reporter = new ConsoleScanProgressReporter(verbose: false);
 
             reporter.ScanStarted("C:\\Repos\\LegacyApp", "C:\\Repos\\LegacyApp\\output\\discovery-report.md");
             reporter.PhaseStarted("Discovering projects");
@@ -31,11 +31,31 @@ public sealed class ConsoleScanProgressReporterTests
     }
 
     [Fact]
+    public void Reporter_WhenAnimationIsEnabled_WritesActivePhaseWithCarriageReturnAndCleanCompletion()
+    {
+        using var writer = new StringWriter();
+        using var reporter = new ConsoleScanProgressReporter(
+            verbose: false,
+            writer: writer,
+            enableAnimation: true,
+            spinnerInterval: TimeSpan.FromSeconds(30));
+
+        reporter.PhaseStarted("Discovering projects");
+        reporter.PhaseCompleted("Projects discovered: 4");
+
+        var output = writer.ToString();
+
+        Assert.Contains("\r| Discovering projects...", output);
+        Assert.Contains("\r                         \r", output);
+        Assert.Contains("✓ Projects discovered: 4", output);
+    }
+
+    [Fact]
     public void VerboseDetail_WhenVerboseIsFalse_DoesNotWriteDetail()
     {
         var output = CaptureConsoleOutput(() =>
         {
-            var reporter = new ConsoleScanProgressReporter(verbose: false);
+            using var reporter = new ConsoleScanProgressReporter(verbose: false);
 
             reporter.VerboseDetail("Project: SampleLegacyApp.Web");
         });
@@ -48,7 +68,7 @@ public sealed class ConsoleScanProgressReporterTests
     {
         var output = CaptureConsoleOutput(() =>
         {
-            var reporter = new ConsoleScanProgressReporter(verbose: true);
+            using var reporter = new ConsoleScanProgressReporter(verbose: true);
 
             reporter.VerboseDetail("Project: SampleLegacyApp.Web");
         });
@@ -57,9 +77,31 @@ public sealed class ConsoleScanProgressReporterTests
     }
 
     [Fact]
+    public void VerboseDetail_WhenAnimationIsActive_WritesDetailOnCleanLineAndResumesSpinner()
+    {
+        using var writer = new StringWriter();
+        using var reporter = new ConsoleScanProgressReporter(
+            verbose: true,
+            writer: writer,
+            enableAnimation: true,
+            spinnerInterval: TimeSpan.FromSeconds(30));
+
+        reporter.PhaseStarted("Discovering projects");
+        reporter.VerboseDetail("Project: SampleLegacyApp.Web");
+        reporter.PhaseCompleted("Projects discovered: 4");
+
+        var output = writer.ToString();
+
+        Assert.Contains("\r| Discovering projects...", output);
+        Assert.Contains("  Project: SampleLegacyApp.Web", output);
+        Assert.Contains("\r/ Discovering projects...", output);
+        Assert.Contains("✓ Projects discovered: 4", output);
+    }
+
+    [Fact]
     public void PhaseStarted_WhenPhaseNameIsNullOrWhiteSpace_ThrowsArgumentException()
     {
-        var reporter = new ConsoleScanProgressReporter(verbose: false);
+        using var reporter = new ConsoleScanProgressReporter(verbose: false);
 
         Assert.Throws<ArgumentException>(() => reporter.PhaseStarted(" "));
     }
@@ -67,7 +109,7 @@ public sealed class ConsoleScanProgressReporterTests
     [Fact]
     public void PhaseCompleted_WhenMessageIsNullOrWhiteSpace_ThrowsArgumentException()
     {
-        var reporter = new ConsoleScanProgressReporter(verbose: false);
+        using var reporter = new ConsoleScanProgressReporter(verbose: false);
 
         Assert.Throws<ArgumentException>(() => reporter.PhaseCompleted(" "));
     }
@@ -75,7 +117,7 @@ public sealed class ConsoleScanProgressReporterTests
     [Fact]
     public void VerboseDetail_WhenMessageIsNullOrWhiteSpace_ThrowsArgumentException()
     {
-        var reporter = new ConsoleScanProgressReporter(verbose: true);
+        using var reporter = new ConsoleScanProgressReporter(verbose: true);
 
         Assert.Throws<ArgumentException>(() => reporter.VerboseDetail(" "));
     }

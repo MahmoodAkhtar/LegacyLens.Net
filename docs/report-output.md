@@ -4,9 +4,9 @@ This document describes the console output and generated Markdown report produce
 
 ## Sample Console Output
 
-The normal `legacylens scan <path>` output is intentionally concise, but it should provide phase-based visual progress while the scan is running. This progress output is console UX only; it does not change generated Markdown report content or discovery semantics.
+The normal `legacylens scan <path>` output is intentionally concise, but it should provide phase-based visual progress while the scan is running. In an interactive console, the current phase should use a real animated `| / - \` spinner that updates the same line until the phase completes. This progress output is console UX only; it does not change generated Markdown report content or discovery semantics.
 
-Example default console output:
+Example default console output. The active phase line is shown as a representative snapshot; in an interactive console that line should rotate through `| / - \` until the phase completes:
 
 ```text
 LegacyLens.NET
@@ -60,7 +60,7 @@ Markdown report generated:
 C:\Path\To\LegacyApp\output\discovery-report.md
 ```
 
-Do not use a percentage progress bar for MVP. The scan workload is discovered progressively as solutions, projects, source files, configuration files, EDMX files, and optional artifact work are found. A simple `| / - \` spinner prefix may be used for the currently running phase, but completed phase messages and useful counts should remain the primary progress signal. Quiet mode should suppress progress and spinner output. Verbose mode should keep phase progress and add deeper diagnostic detail where useful.
+Do not use a percentage progress bar for MVP. The scan workload is discovered progressively as solutions, projects, source files, configuration files, EDMX files, and optional artifact work are found. A real `| / - \` spinner should be used only for the currently running phase in an interactive console, and completed phase messages with useful counts should remain the primary progress signal. The spinner must stop cleanly before each completed `✓ ...` message. Quiet mode should suppress progress and spinner output. Redirected or non-interactive output should avoid carriage-return animation and remain readable line-based text. Verbose mode should keep phase progress and add deeper diagnostic detail without interleaving or corrupting the active spinner line.
 
 The latest sample report confirms the current sample output shape: 1 solution, 4 projects, 4 project references, 5 package references, 2 assembly references, 3 WCF endpoints, 1 WCF service contract, 2 WCF behaviours, 50 legacy ASP.NET artifacts, and 1 configuration file. The modernisation review summary currently totals 77 modernisation hints across the prioritised review areas.
 
@@ -295,7 +295,7 @@ Solution topology report generated:
 C:\Path\To\LegacyApp\output\solution-topology.md
 ```
 
-Quiet and verbose modes should follow the same artifact selection rules and should not print duplicate artifact paths when duplicate names are supplied. Quiet mode should suppress non-essential progress and spinner output. Verbose mode should include normal phase progress plus useful per-project, per-file, per-phase, or per-artifact diagnostics where that helps troubleshoot slow scans.
+Quiet and verbose modes should follow the same artifact selection rules and should not print duplicate artifact paths when duplicate names are supplied. Quiet mode should suppress non-essential progress and spinner output. Verbose mode should include normal phase progress plus useful per-project, per-file, per-phase, or per-artifact diagnostics where that helps troubleshoot slow scans; verbose lines must be written cleanly even when a spinner phase is active.
 
 ---
 

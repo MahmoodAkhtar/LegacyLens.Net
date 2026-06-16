@@ -1,6 +1,6 @@
 namespace LegacyLens.Cli.Progress;
 
-public interface IScanProgressReporter
+public interface IScanProgressReporter : IDisposable
 {
     void ScanStarted(string scanPath, string outputPath);
 

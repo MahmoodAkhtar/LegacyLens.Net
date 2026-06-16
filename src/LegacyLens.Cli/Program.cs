@@ -28,10 +28,13 @@ try
 
         case CliParseResultKind.Scan:
             var options = parseResult.Options!;
-            var progressReporter = ScanProgressReporterFactory.Create(options);
-            var command = new ScanCommand(progressReporter);
-            var result = command.Execute(options);
-            consoleWriter.Write(result, options);
+            using (var progressReporter = ScanProgressReporterFactory.Create(options))
+            {
+                var command = new ScanCommand(progressReporter);
+                var result = command.Execute(options);
+                consoleWriter.Write(result, options);
+            }
+
             return 0;
 
         default:
@@ -55,3 +58,6 @@ catch (Exception exception)
     consoleWriter.WriteError(exception.Message);
     return 1;
 }
+
+
+

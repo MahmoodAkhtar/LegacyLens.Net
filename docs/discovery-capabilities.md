@@ -9,7 +9,7 @@ The MVP artifact selection capability changes how optional reports are generated
 
 ## Visual Progress Feedback Note
 
-The MVP visual progress feedback capability changes the CLI runtime experience only. It should show phase-based progress, optional simple spinner/current-phase feedback, completed counts, elapsed duration, selected artifact generation progress, and final output paths while a scan runs. It does not add static discovery signals, change analysis scope, change artifact selection semantics, or change generated Markdown report contents.
+The MVP visual progress feedback capability changes the CLI runtime experience only. It should show phase-based progress, a real animated `| / - \` spinner for the active phase in interactive consoles, completed counts, elapsed duration, selected artifact generation progress, and final output paths while a scan runs. The spinner should be suppressed by `--quiet`, disabled for redirected or non-interactive output, and coordinated with `--verbose` diagnostics. It does not add static discovery signals, change analysis scope, change artifact selection semantics, or change generated Markdown report contents.
 
 ## What LegacyLens.NET Can Do Without Building the Solution
 

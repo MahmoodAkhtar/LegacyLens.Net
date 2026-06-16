@@ -27,7 +27,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope class-dependencies artifact that produces `class-dependencies.md` with static, evidence-backed source-level type relationship analysis, coupling hotspots, hardcoded concrete dependencies, static dependency concerns, and focused Mermaid diagrams with dependency-kind edge labels
 - an MVP-scope solution-topology artifact that produces `solution-topology.md` with static, evidence-backed solution, project, dependency, and ownership-boundary orientation information
 - flexible artifact selection from a single scan command, including one artifact, a comma-separated subset of artifacts, or every supported artifact using `--artifacts all`
-- phase-based visual progress feedback during scans, including concise current-phase messages, useful completed counts, optional simple spinner prefixes, elapsed time, selected artifact generation progress, and final output paths
+- phase-based visual progress feedback during scans, including a real animated console spinner for active phases, useful completed counts, elapsed time, selected artifact generation progress, and final output paths
 
 ## Quick start
 
@@ -205,7 +205,7 @@ Markdown report generated:
 C:\Path\To\LegacyApp\output\discovery-report.md
 ```
 
-The simple `| / - \` spinner prefixes are current-phase feedback only. They should not be treated as a percentage progress bar, because the total scan workload is discovered progressively. `--quiet` suppresses non-essential progress and spinner output. `--verbose` keeps phase progress and may add deeper per-project, per-file, per-phase, or per-artifact diagnostics.
+The `| / - \` spinner is active-phase feedback only. In an interactive console it should animate on the same line while the current phase is running, then stop cleanly and be replaced by the completed `✓ ...` message once counts or output details are known. It should not be treated as a percentage progress bar, because the total scan workload is discovered progressively. `--quiet` suppresses non-essential progress and spinner output. Redirected or non-interactive output should avoid carriage-return animation and remain stable line-based text. `--verbose` keeps phase progress and may add deeper per-project, per-file, per-phase, or per-artifact diagnostics without corrupting the active spinner line.
 
 For detailed report examples, see [docs/report-output.md](docs/report-output.md).
 
