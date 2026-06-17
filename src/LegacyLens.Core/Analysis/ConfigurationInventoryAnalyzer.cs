@@ -4,6 +4,9 @@ using System.Xml.Linq;
 using LegacyLens.Core.Configuration;
 using LegacyLens.Core.Discovery;
 using LegacyLens.Core.Files;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace LegacyLens.Core.Analysis;
 
@@ -51,7 +54,24 @@ public sealed class ConfigurationInventoryAnalyzer
             .ThenBy(finding => finding.SourcePath, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-        return new ConfigurationInventoryReport(distinctFindings);
+        var sourceUsages = DiscoverSourceConfigurationUsages(fileInventory)
+            .GroupBy(CreateUsageDeduplicationKey, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderBy(usage => usage.ProjectName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(usage => usage.SourcePath, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(usage => usage.LineNumber)
+            .ThenBy(usage => usage.Kind)
+            .ThenBy(usage => usage.Key ?? string.Empty, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        var configuredKeys = DiscoverConfiguredKeys(distinctFindings);
+        var resolvedSourceUsages = ResolveSourceUsages(sourceUsages, configuredKeys);
+        var reconciliations = CreateKeyReconciliations(configuredKeys, resolvedSourceUsages);
+
+        return new ConfigurationInventoryReport(
+            distinctFindings,
+            resolvedSourceUsages,
+            reconciliations);
     }
 
     private static void AddDiscoveredConfigurationFindings(
@@ -721,6 +741,304 @@ public sealed class ConfigurationInventoryAnalyzer
         }
     }
 
+    private static IReadOnlyList<ConfigurationUsageFinding> DiscoverSourceConfigurationUsages(
+        ScanFileInventory fileInventory)
+    {
+        var usages = new List<ConfigurationUsageFinding>();
+
+        foreach (var sourceFile in fileInventory.CSharpFiles)
+        {
+            if (string.IsNullOrWhiteSpace(sourceFile.Content))
+            {
+                continue;
+            }
+
+            SyntaxTree syntaxTree;
+            CompilationUnitSyntax root;
+
+            try
+            {
+                syntaxTree = CSharpSyntaxTree.ParseText(sourceFile.Content);
+                root = syntaxTree.GetCompilationUnitRoot();
+            }
+            catch
+            {
+                continue;
+            }
+
+            usages.AddRange(DiscoverElementAccessConfigurationUsages(sourceFile, syntaxTree, root));
+            usages.AddRange(DiscoverGetMethodConfigurationUsages(sourceFile, syntaxTree, root));
+        }
+
+        return usages;
+    }
+
+    private static IEnumerable<ConfigurationUsageFinding> DiscoverElementAccessConfigurationUsages(
+        ScanFile sourceFile,
+        SyntaxTree syntaxTree,
+        CompilationUnitSyntax root)
+    {
+        foreach (var elementAccess in root.DescendantNodes().OfType<ElementAccessExpressionSyntax>())
+        {
+            if (!TryParseConfigurationCollection(elementAccess.Expression, out var kind))
+            {
+                continue;
+            }
+
+            var argument = elementAccess.ArgumentList.Arguments.FirstOrDefault()?.Expression;
+
+            yield return CreateSourceUsage(
+                sourceFile,
+                syntaxTree,
+                elementAccess,
+                kind,
+                ExtractLiteralString(argument));
+        }
+    }
+
+    private static IEnumerable<ConfigurationUsageFinding> DiscoverGetMethodConfigurationUsages(
+        ScanFile sourceFile,
+        SyntaxTree syntaxTree,
+        CompilationUnitSyntax root)
+    {
+        foreach (var invocation in root.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        {
+            if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess ||
+                !memberAccess.Name.Identifier.Text.Equals("Get", StringComparison.Ordinal) ||
+                !TryParseConfigurationCollection(memberAccess.Expression, out var kind))
+            {
+                continue;
+            }
+
+            var argument = invocation.ArgumentList.Arguments.FirstOrDefault()?.Expression;
+
+            yield return CreateSourceUsage(
+                sourceFile,
+                syntaxTree,
+                invocation,
+                kind,
+                ExtractLiteralString(argument));
+        }
+    }
+
+    private static bool TryParseConfigurationCollection(
+        ExpressionSyntax expression,
+        out ConfigurationUsageKind kind)
+    {
+        kind = default;
+
+        if (expression is not MemberAccessExpressionSyntax memberAccess)
+        {
+            return false;
+        }
+
+        if (!IsConfigurationManagerExpression(memberAccess.Expression))
+        {
+            return false;
+        }
+
+        if (memberAccess.Name.Identifier.Text.Equals("AppSettings", StringComparison.Ordinal))
+        {
+            kind = ConfigurationUsageKind.AppSetting;
+            return true;
+        }
+
+        if (memberAccess.Name.Identifier.Text.Equals("ConnectionStrings", StringComparison.Ordinal))
+        {
+            kind = ConfigurationUsageKind.ConnectionString;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsConfigurationManagerExpression(ExpressionSyntax expression)
+    {
+        var text = expression.ToString();
+
+        return text.Equals("ConfigurationManager", StringComparison.Ordinal) ||
+               text.EndsWith(".ConfigurationManager", StringComparison.Ordinal);
+    }
+
+    private static string? ExtractLiteralString(ExpressionSyntax? expression)
+    {
+        return expression is LiteralExpressionSyntax literal &&
+               literal.IsKind(SyntaxKind.StringLiteralExpression)
+            ? literal.Token.ValueText
+            : null;
+    }
+
+    private static ConfigurationUsageFinding CreateSourceUsage(
+        ScanFile sourceFile,
+        SyntaxTree syntaxTree,
+        SyntaxNode node,
+        ConfigurationUsageKind kind,
+        string? literalKey)
+    {
+        var lineNumber = syntaxTree.GetLineSpan(node.Span).StartLinePosition.Line + 1;
+        var requiresReview = string.IsNullOrWhiteSpace(literalKey);
+        var resolution = requiresReview
+            ? ConfigurationUsageKeyResolution.DynamicKeyRequiresReview
+            : ConfigurationUsageKeyResolution.NoVisibleConfigurationEntryFound;
+
+        return new ConfigurationUsageFinding(
+            kind,
+            string.IsNullOrWhiteSpace(literalKey) ? null : literalKey,
+            resolution,
+            sourceFile.ProjectName,
+            sourceFile.FullPath,
+            lineNumber,
+            TrimEvidence(node.ToString()),
+            requiresReview);
+    }
+
+    private static IReadOnlyList<ConfiguredConfigurationKey> DiscoverConfiguredKeys(
+        IEnumerable<ConfigurationInventoryFinding> findings)
+    {
+        return findings
+            .SelectMany(CreateConfiguredKeys)
+            .GroupBy(
+                key => string.Join("|", key.Kind, key.Key, key.SourcePath),
+                StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderBy(key => key.Kind)
+            .ThenBy(key => key.Key, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(key => key.SourcePath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static IEnumerable<ConfiguredConfigurationKey> CreateConfiguredKeys(
+        ConfigurationInventoryFinding finding)
+    {
+        if (finding.Category == ConfigurationInventoryCategory.AppSetting &&
+            finding.Confidence == ConfigurationInventoryConfidence.High &&
+            !string.IsNullOrWhiteSpace(finding.Name))
+        {
+            yield return new ConfiguredConfigurationKey(
+                ConfigurationUsageKind.AppSetting,
+                finding.Name,
+                finding.SourcePath);
+        }
+
+        if (finding.Category == ConfigurationInventoryCategory.ConnectionString &&
+            finding.Confidence == ConfigurationInventoryConfidence.High &&
+            !string.IsNullOrWhiteSpace(finding.Name))
+        {
+            yield return new ConfiguredConfigurationKey(
+                ConfigurationUsageKind.ConnectionString,
+                finding.Name,
+                finding.SourcePath);
+        }
+
+        if (finding.Category == ConfigurationInventoryCategory.JsonConfiguration &&
+            !string.IsNullOrWhiteSpace(finding.MaskedValue) &&
+            !string.IsNullOrWhiteSpace(finding.Name))
+        {
+            yield return new ConfiguredConfigurationKey(
+                ConfigurationUsageKind.AppSetting,
+                finding.Name,
+                finding.SourcePath);
+
+            const string connectionStringPrefix = "ConnectionStrings:";
+
+            if (finding.Name.StartsWith(connectionStringPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                yield return new ConfiguredConfigurationKey(
+                    ConfigurationUsageKind.ConnectionString,
+                    finding.Name[connectionStringPrefix.Length..],
+                    finding.SourcePath);
+            }
+        }
+    }
+
+    private static IReadOnlyList<ConfigurationUsageFinding> ResolveSourceUsages(
+        IEnumerable<ConfigurationUsageFinding> sourceUsages,
+        IReadOnlyCollection<ConfiguredConfigurationKey> configuredKeys)
+    {
+        return sourceUsages
+            .Select(usage => ResolveSourceUsage(usage, configuredKeys))
+            .ToArray();
+    }
+
+    private static ConfigurationUsageFinding ResolveSourceUsage(
+        ConfigurationUsageFinding usage,
+        IEnumerable<ConfiguredConfigurationKey> configuredKeys)
+    {
+        if (string.IsNullOrWhiteSpace(usage.Key))
+        {
+            return usage with
+            {
+                Resolution = ConfigurationUsageKeyResolution.DynamicKeyRequiresReview,
+                RequiresReview = true
+            };
+        }
+
+        var hasMatch = configuredKeys.Any(key =>
+            key.Kind == usage.Kind &&
+            key.Key.Equals(usage.Key, StringComparison.OrdinalIgnoreCase));
+
+        return usage with
+        {
+            Resolution = hasMatch
+                ? ConfigurationUsageKeyResolution.MatchedVisibleConfigurationEntry
+                : ConfigurationUsageKeyResolution.NoVisibleConfigurationEntryFound,
+            RequiresReview = !hasMatch
+        };
+    }
+
+    private static IReadOnlyList<ConfigurationKeyReconciliation> CreateKeyReconciliations(
+        IEnumerable<ConfiguredConfigurationKey> configuredKeys,
+        IReadOnlyCollection<ConfigurationUsageFinding> sourceUsages)
+    {
+        return configuredKeys
+            .Select(key => CreateKeyReconciliation(key, sourceUsages))
+            .OrderBy(reconciliation => reconciliation.Kind)
+            .ThenBy(reconciliation => reconciliation.Key, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(reconciliation => reconciliation.ConfigSourcePath, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static ConfigurationKeyReconciliation CreateKeyReconciliation(
+        ConfiguredConfigurationKey key,
+        IEnumerable<ConfigurationUsageFinding> sourceUsages)
+    {
+        var hasStaticUsage = sourceUsages.Any(usage =>
+            usage.Kind == key.Kind &&
+            !string.IsNullOrWhiteSpace(usage.Key) &&
+            usage.Key.Equals(key.Key, StringComparison.OrdinalIgnoreCase));
+
+        return hasStaticUsage
+            ? new ConfigurationKeyReconciliation(
+                key.Kind,
+                key.Key,
+                key.SourcePath,
+                ConfigurationStaticSourceUsage.Found,
+                "Literal source usage matched.")
+            : new ConfigurationKeyReconciliation(
+                key.Kind,
+                key.Key,
+                key.SourcePath,
+                ConfigurationStaticSourceUsage.NoStaticSourceUsageDetected,
+                "This does not prove the key is unused. It may be used dynamically, by reflection, by config binding, by external tooling, or at runtime outside statically detected patterns.");
+    }
+
+    private static string CreateUsageDeduplicationKey(ConfigurationUsageFinding usage)
+    {
+        return string.Join(
+            "|",
+            usage.Kind,
+            usage.Key ?? string.Empty,
+            usage.ProjectName,
+            usage.SourcePath,
+            usage.LineNumber,
+            usage.Evidence);
+    }
+
+    private static string TrimEvidence(string evidence)
+    {
+        return Regex.Replace(evidence, @"\s+", " ").Trim();
+    }
+
     private static string? MaskSensitiveValue(string? value, string? key = null)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -825,5 +1143,13 @@ public sealed class ConfigurationInventoryAnalyzer
         string Name,
         string Evidence,
         string MigrationConsideration);
+
+    private sealed record ConfiguredConfigurationKey(
+        ConfigurationUsageKind Kind,
+        string Key,
+        string SourcePath);
 }
+
+
+
 

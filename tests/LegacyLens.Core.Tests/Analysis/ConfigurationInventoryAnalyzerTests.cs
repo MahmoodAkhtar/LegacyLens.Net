@@ -959,6 +959,225 @@ public sealed class ConfigurationInventoryAnalyzerTests : IDisposable
         Assert.Contains("***", joinedValues);
     }
 
+
+    [Fact]
+    public void Analyze_WhenLiteralConfigurationManagerKeysAreUsed_MapsUsageBackToVisibleConfigurationEntries()
+    {
+        var webConfigPath = WriteFile(
+            "Web.config",
+            """
+            <?xml version="1.0" encoding="utf-8" ?>
+            <configuration>
+              <appSettings>
+                <add key="ApiBaseUrl" value="https://api.example.test" />
+              </appSettings>
+              <connectionStrings>
+                <add name="MainDatabase" connectionString="Server=.;Password=plain-db-password;" providerName="System.Data.SqlClient" />
+              </connectionStrings>
+            </configuration>
+            """);
+
+        WriteFile(
+            "SettingsReader.cs",
+            """
+            using System.Configuration;
+
+            namespace SampleLegacyApp.Web;
+
+            public sealed class SettingsReader
+            {
+                public string? ApiBaseUrl => ConfigurationManager.AppSettings["ApiBaseUrl"];
+                public string? MainDatabase => ConfigurationManager.ConnectionStrings["MainDatabase"]?.ConnectionString;
+            }
+            """);
+
+        var configFiles = new[]
+        {
+            new DiscoveredConfigFile
+            {
+                FilePath = webConfigPath,
+                AppSettings =
+                {
+                    new DiscoveredAppSetting
+                    {
+                        Key = "ApiBaseUrl",
+                        MaskedValue = "https://api.example.test"
+                    }
+                },
+                ConnectionStrings =
+                {
+                    new DiscoveredConnectionString
+                    {
+                        Name = "MainDatabase",
+                        ProviderName = "System.Data.SqlClient",
+                        MaskedConnectionString = "Server=.;Password=plain-db-password;"
+                    }
+                }
+            }
+        };
+
+        var projects = CreateProjects();
+        var analyzer = new ConfigurationInventoryAnalyzer();
+
+        var report = analyzer.Analyze(projects, configFiles, CreateInventory(projects));
+
+        Assert.Contains(report.SourceUsages, usage =>
+            usage.Kind == ConfigurationUsageKind.AppSetting &&
+            usage.Key == "ApiBaseUrl" &&
+            usage.Resolution == ConfigurationUsageKeyResolution.MatchedVisibleConfigurationEntry &&
+            usage.ProjectName == "SampleLegacyApp.Web" &&
+            usage.LineNumber > 0 &&
+            usage.Evidence.Contains("ConfigurationManager.AppSettings", StringComparison.Ordinal));
+
+        Assert.Contains(report.SourceUsages, usage =>
+            usage.Kind == ConfigurationUsageKind.ConnectionString &&
+            usage.Key == "MainDatabase" &&
+            usage.Resolution == ConfigurationUsageKeyResolution.MatchedVisibleConfigurationEntry &&
+            !usage.RequiresReview);
+
+        Assert.Contains(report.KeyReconciliations, reconciliation =>
+            reconciliation.Kind == ConfigurationUsageKind.AppSetting &&
+            reconciliation.Key == "ApiBaseUrl" &&
+            reconciliation.StaticSourceUsage == ConfigurationStaticSourceUsage.Found);
+    }
+
+    [Fact]
+    public void Analyze_WhenConfigurationManagerGetMethodUsesLiteralKey_DetectsUsage()
+    {
+        var webConfigPath = WriteFile(
+            "Web.config",
+            """
+            <?xml version="1.0" encoding="utf-8" ?>
+            <configuration>
+              <appSettings>
+                <add key="FeatureXEnabled" value="true" />
+              </appSettings>
+            </configuration>
+            """);
+
+        WriteFile(
+            "FeatureReader.cs",
+            """
+            using System.Configuration;
+
+            namespace SampleLegacyApp.Web;
+
+            public sealed class FeatureReader
+            {
+                public string? FeatureXEnabled => ConfigurationManager.AppSettings.Get("FeatureXEnabled");
+            }
+            """);
+
+        var configFiles = new[]
+        {
+            new DiscoveredConfigFile
+            {
+                FilePath = webConfigPath,
+                AppSettings =
+                {
+                    new DiscoveredAppSetting
+                    {
+                        Key = "FeatureXEnabled",
+                        MaskedValue = "true"
+                    }
+                }
+            }
+        };
+
+        var projects = CreateProjects();
+        var analyzer = new ConfigurationInventoryAnalyzer();
+
+        var report = analyzer.Analyze(projects, configFiles, CreateInventory(projects));
+
+        Assert.Contains(report.SourceUsages, usage =>
+            usage.Kind == ConfigurationUsageKind.AppSetting &&
+            usage.Key == "FeatureXEnabled" &&
+            usage.Resolution == ConfigurationUsageKeyResolution.MatchedVisibleConfigurationEntry &&
+            usage.Evidence.Contains("AppSettings.Get", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Analyze_WhenConfigurationKeyIsDynamic_ClassifiesUsageAsRequiresReviewWithoutInventingKey()
+    {
+        WriteFile(
+            "DynamicSettingsReader.cs",
+            """
+            using System.Configuration;
+
+            namespace SampleLegacyApp.Web;
+
+            public sealed class DynamicSettingsReader
+            {
+                public string? Read(string key) => ConfigurationManager.AppSettings[key];
+            }
+            """);
+
+        var projects = CreateProjects();
+        var analyzer = new ConfigurationInventoryAnalyzer();
+
+        var report = analyzer.Analyze(
+            projects,
+            Array.Empty<DiscoveredConfigFile>(),
+            CreateInventory(projects));
+
+        var usage = Assert.Single(report.SourceUsages);
+
+        Assert.Equal(ConfigurationUsageKind.AppSetting, usage.Kind);
+        Assert.Null(usage.Key);
+        Assert.Equal(ConfigurationUsageKeyResolution.DynamicKeyRequiresReview, usage.Resolution);
+        Assert.True(usage.RequiresReview);
+        Assert.Contains("ConfigurationManager.AppSettings[key]", usage.Evidence);
+    }
+
+    [Fact]
+    public void Analyze_WhenVisibleConfiguredKeyHasNoStaticSourceUsage_UsesCautiousReconciliationWording()
+    {
+        var webConfigPath = WriteFile(
+            "Web.config",
+            """
+            <?xml version="1.0" encoding="utf-8" ?>
+            <configuration>
+              <appSettings>
+                <add key="FeatureXEnabled" value="true" />
+              </appSettings>
+            </configuration>
+            """);
+
+        var configFiles = new[]
+        {
+            new DiscoveredConfigFile
+            {
+                FilePath = webConfigPath,
+                AppSettings =
+                {
+                    new DiscoveredAppSetting
+                    {
+                        Key = "FeatureXEnabled",
+                        MaskedValue = "true"
+                    }
+                }
+            }
+        };
+
+        var analyzer = new ConfigurationInventoryAnalyzer();
+
+        var report = analyzer.Analyze(
+            CreateProjects(),
+            configFiles,
+            ScanFileInventory.Empty);
+
+        var reconciliation = Assert.Single(report.KeyReconciliations);
+
+        Assert.Equal("FeatureXEnabled", reconciliation.Key);
+        Assert.Equal(ConfigurationStaticSourceUsage.NoStaticSourceUsageDetected, reconciliation.StaticSourceUsage);
+        Assert.Contains("does not prove the key is unused", reconciliation.Notes);
+    }
+
+    private static ScanFileInventory CreateInventory(IReadOnlyCollection<DiscoveredProject> projects)
+    {
+        return new ScanFileInventoryBuilder().Build(projects);
+    }
+
     private DiscoveredProject[] CreateProjects()
     {
         return
@@ -995,4 +1214,7 @@ public sealed class ConfigurationInventoryAnalyzerTests : IDisposable
         }
     }
 }
+
+
+
 

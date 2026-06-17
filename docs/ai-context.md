@@ -51,7 +51,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, and configuration API usage, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, and a separate `solution-topology.md` artifact for solution/project relationship orientation.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, configuration API usage, source-code configuration key usage, and cautious reconciliation against visible configured entries, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, and a separate `solution-topology.md` artifact for solution/project relationship orientation.
 
 ## Current implemented capability summary
 
@@ -66,6 +66,7 @@ LegacyLens.NET currently discovers:
 - legacy ASP.NET file artifacts such as WebForms pages, user controls, master pages, ASMX services, handlers, and `Global.asax`
 - ASP.NET MVC and Web API controllers, actions, route attributes, action attributes, startup registration, route configuration, bundle/filter configuration, dependency resolver setup, controller factory setup, model binder/value provider setup, formatter/message handler/filter/CORS configuration
 - `app.config` and `web.config` configuration details
+- configuration-inventory source usage inputs such as literal `ConfigurationManager.AppSettings[...]`, `ConfigurationManager.AppSettings.Get(...)`, and `ConfigurationManager.ConnectionStrings[...]` access patterns where discoverable, plus dynamic configuration key access that requires review
 - evidence-backed modernisation hints
 - prioritised modernisation review areas
 - external dependency inventory inputs such as connection strings, URL-like settings, WCF endpoints, infrastructure packages, private package feed evidence, direct assembly/vendor DLL references, and path/share indicators where discoverable
@@ -150,7 +151,7 @@ The report should include a summary, analysis scope, dependency overview, depend
 
 ## MVP configuration-inventory addition
 
-`configuration-inventory` is now an MVP-scope capability. It should produce `configuration-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed inventory of visible configuration files, configuration values, configuration sections, transforms, and migration-relevant configuration concerns in a .NET codebase.
+`configuration-inventory` is now an MVP-scope capability. It should produce `configuration-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed inventory of visible configuration files, configuration values, configuration sections, transforms, source-code configuration usage, key reconciliation, and migration-relevant configuration concerns in a .NET codebase.
 
 Intended command shape:
 
@@ -158,9 +159,11 @@ Intended command shape:
 legacylens scan <path> --output-dir ./output --artifacts configuration-inventory
 ```
 
-The report should identify visible configuration files, app settings, connection strings, custom sections, environment transforms, WCF configuration, ASP.NET/IIS sections, binding redirects, authentication and authorization settings, logging configuration, Entity Framework configuration, SMTP settings, JSON configuration values, and configuration API usage where discoverable.
+The report should identify visible configuration files, app settings, connection strings, custom sections, environment transforms, WCF configuration, ASP.NET/IIS sections, binding redirects, authentication and authorization settings, logging configuration, Entity Framework configuration, SMTP settings, JSON configuration values, and configuration API usage where discoverable. It should also map statically discoverable source-code configuration usage back to visible configured keys where possible, including literal `ConfigurationManager.AppSettings[...]`, `ConfigurationManager.AppSettings.Get(...)`, `ConfigurationManager.ConnectionStrings[...]`, `ConfigurationManager.ConnectionStrings.Get(...)`, and fully qualified `System.Configuration.ConfigurationManager` variants.
 
 Detailed configuration findings should be grouped by project and source file, then by category within each file. This makes it easier for a .NET developer to find which file contains a setting. Per-file detail tables should use compact columns such as `Name`, `Value`, `Evidence`, and `Requires Review`, rather than repeating `Category` and `Source File` on every row.
+
+Source-code configuration usage should be reported separately from configured values. Literal app setting and connection string access should preserve project name, source path, line number, evidence, key/name, resolution, and review status. Dynamic, computed, interpolated, concatenated, variable-based, or method-call-based key access should be classified as requiring review without inventing a key. Reconciliation should distinguish `Matched visible configuration entry`, `No visible configuration entry found`, `Dynamic key requires review`, and `No static source usage detected`. The phrase `No static source usage detected` must not be treated as proof that a configured key is unused.
 
 Value semantics:
 
@@ -170,7 +173,7 @@ Value semantics:
 - Preserve useful non-secret parts of connection-string-like values while masking embedded credentials.
 - For AMQP/RabbitMQ URI values, prefer output such as `amqp://***:***@rabbitmq-dev:5672/sample` rather than full redaction where possible.
 
-The capability must not claim to run the application, apply transforms, validate credentials, connect to external systems, prove production usage, prove a setting is used or unused, fully evaluate runtime configuration inheritance, resolve deployment-time substitutions, expose full secrets, or guarantee completeness. Sensitive values should be masked or redacted. Use cautious wording such as `Configuration evidence found`, `Possible runtime configuration`, `Requires review`, `May need migration`, `Configured setting`, and `Potential migration concern`.
+The capability must not claim to run the application, apply transforms, validate credentials, connect to external systems, prove production usage, prove a setting is used or unused, fully evaluate runtime configuration inheritance, resolve deployment-time substitutions, expose full secrets, or guarantee completeness. Sensitive values should be masked or redacted. Use cautious wording such as `Configuration evidence found`, `Static source usage found`, `Literal configuration key matched to visible configuration entry`, `No visible configuration entry found`, `No static source usage detected`, `Dynamic key could not be resolved statically`, `Requires review`, `May need migration`, `Configured setting`, and `Potential migration concern`.
 
 Security expectations:
 

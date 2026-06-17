@@ -352,6 +352,79 @@ public sealed class ConfigurationInventoryMarkdownReportWriterTests : IDisposabl
         Assert.DoesNotContain("plain-db-password", markdown);
     }
 
+
+    [Fact]
+    public void Write_WhenReportHasSourceUsages_WritesSourceUsageAndReconciliationSections()
+    {
+        var outputPath = Path.Combine(_tempDirectory, "configuration-inventory.md");
+
+        var report = new ConfigurationInventoryReport(
+            [
+                new ConfigurationInventoryFinding(
+                    ConfigurationInventoryCategory.AppSetting,
+                    "ApiBaseUrl",
+                    ConfigurationInventorySourceType.Configuration,
+                    @"C:\Repo\SampleLegacyApp.Web\Web.config",
+                    "SampleLegacyApp.Web",
+                    "App setting configured.",
+                    "https://api.example.test",
+                    ConfigurationInventoryConfidence.High,
+                    RequiresReview: true,
+                    MigrationConsideration: "Review app settings before migration.")
+            ],
+            [
+                new ConfigurationUsageFinding(
+                    ConfigurationUsageKind.AppSetting,
+                    "ApiBaseUrl",
+                    ConfigurationUsageKeyResolution.MatchedVisibleConfigurationEntry,
+                    "SampleLegacyApp.Web",
+                    @"C:\Repo\SampleLegacyApp.Web\SettingsReader.cs",
+                    18,
+                    @"ConfigurationManager.AppSettings[""ApiBaseUrl""]",
+                    RequiresReview: false),
+
+                new ConfigurationUsageFinding(
+                    ConfigurationUsageKind.AppSetting,
+                    null,
+                    ConfigurationUsageKeyResolution.DynamicKeyRequiresReview,
+                    "SampleLegacyApp.Web",
+                    @"C:\Repo\SampleLegacyApp.Web\SettingsReader.cs",
+                    25,
+                    "ConfigurationManager.AppSettings[key]",
+                    RequiresReview: true)
+            ],
+            [
+                new ConfigurationKeyReconciliation(
+                    ConfigurationUsageKind.AppSetting,
+                    "ApiBaseUrl",
+                    @"C:\Repo\SampleLegacyApp.Web\Web.config",
+                    ConfigurationStaticSourceUsage.Found,
+                    "Literal source usage matched."),
+
+                new ConfigurationKeyReconciliation(
+                    ConfigurationUsageKind.AppSetting,
+                    "FeatureXEnabled",
+                    @"C:\Repo\SampleLegacyApp.Web\Web.config",
+                    ConfigurationStaticSourceUsage.NoStaticSourceUsageDetected,
+                    "This does not prove the key is unused.")
+            ]);
+
+        var writer = new ConfigurationInventoryMarkdownReportWriter();
+
+        writer.Write(outputPath, report);
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains("## Source Code Configuration Usage", markdown);
+        Assert.Contains("## Configuration Key Reconciliation", markdown);
+        Assert.Contains("| App setting usages | 2 |", markdown);
+        Assert.Contains("| Matched visible keys | 1 |", markdown);
+        Assert.Contains("| Dynamic usages requiring review | 1 |", markdown);
+        Assert.Contains(@"| App setting | ApiBaseUrl | Matched visible configuration entry | SampleLegacyApp.Web | `SettingsReader.cs` | 18 | `ConfigurationManager.AppSettings[""ApiBaseUrl""]` | No |", markdown);
+        Assert.Contains("| App setting | Dynamic / unknown | Dynamic key requires review | SampleLegacyApp.Web | `SettingsReader.cs` | 25 | `ConfigurationManager.AppSettings[key]` | Yes |", markdown);
+        Assert.Contains("| App setting | FeatureXEnabled | `Web.config` | No static source usage detected | This does not prove the key is unused. |", markdown);
+    }
+
     private static ConfigurationInventoryReport CreateReport()
     {
         return new ConfigurationInventoryReport(
@@ -445,3 +518,6 @@ public sealed class ConfigurationInventoryMarkdownReportWriterTests : IDisposabl
         }
     }
 }
+
+
+

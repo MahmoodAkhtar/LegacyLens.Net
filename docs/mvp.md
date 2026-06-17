@@ -158,7 +158,10 @@ Current MVP functionality includes implemented capabilities and newly required M
 - static configuration-inventory analysis for understanding the visible configuration surface of a legacy .NET codebase
 - configuration-inventory report generation as `configuration-inventory.md`
 - configuration-inventory discovery of visible configuration files such as `App.config`, `Web.config`, `*.config`, `appsettings.json`, `appsettings.*.json`, `.settings` files, and relevant build/package configuration files where useful
-- configuration-inventory reporting for app settings, connection strings, custom configuration sections, environment transforms, WCF configuration, ASP.NET/IIS configuration, binding redirects, authentication and authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP/mail settings, and configuration API usage where discoverable
+- configuration-inventory reporting for app settings, connection strings, custom configuration sections, environment transforms, WCF configuration, ASP.NET/IIS configuration, binding redirects, authentication and authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP/mail settings, configuration API usage where discoverable, and source-code configuration usage mapped back to visible configured keys where possible
+- configuration-inventory detection of literal `ConfigurationManager.AppSettings[...]`, `ConfigurationManager.AppSettings.Get(...)`, `ConfigurationManager.ConnectionStrings[...]`, and similar source-code configuration access patterns where possible
+- configuration-inventory classification of dynamic, computed, interpolated, concatenated, variable-based, or method-call-based configuration key access as requiring review
+- configuration-inventory reconciliation of source-used keys against visible XML and JSON configuration entries without claiming runtime completeness or proving unused-looking keys are genuinely unused
 - configuration-inventory sensitive value masking for passwords, API keys, tokens, client secrets, SAS tokens, storage account keys, private feed credentials, and connection string secrets
 - configuration-inventory suggested files to review first based on concentration of configuration evidence and migration relevance
 - configuration-inventory migration considerations and suggested team questions for upgrade, deployment, onboarding, and environment setup
@@ -205,7 +208,7 @@ Current MVP functionality includes implemented capabilities and newly required M
 
 ### Configuration Inventory Artifact
 
-The `configuration-inventory` capability is an MVP-scope addition. It should produce `configuration-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed inventory for understanding visible configuration files, configuration values, configuration sections, settings, transforms, and migration-relevant configuration concerns before upgrade, deployment, onboarding, or refactoring work starts.
+The `configuration-inventory` capability is an MVP-scope addition. It should produce `configuration-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed inventory for understanding visible configuration files, configuration values, configuration sections, settings, transforms, source-code configuration usage, key reconciliation, and migration-relevant configuration concerns before upgrade, deployment, onboarding, or refactoring work starts.
 
 MVP scope:
 
@@ -217,12 +220,16 @@ MVP scope:
 - Report connection strings by name, source file, provider where available, and safe value where useful, without dumping full raw secrets.
 - Flatten JSON configuration files into setting-path rows where feasible, for example `ConnectionStrings:RabbitMQ` and `RabbitMQ:HostName`, with sensitive values masked.
 - Report custom sections, WCF `system.serviceModel` configuration, ASP.NET/IIS `system.web` and `system.webServer` sections, binding redirects, authentication and authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP/mail settings, and configuration API usage where feasible.
+- Detect literal `ConfigurationManager.AppSettings[...]`, `ConfigurationManager.AppSettings.Get(...)`, `ConfigurationManager.ConnectionStrings[...]`, `ConfigurationManager.ConnectionStrings.Get(...)`, and similar fully qualified source-code access patterns where possible.
+- Record source-code configuration usage with project name, source file, line number, concise evidence, usage kind, literal key where available, resolution, and review status.
+- Classify dynamic, computed, interpolated, concatenated, variable-based, or method-call-based configuration key access as requiring review without inventing a key.
+- Reconcile literal source-used keys against visible configured entries, distinguishing `Matched visible configuration entry`, `No visible configuration entry found`, `Dynamic key requires review`, and `No static source usage detected`.
 - Group detailed report output by project and source file, then by category within each file, so developers can quickly see which setting is in which file.
 - Use `Value` as the report column for discovered values with sensitive parts masked where needed.
 - Use `N/A`, not `Unknown`, for structural findings that do not have a scalar value.
 - Mask or redact sensitive values such as passwords, API keys, tokens, client secrets, SAS tokens, storage account keys, certificate/private-key material, private feed credentials, URI credentials, and connection string secrets.
-- Include summary counts, analysis scope, configuration overview, configuration values by source file, suggested files to review first, migration considerations, suggested questions to ask the team, and notes/limitations.
-- Add unit tests for analyzer rules, project attribution, JSON setting flattening where implemented, masking/redaction, CLI artifact selection, and Markdown output.
+- Include summary counts, analysis scope, configuration overview, configuration values by source file, source-code configuration usage, configuration key reconciliation, suggested files to review first, migration considerations, suggested questions to ask the team, and notes/limitations.
+- Add unit tests for analyzer rules, source-code usage detection, dynamic key classification, source-key reconciliation, cautious no-static-usage wording, project attribution, JSON setting flattening where implemented, masking/redaction, CLI artifact selection, and Markdown output.
 
 Out of scope for MVP:
 
@@ -232,7 +239,7 @@ Out of scope for MVP:
 - Validating credentials, certificates, connection strings, or tokens.
 - Connecting to configured services or external systems.
 - Proving production runtime behaviour.
-- Proving a setting is used or unused.
+- Proving a setting is used or unused. Static source usage and no-static-usage findings are review signals only.
 - Fully evaluating runtime configuration inheritance.
 - Resolving deployment-time substitutions.
 - Guaranteeing completeness.
@@ -273,7 +280,7 @@ The MVP should be considered complete when the tool can produce a useful static 
 The MVP exit criteria are:
 
 - The CLI can scan the sample legacy solution successfully.
-- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `data-access-inventory.md`, and `edmx-analysis.md` artifacts.
+- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, and `edmx-analysis.md` artifacts.
 - The report identifies the main modernisation review areas clearly enough for a developer to decide where to investigate first.
 - The package compatibility review shows package name, version where available, project target framework, package target framework where available, source format, source path, and possible compatibility concern without claiming to perform full NuGet compatibility resolution.
 - Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.
@@ -283,6 +290,7 @@ The MVP exit criteria are:
 - The upgrade-blockers report includes a blocker overview, grouped blocker details, impact labels, evidence, why each blocker matters, decisions required, suggested review order, and clear static-analysis limitations.
 - The data-access inventory includes an analysis scope, data access overview, projects with data access indicators, connection string/provider information with masked sensitive values, ORM and data access technology evidence, suggested files to review first, migration considerations, suggested team questions, and clear static-analysis limitations.
 - The external-dependencies report includes an analysis scope, dependency overview, grouped dependency sections, source/evidence details, confirmation flags, suggested team questions, sensitive value masking, and clear static-analysis limitations.
+- The configuration-inventory report includes an analysis scope, configuration overview, grouped configuration values by source file, source-code configuration usage, configuration key reconciliation, dynamic key review signals, cautious no-static-usage wording, sensitive value masking, and clear static-analysis limitations.
 - The edmx-analysis report includes summary counts, discovered EDMX files, conceptual model details, storage model details, associations, function imports and store functions, mapping details, companion generated files, upgrade concerns, and clear static-analysis limitations.
 - The README reflects the actual current report output and does not describe speculative MVP behaviour as already implemented.
 

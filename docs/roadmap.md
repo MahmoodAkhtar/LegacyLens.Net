@@ -387,9 +387,13 @@ MVP scope:
 - Use existing static discovery evidence and shared file inventory where possible, including discovered projects, configuration files, and source files.
 - Discover visible configuration files such as `App.config`, `Web.config`, `*.config`, environment-specific transforms, `appsettings.json`, `appsettings.*.json`, `.settings` files, and useful build/package configuration files such as `NuGet.config` where relevant.
 - Identify app settings, connection strings, custom configuration sections, WCF configuration, ASP.NET/IIS configuration, binding redirects, authentication and authorization settings, logging/diagnostics configuration, Entity Framework configuration, SMTP/mail settings, and configuration API usage where feasible.
+- Map statically discoverable source-code configuration usage back to visible configured keys where possible, including literal `ConfigurationManager.AppSettings[...]`, `ConfigurationManager.AppSettings.Get(...)`, `ConfigurationManager.ConnectionStrings[...]`, `ConfigurationManager.ConnectionStrings.Get(...)`, and fully qualified `System.Configuration.ConfigurationManager` variants.
+- Record source file and line evidence for literal source-code configuration usage.
+- Classify dynamic, computed, interpolated, concatenated, variable-based, or method-call-based key access as requiring review without inventing a key.
+- Reconcile source-used keys against visible XML and JSON configuration entries, and report configured keys with no detected source usage as `No static source usage detected` rather than `unused`.
 - Mask or redact sensitive values before Markdown output.
-- Include analysis scope, configuration overview, configuration files, app settings, connection strings, configuration sections, environment transforms, binding redirects, WCF configuration, ASP.NET configuration, authentication and authorization configuration, logging and diagnostics configuration, Entity Framework configuration, SMTP/mail configuration, configuration API usage, suggested files to review first, migration considerations, suggested questions to ask the team, and notes/limitations.
-- Add unit tests for analyzer rules, masking/redaction, CLI artifact selection, and Markdown output.
+- Include analysis scope, configuration overview, configuration files, app settings, connection strings, configuration sections, environment transforms, binding redirects, WCF configuration, ASP.NET configuration, authentication and authorization configuration, logging and diagnostics configuration, Entity Framework configuration, SMTP/mail configuration, configuration API usage, source-code configuration usage, configuration key reconciliation, suggested files to review first, migration considerations, suggested questions to ask the team, and notes/limitations.
+- Add unit tests for analyzer rules, source-code usage detection, dynamic key classification, source-key reconciliation, cautious no-static-usage wording, masking/redaction, CLI artifact selection, and Markdown output.
 
 Out of scope for MVP:
 
@@ -400,12 +404,13 @@ Out of scope for MVP:
 - Credential, certificate, token, or connection string validation.
 - Connecting to configured services or external systems.
 - Production environment mapping.
-- Proving setting usage or proving that a setting is unused.
+- Proving setting usage or proving that a setting is unused; source usage and no-static-usage findings are static review signals only.
 - Dedicated secrets scanning beyond masking values that are included in this report.
 - Guaranteed completeness.
 
 Post-MVP ideas:
 
+- Wider configuration API and options-binding pattern coverage beyond the MVP literal `ConfigurationManager` access patterns, such as deeper `IConfiguration` binding, custom configuration providers, generated accessors, and semantic alias resolution.
 - Deeper transform comparison that shows changed keys without claiming runtime application.
 - Dedicated secrets scanner with severity and remediation guidance.
 - Hosting/deployment configuration mapping across CI/CD files, infrastructure files, and cloud hosting settings.

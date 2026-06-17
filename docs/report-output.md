@@ -712,9 +712,9 @@ The MVP scope includes a separate configuration-inventory Markdown artifact:
 output/configuration-inventory.md
 ```
 
-The configuration inventory report should be static, evidence-backed, and security-conscious. It should help a developer understand visible configuration files, configuration values, configuration sections, transforms, and migration-relevant configuration concerns. It should not claim that LegacyLens.NET ran the application, applied transforms, validated credentials, contacted external systems, proved production usage, proved that a setting is used or unused, fully evaluated runtime configuration inheritance, resolved deployment-time substitutions, exposed secrets, or produced a complete runtime configuration map.
+The configuration inventory report should be static, evidence-backed, and security-conscious. It should help a developer understand visible configuration files, configuration values, configuration sections, transforms, migration-relevant configuration concerns, and statically discoverable source-code configuration usage. It should map literal source-code usages such as `ConfigurationManager.AppSettings[...]`, `ConfigurationManager.AppSettings.Get(...)`, and `ConfigurationManager.ConnectionStrings[...]` back to visible configured keys where possible, classify dynamic key usage as requiring review, and reconcile source-used keys against visible configuration entries. It should not claim that LegacyLens.NET ran the application, applied transforms, validated credentials, contacted external systems, proved production usage, proved that a setting is used or unused, fully evaluated runtime configuration inheritance, resolved deployment-time substitutions, exposed secrets, or produced a complete runtime configuration map.
 
-The detailed findings should be optimised for a .NET developer trying to answer: "which file contains this setting and what value was found?" To make that easy to scan, the report should group detailed configuration findings by project and source file, then by configuration category inside each file. The detailed per-file tables should avoid repeating `Category` and `Source File` as row columns when those values are already shown by headings.
+The detailed findings should be optimised for a .NET developer trying to answer: "which file contains this setting, what value was found, and where is the key referenced in source code?" To make that easy to scan, the report should group detailed configuration findings by project and source file, then by configuration category inside each file. The detailed per-file tables should avoid repeating `Category` and `Source File` as row columns when those values are already shown by headings. Source-code usage and reconciliation should be reported in separate sections so configured values remain easy to scan.
 
 Value-column semantics:
 
@@ -731,7 +731,7 @@ Representative structure:
 
 ## Summary
 
-This report is based on static source and configuration discovery. It identifies visible configuration files, settings, sections, transforms, and configuration API usage that may need review before upgrade, deployment, onboarding, or migration work begins. It does not prove runtime usage or production behaviour.
+This report is based on static source and configuration discovery. It identifies visible configuration files, settings, sections, transforms, and configuration API usage that may need review before upgrade, deployment, onboarding, or migration work begins. It also maps statically discoverable source-code configuration usage back to visible configured keys where possible. It does not prove runtime usage, production behaviour, or that keys without static usage are unused.
 
 ## Analysis Scope
 
@@ -758,6 +758,34 @@ This report is based on static source and configuration discovery. It identifies
 | WCF configuration | 1 |
 | ASP.NET / IIS configuration | 2 |
 | Binding redirects | 5 |
+
+## Source Code Configuration Usage
+
+This section maps statically discoverable source-code configuration access back to visible configured keys where possible. It does not prove runtime usage or prove that keys without static usage are unused.
+
+| Usage Type | Count |
+|---|---:|
+| App setting usages | 4 |
+| Connection string usages | 2 |
+| Matched visible keys | 3 |
+| Source-used keys without visible config entry | 1 |
+| Dynamic usages requiring review | 2 |
+| Configured keys with no static source usage detected | 5 |
+
+| Kind | Key | Resolution | Project | Source File | Line | Evidence | Requires Review |
+|---|---|---|---|---|---:|---|---|
+| App setting | ApiBaseUrl | Matched visible configuration entry | SampleLegacyApp.Web | `Services/ApiClient.cs` | 18 | `ConfigurationManager.AppSettings["ApiBaseUrl"]` | No |
+| Connection string | MainDatabase | Matched visible configuration entry | SampleLegacyApp.Data | `CustomerRepository.cs` | 11 | `ConfigurationManager.ConnectionStrings["MainDatabase"]` | No |
+| App setting | RabbitMQBus-DEV | No visible configuration entry found | SampleLegacyApp.Services | `Messaging/RabbitBus.cs` | 25 | `ConfigurationManager.AppSettings["RabbitMQBus-DEV"]` | Yes |
+| App setting | Dynamic / unknown | Dynamic key requires review | SampleLegacyApp.Web | `Config/ConfigReader.cs` | 31 | `ConfigurationManager.AppSettings[key]` | Yes |
+
+## Configuration Key Reconciliation
+
+| Category | Key | Config Source | Static Source Usage | Notes |
+|---|---|---|---|---|
+| App setting | ApiBaseUrl | `Web.config` | Found | Literal source usage matched. |
+| Connection string | MainDatabase | `Web.config` | Found | Literal source usage matched. |
+| App setting | FeatureXEnabled | `Web.config` | No static source usage detected | This does not prove the key is unused. It may be used dynamically, by reflection, by config binding, by external tooling, or at runtime outside statically detected patterns. |
 
 ## Configuration Values by Source File
 
@@ -911,6 +939,7 @@ This report is based on static source and configuration discovery. It identifies
 - LegacyLens.NET did not validate credentials, connection strings, certificates, or tokens.
 - LegacyLens.NET did not connect to configured services or external systems.
 - LegacyLens.NET did not prove that a setting is used or unused at runtime.
+- `No static source usage detected` means no supported static access pattern was found; it does not mean the configured key is unused.
 - Sensitive values should remain masked or redacted before reports are shared.
 ```
 

@@ -30,6 +30,8 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
         WriteSummary(markdown, report);
         WriteAnalysisScope(markdown);
         WriteOverview(markdown, report);
+        WriteSourceCodeConfigurationUsage(markdown, report);
+        WriteConfigurationKeyReconciliation(markdown, report);
         WriteConfigurationValuesBySourceFile(markdown, report);
         WriteSuggestedFilesToReviewFirst(markdown, report);
         WriteMigrationConsiderations(markdown, report);
@@ -44,6 +46,7 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
         markdown.AppendLine("## Summary");
         markdown.AppendLine();
         markdown.AppendLine("This report is based on static source and configuration discovery. It identifies visible configuration files, settings, sections, transforms, and configuration API usage. A finding means “requires review”, not “verified runtime behaviour”.");
+        markdown.AppendLine("It also maps statically discoverable source-code configuration usage back to visible configured keys where possible. It does not prove runtime usage, production behaviour, or that keys without static usage are unused.");
         markdown.AppendLine();
 
         markdown.AppendLine("| Item | Value |");
@@ -52,6 +55,70 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
         markdown.AppendLine($"| Configuration files | {report.ConfigurationFileCount} |");
         markdown.AppendLine($"| Categories with findings | {report.CategoryCount} |");
         markdown.AppendLine($"| Potential migration concerns | {report.PotentialMigrationConcernCount} |");
+        markdown.AppendLine();
+    }
+
+    private static void WriteSourceCodeConfigurationUsage(
+        StringBuilder markdown,
+        ConfigurationInventoryReport report)
+    {
+        markdown.AppendLine("## Source Code Configuration Usage");
+        markdown.AppendLine();
+        markdown.AppendLine("This section maps statically discoverable source-code configuration access back to visible configured keys where possible. It does not prove runtime usage or prove that keys without static usage are unused.");
+        markdown.AppendLine();
+
+        markdown.AppendLine("| Usage Type | Count |");
+        markdown.AppendLine("|---|---:|");
+        markdown.AppendLine($"| App setting usages | {report.SourceUsages.Count(usage => usage.Kind == ConfigurationUsageKind.AppSetting)} |");
+        markdown.AppendLine($"| Connection string usages | {report.SourceUsages.Count(usage => usage.Kind == ConfigurationUsageKind.ConnectionString)} |");
+        markdown.AppendLine($"| Matched visible keys | {report.MatchedSourceUsageCount} |");
+        markdown.AppendLine($"| Source-used keys without visible config entry | {report.SourceUsageWithoutVisibleConfigurationCount} |");
+        markdown.AppendLine($"| Dynamic usages requiring review | {report.DynamicSourceUsageCount} |");
+        markdown.AppendLine($"| Configured keys with no static source usage detected | {report.ConfiguredKeyWithoutStaticSourceUsageCount} |");
+        markdown.AppendLine();
+
+        if (report.SourceUsages.Count == 0)
+        {
+            markdown.AppendLine("No statically discoverable source-code configuration usages were identified by the current rules.");
+            markdown.AppendLine();
+            return;
+        }
+
+        markdown.AppendLine("| Kind | Key | Resolution | Project | Source File | Line | Evidence | Requires Review |");
+        markdown.AppendLine("|---|---|---|---|---|---:|---|---|");
+
+        foreach (var usage in report.SourceUsages)
+        {
+            markdown.AppendLine(
+                $"| {Escape(GetUsageKindDisplayName(usage.Kind))} | {Escape(FormatUsageKey(usage.Key))} | {Escape(GetUsageResolutionDisplayName(usage.Resolution))} | {Escape(FormatProjectName(usage.ProjectName))} | `{Escape(GetSourceFileDisplayName(usage.SourcePath))}` | {usage.LineNumber} | `{Escape(usage.Evidence)}` | {FormatBoolean(usage.RequiresReview)} |");
+        }
+
+        markdown.AppendLine();
+    }
+
+    private static void WriteConfigurationKeyReconciliation(
+        StringBuilder markdown,
+        ConfigurationInventoryReport report)
+    {
+        markdown.AppendLine("## Configuration Key Reconciliation");
+        markdown.AppendLine();
+
+        if (report.KeyReconciliations.Count == 0)
+        {
+            markdown.AppendLine("No configured keys were available for static source-usage reconciliation.");
+            markdown.AppendLine();
+            return;
+        }
+
+        markdown.AppendLine("| Category | Key | Config Source | Static Source Usage | Notes |");
+        markdown.AppendLine("|---|---|---|---|---|");
+
+        foreach (var reconciliation in report.KeyReconciliations)
+        {
+            markdown.AppendLine(
+                $"| {Escape(GetUsageKindDisplayName(reconciliation.Kind))} | {Escape(reconciliation.Key)} | `{Escape(GetSourceFileDisplayName(reconciliation.ConfigSourcePath))}` | {Escape(GetStaticSourceUsageDisplayName(reconciliation.StaticSourceUsage))} | {Escape(reconciliation.Notes)} |");
+        }
+
         markdown.AppendLine();
     }
 
@@ -281,6 +348,37 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
         };
     }
 
+    private static string GetUsageKindDisplayName(ConfigurationUsageKind kind)
+    {
+        return kind switch
+        {
+            ConfigurationUsageKind.AppSetting => "App setting",
+            ConfigurationUsageKind.ConnectionString => "Connection string",
+            _ => kind.ToString()
+        };
+    }
+
+    private static string GetUsageResolutionDisplayName(ConfigurationUsageKeyResolution resolution)
+    {
+        return resolution switch
+        {
+            ConfigurationUsageKeyResolution.MatchedVisibleConfigurationEntry => "Matched visible configuration entry",
+            ConfigurationUsageKeyResolution.NoVisibleConfigurationEntryFound => "No visible configuration entry found",
+            ConfigurationUsageKeyResolution.DynamicKeyRequiresReview => "Dynamic key requires review",
+            _ => resolution.ToString()
+        };
+    }
+
+    private static string GetStaticSourceUsageDisplayName(ConfigurationStaticSourceUsage sourceUsage)
+    {
+        return sourceUsage switch
+        {
+            ConfigurationStaticSourceUsage.Found => "Found",
+            ConfigurationStaticSourceUsage.NoStaticSourceUsageDetected => "No static source usage detected",
+            _ => sourceUsage.ToString()
+        };
+    }
+
     private static int GetCategoryPriority(ConfigurationInventoryCategory category)
     {
         return category switch
@@ -319,6 +417,13 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
             : value;
     }
 
+    private static string FormatUsageKey(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? "Dynamic / unknown"
+            : value;
+    }
+
     private static string GetSourceFileDisplayName(string sourcePath)
     {
         if (string.IsNullOrWhiteSpace(sourcePath))
@@ -346,3 +451,6 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
         return value.Replace("|", "\\|", StringComparison.Ordinal);
     }
 }
+
+
+
