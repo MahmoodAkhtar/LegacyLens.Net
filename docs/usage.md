@@ -53,7 +53,7 @@ legacylens scan C:\Repos\LegacyApp --format markdown
 legacylens scan C:\Repos\LegacyApp --quiet
 legacylens scan C:\Repos\LegacyApp --verbose
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology
-legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology,class-dependencies,data-access
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology,class-dependencies,interface-inventory,data-access
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all --upgrade-target net8.0
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-readiness --upgrade-target net8.0
@@ -65,6 +65,7 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts configura
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts data-access
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts edmx-analysis
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-dependencies
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts interface-inventory
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology
 legacylens --help
 legacylens --version
@@ -150,6 +151,7 @@ Supported artifact names are:
 - `data-access`
 - `edmx-analysis`
 - `class-dependencies`
+- `interface-inventory`
 - `solution-topology`
 - `all`
 
@@ -157,7 +159,7 @@ Artifact matching is case-insensitive. Comma-separated values may include spaces
 
 ```bash
 legacylens scan <path> --artifacts solution-topology,class-dependencies
-legacylens scan <path> --artifacts solution-topology, class-dependencies, data-access
+legacylens scan <path> --artifacts solution-topology, class-dependencies, interface-inventory, data-access
 ```
 
 Duplicate artifact names are ignored so the same report is not generated twice.
@@ -308,6 +310,24 @@ The report should remain static and evidence-backed. It should discover `.edmx` 
 The report should not claim to connect to a database, validate the EDMX against a live database, generate EF Core models, convert EDMX to EF Core, run NuGet restore, build the solution, guarantee migration compatibility, fully understand custom T4 templates, or claim that all EF Core equivalents are direct one-to-one replacements.
 
 
+
+### Interface Inventory Artifact
+
+The MVP scope now includes an optional `interface-inventory` artifact that should produce:
+
+```text
+<output-dir>/interface-inventory.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts interface-inventory
+```
+
+The report should remain static and evidence-backed. It should analyse `.cs` source files and visible configuration/XML files where useful to discover source-defined interfaces, implementations, consumers, DI/IoC registration evidence, and dynamic or configuration-driven wiring that requires review. It should help a developer answer which abstractions already exist and where new functionality or replacement behaviour may need to implement, reuse, or review an existing interface.
+
+The report should not claim to build the solution, restore packages, execute container bootstrap code, load assemblies, apply transforms, resolve runtime dependency injection, prove runtime usage, prove an interface is unused, prove an interface is registered, or guarantee completeness. Use cautious wording such as `static source evidence`, `registration evidence found`, `configuration-driven wiring may exist`, `requires review`, `possible extension point`, and `no static source usage detected`.
 
 ### Solution Topology Artifact
 

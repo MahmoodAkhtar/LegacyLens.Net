@@ -131,6 +131,7 @@ Current MVP functionality includes implemented capabilities and newly required M
 - optional `--artifacts data-access` command support for producing the data-access artifact
 - optional `--artifacts edmx-analysis` command support for producing the edmx-analysis artifact
 - optional `--artifacts class-dependencies` command support for producing the class-dependencies artifact
+- optional `--artifacts interface-inventory` command support for producing the interface-inventory artifact
 - optional `--artifacts solution-topology` command support for producing the solution-topology artifact
 - optional `--artifacts <name1,name2>` command support for generating a selected comma-separated subset of optional artifacts
 - optional `--artifacts all` command support for generating every supported optional artifact
@@ -151,6 +152,11 @@ Current MVP functionality includes implemented capabilities and newly required M
 - class-dependencies focused Mermaid diagram generation with dependency-kind edge labels
 - class-dependencies evidence reporting with project name, source path, line number, source type, target type, dependency kind, and concise source evidence where possible
 - class-dependencies notes and limitations explaining static no-build analysis and that findings mean “requires review”, not “proven runtime usage”
+- static interface-inventory analysis for identifying available abstractions and likely extension points
+- interface-inventory report generation as `interface-inventory.md`
+- interface-inventory discovery of interface definitions, implementations, static consumers, generic and collection-based interface usage, inherited interfaces, endpoint delegate parameters, service-locator usage, DI/IoC registration evidence, and visible XML/configuration-driven wiring where discoverable
+- interface-inventory reporting for multiple implementations, no static implementation found, no static consumer found, registration evidence found, dynamic wiring that may exist, configuration-driven wiring that may exist, possible extension points, likely roles, and requires-review findings
+- interface-inventory notes and limitations explaining static no-build analysis and that findings do not prove runtime usage, active registration, unused interfaces, or completeness
 - static solution-topology analysis for onboarding and codebase orientation
 - solution-topology report generation as `solution-topology.md`
 - solution-topology reporting of solution membership, project relationships, dependency direction, entry-point indicators, configuration concentration, and suggested review boundaries where static evidence exists
@@ -247,6 +253,35 @@ Out of scope for MVP:
 
 ### Class Dependencies Artifact
 
+The `interface-inventory` capability is an MVP-scope addition. It should produce `interface-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed interface and extension-point report for understanding available abstractions before implementing new functionality, replacing behaviour, refactoring, testing, or modernising a .NET codebase.
+
+MVP scope:
+
+- Add an `interface-inventory` capability that can produce `interface-inventory.md`.
+- Use discovered projects and the shared file inventory to locate `.cs` source files and associate findings with project names where possible.
+- Discover C# interface declarations, including name, full name where derivable, namespace, project name, source path, line number, member counts, generic signature or arity, inherited interfaces, marker attributes such as `[ServiceContract]`, visibility where easy to identify, and concise evidence.
+- Discover classes, records, and structs implementing interfaces through base lists, including generic interface evidence where useful.
+- Discover consumers through constructor parameters, fields, properties, method parameters, return types, local variables, generic type arguments, collection-based interface consumption, inherited interfaces, endpoint delegate parameters, and service-locator or resolver calls where type arguments are visible.
+- Discover registration evidence for Microsoft DI, Castle Windsor, Autofac, Ninject, Unity, StructureMap, Simple Injector, LightInject, Lamar, Common Service Locator, ASP.NET MVC/Web API dependency resolver setup, and factory registrations where simple static evidence exists.
+- Discover visible XML/configuration-driven IoC evidence for Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory sections where feasible.
+- Preserve evidence including project name, source/config path, line number where available, interface name, implementation name where extractable, registration kind, lifetime where extractable, consumer kind, concise snippet, and requires-review flag.
+- Highlight interfaces with multiple implementations, no static implementation found, no static consumer found, dynamic wiring that may exist, configuration-driven wiring that may exist, likely roles, and possible extension points.
+- Mark factory-based, reflection-based, container-scanning, XML/configuration-driven, alias-based, parent/child-object, profile-based, service-locator, and otherwise dynamic evidence as requiring review.
+- Add unit tests for interface discovery, implementation mapping, consumer mapping, registration evidence, XML/configuration evidence, dynamic wiring classification, CLI artifact selection, and Markdown output.
+
+Out of scope for MVP:
+
+- Building the solution.
+- Running the application or tests.
+- NuGet restore.
+- Full semantic compilation analysis.
+- Executing container bootstrap code.
+- Loading assemblies.
+- Applying transforms.
+- Resolving runtime dependency injection or proving the runtime object graph.
+- Reflection, dynamic loading, runtime factory behaviour, generated code behaviour, or conditional runtime behaviour analysis.
+- Proving that an interface is used, unused, active, registered, safe to implement, or complete.
+
 The `class-dependencies` capability is an MVP-scope addition. It should produce `class-dependencies.md` as a separate Markdown artifact. It is a static, evidence-backed source-level dependency report for understanding class and type coupling before refactoring, testing, or modernising a .NET codebase.
 
 MVP scope:
@@ -280,7 +315,7 @@ The MVP should be considered complete when the tool can produce a useful static 
 The MVP exit criteria are:
 
 - The CLI can scan the sample legacy solution successfully.
-- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, and `edmx-analysis.md` artifacts.
+- The generated Markdown report includes solution, project, target framework, package reference, package compatibility review, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, and modernisation review summary sections. The MVP can also produce separate `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, `class-dependencies.md`, `interface-inventory.md`, and `solution-topology.md` artifacts.
 - The report identifies the main modernisation review areas clearly enough for a developer to decide where to investigate first.
 - The package compatibility review shows package name, version where available, project target framework, package target framework where available, source format, source path, and possible compatibility concern without claiming to perform full NuGet compatibility resolution.
 - Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.

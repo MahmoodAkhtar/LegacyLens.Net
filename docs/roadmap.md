@@ -503,6 +503,40 @@ Post-MVP ideas:
 ---
 
 
+### Step 5g: Interface inventory report for abstractions and extension points
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add an `interface-inventory` capability that can produce `interface-inventory.md`.
+- Analyse C# source files and visible configuration/XML files under discovered projects without requiring MSBuild compilation or NuGet restore.
+- Discover interface definitions with name, full name where derivable, namespace, project, source path, line number, member counts, generic signature, inherited interfaces, marker attributes such as `[ServiceContract]`, visibility where easy to identify, and concise evidence.
+- Discover classes, records, and structs implementing interfaces, including generic interface evidence where useful.
+- Discover static consumers through constructor parameters, fields, properties, method parameters, return types, local variables, generic type arguments, collection-based interface usage, inherited interfaces, endpoint delegate parameters, and service-locator/resolver calls where type arguments are visible.
+- Discover registration evidence for Microsoft DI, Castle Windsor, Autofac, Ninject, Unity, StructureMap, Simple Injector, LightInject, Lamar, Common Service Locator, ASP.NET MVC/Web API dependency resolver setup, and factory registrations where static syntax evidence is available.
+- Discover visible XML/configuration-driven IoC evidence for Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory sections where feasible.
+- Preserve evidence including project name, source/configuration path, line number where available, interface, implementation where extractable, consumer kind, registration kind, lifetime where extractable, concise snippet, and requires-review flag.
+- Highlight interfaces with multiple implementations, no static implementation found, no static consumer found, dynamic wiring that may exist, configuration-driven wiring that may exist, likely roles, possible extension points, and requires-review evidence.
+- Use cautious report wording such as `Static source evidence`, `Static configuration evidence`, `No static implementation found`, `No static consumer found`, `Registration evidence found`, `Dynamic wiring may exist`, `Configuration-driven wiring may exist`, `Requires review`, `Possible extension point`, `Likely role`, `Static analysis finding`, and `No static source usage detected`.
+- Add unit tests for analyzer rules, registration extraction, XML/configuration evidence, dynamic review classification, CLI artifact selection, and Markdown output.
+
+Out of scope for MVP:
+
+- Building the solution.
+- Running the application or tests.
+- NuGet restore.
+- Full semantic compilation analysis.
+- Executing container bootstrap code.
+- Loading assemblies.
+- Applying transforms.
+- Resolving a runtime object graph or runtime dependency injection graph.
+- Proving runtime usage, active runtime registration, absence of usage, interface safety, or completeness.
+
+Implementation should use the MVP artifact selection model rather than one-off command handling.
+
+---
+
 ### Step 5f: Class dependencies report for source-level coupling analysis
 
 Status: MVP scope addition

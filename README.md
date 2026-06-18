@@ -25,6 +25,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope data-access artifact that produces `data-access-inventory.md` with a static, evidence-backed inventory of data access technologies, patterns, and migration concerns
 - an MVP-scope edmx-analysis artifact that produces `edmx-analysis.md` with a static, evidence-backed analysis of EF EDMX conceptual, storage, mapping, designer, generated-file, and EF Core migration concern signals
 - an MVP-scope class-dependencies artifact that produces `class-dependencies.md` with static, evidence-backed source-level type relationship analysis, coupling hotspots, hardcoded concrete dependencies, static dependency concerns, and focused Mermaid diagrams with dependency-kind edge labels
+- an MVP-scope interface-inventory artifact that produces `interface-inventory.md` with static, evidence-backed interface definitions, implementations, consumers, registration evidence, likely roles, possible extension points, and review-worthy dynamic or configuration-driven wiring
 - an MVP-scope solution-topology artifact that produces `solution-topology.md` with static, evidence-backed solution, project, dependency, and ownership-boundary orientation information
 - flexible artifact selection from a single scan command, including one artifact, a comma-separated subset of artifacts, or every supported artifact using `--artifacts all`
 - phase-based visual progress feedback during scans, including a real animated console spinner for active phases, useful completed counts, elapsed time, selected artifact generation progress, and final output paths
@@ -73,7 +74,7 @@ legacylens scan <path> --artifacts solution-topology
 Generate a selected subset of artifacts:
 
 ```bash
-legacylens scan <path> --artifacts solution-topology,class-dependencies,data-access
+legacylens scan <path> --artifacts solution-topology,class-dependencies,interface-inventory,data-access
 ```
 
 Generate every supported optional artifact:
@@ -140,6 +141,14 @@ legacylens scan <path> --output-dir ./output --artifacts class-dependencies
 ```
 
 This report should analyse `.cs` source files and identify source-level relationships between types, including constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, inheritance, interface implementations, attributes, and generic type usage. It should remain static and evidence-backed, include dependency-kind labels in focused Mermaid diagrams, and avoid claiming to understand runtime dependency injection, reflection, dynamic loading, generated code behaviour, or runtime call graphs.
+
+The MVP scope now also includes an optional interface-inventory artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts interface-inventory
+```
+
+This report should help a developer understand available abstractions and likely extension points by discovering source-defined interfaces, statically discoverable implementations, interface consumers, DI/IoC registration evidence, and dynamic or configuration-driven wiring that requires review. It should remain static and evidence-backed, inspect C# source and visible configuration/XML evidence where useful, and avoid claiming runtime completeness, proven runtime usage, definite registration, or that an interface is safe to implement without review.
 
 The MVP scope now also includes an optional solution-topology artifact:
 
@@ -283,6 +292,7 @@ The current implementation can scan a folder containing .NET solutions and proje
 - data access inventory inputs for `data-access-inventory.md`, using static evidence such as connection strings, data access packages, database provider references, EDMX and related T4 files, LINQ to SQL files, source-level data access indicators, repository or unit-of-work class names, raw SQL indicators, stored procedure indicators, and migration folders where discoverable
 - EDMX analysis inputs for `edmx-analysis.md`, using static EDMX XML evidence such as conceptual entities, entity sets, keys, associations, navigation properties, complex types, function imports, storage entity sets, tables/views, columns, store functions, defining queries, entity mappings, scalar property mappings, modification function mappings, query views, designer metadata, and companion generated files where discoverable
 - class dependency analysis inputs for `class-dependencies.md`, using static C# source evidence such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, and generic type usage where discoverable
+- interface inventory analysis inputs for `interface-inventory.md`, using static C# source and visible XML/configuration evidence such as interface declarations, implementations, consumers, generic interface usages, collection-based interface consumption, service-locator usage, Microsoft DI registrations, legacy IoC registrations, and Spring.NET/Castle Windsor/Unity-style configuration-driven wiring where discoverable
 - a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 
 ### MVP-scope upgrade-readiness artifact

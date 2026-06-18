@@ -42,6 +42,9 @@ public sealed class ScanResult
     public string? ClassDependenciesOutputPath { get; init; }
     public ClassDependencyReport? ClassDependenciesReport { get; init; }
 
+    public string? InterfaceInventoryOutputPath { get; init; }
+    public InterfaceInventoryReport? InterfaceInventoryReport { get; init; }
+
     public string? SolutionTopologyOutputPath { get; init; }
     public SolutionTopologyReport? SolutionTopologyReport { get; init; }
 

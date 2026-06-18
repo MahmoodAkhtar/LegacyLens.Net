@@ -22,6 +22,7 @@ public sealed class ScanArtifactRunnerTests
             { new DataAccessArtifactRunner(), ScanOptions.DataAccessArtifact },
             { new EdmxAnalysisArtifactRunner(), ScanOptions.EdmxAnalysisArtifact },
             { new ClassDependenciesArtifactRunner(), ScanOptions.ClassDependenciesArtifact },
+            { new InterfaceInventoryArtifactRunner(), ScanOptions.InterfaceInventoryArtifact },
             { new SolutionTopologyArtifactRunner(), ScanOptions.SolutionTopologyArtifact }
         };
 

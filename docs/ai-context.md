@@ -51,7 +51,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, configuration API usage, source-code configuration key usage, and cautious reconciliation against visible configured entries, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, and a separate `solution-topology.md` artifact for solution/project relationship orientation.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, configuration API usage, source-code configuration key usage, and cautious reconciliation against visible configured entries, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, a separate `interface-inventory.md` artifact for source-level interface, implementation, consumer, registration, and extension-point analysis, and a separate `solution-topology.md` artifact for solution/project relationship orientation.
 
 ## Current implemented capability summary
 
@@ -73,6 +73,7 @@ LegacyLens.NET currently discovers:
 - data access inventory inputs such as connection strings, provider names, EF6, EF Core, EDMX/T4, LINQ to SQL, ADO.NET, Dapper, NHibernate, raw SQL, stored procedure, repository, unit-of-work, and migration artifact indicators where discoverable
 - EDMX analysis inputs such as `.edmx` files, CSDL conceptual entities/entity sets/keys/navigation properties/complex types/function imports, SSDL storage entity sets/tables/views/columns/functions/defining queries, MSL mappings/scalar properties/function import mappings/modification function mappings/query views, designer metadata, and companion generated files where discoverable
 - class dependency analysis inputs such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, generic type usage, coupling hotspots, hardcoded concrete dependencies, and static dependency concerns where discoverable
+- interface inventory analysis inputs such as interface definitions, implementations, consumers, generic and collection-based interface usage, service-locator usage, Microsoft DI registrations, legacy IoC registration patterns, and Spring.NET/Castle Windsor/Unity-style XML or configuration-driven wiring where discoverable
 
 
 ## MVP artifact selection addition
@@ -83,13 +84,13 @@ Examples:
 
 ```bash
 legacylens scan <path> --artifacts solution-topology
-legacylens scan <path> --artifacts solution-topology,class-dependencies,data-access
+legacylens scan <path> --artifacts solution-topology,class-dependencies,interface-inventory,data-access
 legacylens scan <path> --artifacts all
 ```
 
 The normal `discovery-report.md` is always generated. Artifact names are case-insensitive. Comma-separated values may contain spaces around commas. Duplicate artifact names should be de-duplicated so reports are not generated twice. Unknown artifact names should produce a clear validation error listing the supported values. `all` must not be combined with other artifact names.
 
-Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, and `solution-topology`.
+Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, `interface-inventory`, and `solution-topology`.
 
 `--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it should be rejected when none of the selected artifacts are upgrade-related. It must not change discovery scope, enable extra analysis, or imply compatibility checking.
 
@@ -280,3 +281,20 @@ Include `README.md` only when the task is specifically about public documentatio
 - `docs/architecture.md` contains repository and project structure.
 - `docs/mvp.md` defines MVP scope and exit criteria.
 - `docs/roadmap.md` captures post-MVP direction.
+
+
+## MVP interface-inventory addition
+
+`interface-inventory` is now an MVP-scope capability. It should produce `interface-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed interface and extension-point inventory for understanding available abstractions in unfamiliar .NET codebases.
+
+Intended command shape:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts interface-inventory
+```
+
+The artifact should analyse C# source files and visible configuration/XML files under discovered projects without building the target solution. It should discover interface declarations, implementations, static consumers, registration evidence, likely interface roles, possible extension points, interfaces with multiple implementations, interfaces with no static implementation found, interfaces with no static consumer found, and dynamic/configuration-driven wiring that requires review.
+
+Registration evidence should include high-value static Microsoft DI patterns such as `AddSingleton`, `AddScoped`, `AddTransient`, and `TryAdd*`; legacy/third-party IoC patterns such as Castle Windsor, Autofac, Ninject, Unity, StructureMap, Simple Injector, LightInject, Lamar, and Common Service Locator where syntactically visible; and XML/configuration-driven evidence from Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory sections where feasible. Factory, reflection, assembly scanning, XML, alias, parent/child, profile-based, and service-locator patterns should be marked as requiring review.
+
+The capability must not claim runtime completeness. It must not claim that an interface is definitely unused, definitely active at runtime, definitely registered, or definitely safe to implement. Use cautious wording such as `Static source evidence`, `Static configuration evidence`, `No static implementation found`, `No static consumer found`, `Registration evidence found`, `Dynamic wiring may exist`, `Configuration-driven wiring may exist`, `Requires review`, `Possible extension point`, `Likely role`, `Static analysis finding`, and `No static source usage detected`.

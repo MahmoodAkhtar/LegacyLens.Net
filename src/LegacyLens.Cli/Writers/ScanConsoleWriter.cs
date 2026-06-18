@@ -45,7 +45,7 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  -h, --help             Show help.");
         Console.WriteLine("  --version              Show version.");
         Console.WriteLine("  --artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.");
-        Console.WriteLine("                           Supported artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, solution-topology, all.");
+        Console.WriteLine("                           Supported artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, interface-inventory, solution-topology, all.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional target-framework context for upgrade report wording only; valid with upgrade-readiness, upgrade-blockers, or all.");
     }
 
@@ -106,6 +106,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ClassDependenciesOutputPath))
         {
             Console.WriteLine($"Class dependencies report generated: {result.ClassDependenciesOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.InterfaceInventoryOutputPath))
+        {
+            Console.WriteLine($"Interface inventory report generated: {result.InterfaceInventoryOutputPath}");
         }
 
         if (!string.IsNullOrWhiteSpace(result.SolutionTopologyOutputPath))
@@ -199,6 +204,13 @@ public sealed class ScanConsoleWriter
             Console.WriteLine(result.ClassDependenciesOutputPath);
         }
 
+        if (!string.IsNullOrWhiteSpace(result.InterfaceInventoryOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Interface inventory report generated:");
+            Console.WriteLine(result.InterfaceInventoryOutputPath);
+        }
+
         if (!string.IsNullOrWhiteSpace(result.SolutionTopologyOutputPath))
         {
             Console.WriteLine();
@@ -255,6 +267,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ClassDependenciesOutputPath))
         {
             Console.WriteLine($"Class dependencies report generated: {result.ClassDependenciesOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.InterfaceInventoryOutputPath))
+        {
+            Console.WriteLine($"Interface inventory report generated: {result.InterfaceInventoryOutputPath}");
         }
 
         if (!string.IsNullOrWhiteSpace(result.SolutionTopologyOutputPath))

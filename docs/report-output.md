@@ -239,7 +239,7 @@ C:\Path\To\LegacyApp\output\solution-topology.md
 A selected subset such as:
 
 ```bash
-legacylens scan <path> --artifacts solution-topology,class-dependencies,data-access
+legacylens scan <path> --artifacts solution-topology,class-dependencies,interface-inventory,data-access
 ```
 
 should show each generated optional artifact once:
@@ -253,6 +253,9 @@ C:\Path\To\LegacyApp\output\data-access-inventory.md
 
 Class dependencies report generated:
 C:\Path\To\LegacyApp\output\class-dependencies.md
+
+Interface inventory report generated:
+C:\Path\To\LegacyApp\output\interface-inventory.md
 
 Solution topology report generated:
 C:\Path\To\LegacyApp\output\solution-topology.md
@@ -290,6 +293,9 @@ C:\Path\To\LegacyApp\output\edmx-analysis.md
 
 Class dependencies report generated:
 C:\Path\To\LegacyApp\output\class-dependencies.md
+
+Interface inventory report generated:
+C:\Path\To\LegacyApp\output\interface-inventory.md
 
 Solution topology report generated:
 C:\Path\To\LegacyApp\output\solution-topology.md
@@ -1305,6 +1311,103 @@ This makes it easier to visually understand project-to-project relationships.
 
 ---
 
+
+---
+
+## Interface Inventory Report Output
+
+The MVP scope now includes a separate interface-inventory Markdown artifact:
+
+```text
+output/interface-inventory.md
+```
+
+The interface-inventory report should be a static, evidence-backed abstraction and extension-point report for understanding which interfaces exist, what implements them, where they are consumed, and how they may be registered or dynamically wired. It should inspect C# source files and relevant visible XML/configuration files without building the solution, executing code, loading assemblies, applying transforms, or resolving a runtime object graph.
+
+Representative structure:
+
+````markdown
+# Interface Inventory Report
+
+## Summary
+
+- Projects analysed: 4
+- C# source files analysed: 18
+- Configuration/XML files analysed: 6
+- Interfaces discovered: 14
+- Implementations discovered: 19
+- Static consumers discovered: 31
+- Registration evidence entries discovered: 8
+- Interfaces with multiple implementations: 3
+- Interfaces with no static implementation found: 2
+- Interfaces with registration evidence requiring review: 4
+
+## Review Summary
+
+| Review Area | Count | Notes |
+|---|---:|---|
+| Multiple implementations | 3 | Possible strategy/plugin extension points; review expected selection behaviour. |
+| No static implementation found | 2 | Dynamic or configuration-driven implementations may exist. |
+| Dynamic/configuration-driven wiring | 4 | Factory, scanning, XML, alias, or service-locator evidence requires review. |
+
+## Interface Inventory
+
+| Interface | Project | Likely Role | Implementations | Consumers | Registration Evidence | Review Notes |
+|---|---|---|---:|---:|---:|---|
+| `ICustomerService` | SampleLegacyApp.Services | Application service | 1 | 2 | 1 | Possible endpoint dependency. |
+| `IValidator<T>` | SampleLegacyApp.Core | Strategy/plugin | 4 | 1 | 1 | Multiple implementations found. |
+
+## Interface Details
+
+### ICustomerService
+
+Project: `SampleLegacyApp.Services`
+
+Source: `SampleLegacyApp.Services/CustomerService.cs:5`
+
+Evidence: `public interface ICustomerService`
+
+Likely role: `Application service`
+
+#### Members
+
+| Kind | Count |
+|---|---:|
+| Methods | 1 |
+| Properties | 0 |
+| Events | 0 |
+| Indexers | 0 |
+
+#### Implementations
+
+| Implementation | Project | Line | Evidence | Notes |
+|---|---|---:|---|---|
+| `CustomerService` | SampleLegacyApp.Services | 10 | `public class CustomerService : ICustomerService, ICustomerContract` | Concrete implementation. |
+
+#### Consumers
+
+| Consumer | Kind | Project | Line | Evidence | Requires Review |
+|---|---|---|---:|---|---|
+| `Program` | endpoint delegate parameter | SampleLegacyApp.Web | 8 | `(int id, ICustomerService customerService)` | No |
+
+#### Registration Evidence
+
+| Kind | Lifetime | Implementation | Project/File | Line | Evidence | Requires Review |
+|---|---|---|---|---:|---|---|
+| Microsoft DI | Singleton | `CustomerService` | SampleLegacyApp.Web/Program.cs | 4 | `builder.Services.AddSingleton<ICustomerService, CustomerService>()` | No |
+
+## Dynamic and Configuration-Driven Wiring Requiring Review
+
+| Source | Kind | Interface / Service | Implementation / Object | Evidence | Why Review |
+|---|---|---|---|---|---|
+| `Web.config` | Spring.NET XML | Unknown | `LegacyCustomerService` | `<object id="customerService" type="SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services" />` | Object definition may be active at runtime but does not prove interface-to-implementation mapping. |
+
+## Notes and Limitations
+
+This report is based on static source and configuration evidence. It does not prove runtime usage, runtime registration, active configuration, or completeness. Findings such as `No static implementation found`, `No static consumer found`, `Dynamic wiring may exist`, and `Configuration-driven wiring may exist` mean `requires review`, not proven absence or proven runtime behaviour.
+````
+
+Suggested wording should stay cautious: `static source evidence`, `static configuration evidence`, `registration evidence found`, `dynamic wiring may exist`, `configuration-driven wiring may exist`, `requires review`, `possible extension point`, and `no static source usage detected`.
 
 ---
 

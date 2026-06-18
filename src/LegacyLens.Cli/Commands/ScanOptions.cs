@@ -10,6 +10,7 @@ public sealed class ScanOptions
     public const string DataAccessArtifact = "data-access";
     public const string EdmxAnalysisArtifact = "edmx-analysis";
     public const string ClassDependenciesArtifact = "class-dependencies";
+    public const string InterfaceInventoryArtifact = "interface-inventory";
     public const string SolutionTopologyArtifact = "solution-topology";
 
     public static readonly IReadOnlyList<string> SupportedArtifactNames =
@@ -21,6 +22,7 @@ public sealed class ScanOptions
         DataAccessArtifact,
         EdmxAnalysisArtifact,
         ClassDependenciesArtifact,
+        InterfaceInventoryArtifact,
         SolutionTopologyArtifact
     ];
 
@@ -61,6 +63,8 @@ public sealed class ScanOptions
     public bool ShouldWriteEdmxAnalysis => ShouldWriteArtifact(EdmxAnalysisArtifact);
 
     public bool ShouldWriteClassDependencies => ShouldWriteArtifact(ClassDependenciesArtifact);
+
+    public bool ShouldWriteInterfaceInventory => ShouldWriteArtifact(InterfaceInventoryArtifact);
 
     public bool ShouldWriteSolutionTopology => ShouldWriteArtifact(SolutionTopologyArtifact);
 

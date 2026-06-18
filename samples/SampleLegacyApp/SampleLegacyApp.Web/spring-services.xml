@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+  Sample Spring.NET configuration for LegacyLens.NET manual testing.
+
+  Purpose:
+  - Gives interface-inventory.md visible XML evidence of legacy IoC wiring.
+  - References an existing source-defined interface and implementation.
+  - Should be treated by LegacyLens.NET as static configuration evidence only.
+  - It does not prove this file is loaded at runtime.
+-->
+
+<objects xmlns="http://www.springframework.net">
+
+    <!--
+      Expected interface-inventory.md signal:
+      - Kind: Spring.NET XML
+      - Interface / Service: SampleLegacyApp.Services.ICustomerService
+      - Implementation / Object: SampleLegacyApp.Services.CustomerService
+      - Requires Review: Yes
+    -->
+    <object
+            id="customerService"
+            type="SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services">
+
+        <description>
+            Manual-test Spring.NET object definition for ICustomerService.
+        </description>
+
+    </object>
+
+    <!--
+      This alias-style entry gives the static scanner another useful clue
+      that the object above is intended to satisfy ICustomerService.
+    -->
+    <object
+            id="customerServiceByInterface"
+            type="SampleLegacyApp.Services.ICustomerService, SampleLegacyApp.Services"
+            factory-object="customerService"
+            factory-method="ToString" />
+
+</objects>

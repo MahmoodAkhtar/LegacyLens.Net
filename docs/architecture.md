@@ -66,6 +66,7 @@ LegacyLens.Cli/
 ├── Commands/
 │   ├── Runners/
 │   │   ├── ClassDependenciesArtifactRunner.cs
+│   │   ├── InterfaceInventoryArtifactRunner.cs
 │   │   ├── ConfigurationInventoryArtifactRunner.cs
 │   │   ├── DataAccessArtifactRunner.cs
 │   │   ├── EdmxAnalysisArtifactRunner.cs
@@ -95,7 +96,7 @@ The `Commands` namespace contains the command model and scan orchestration types
 | `ScanContext`                | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, prioritised review areas, and the shared `ScanFileInventory` for report writing and optional artifact runners. |
 | `ScanOptions`                | Represents validated scan options from the CLI parser, including output selection, console mode, parsed artifact selection, and optional upgrade report wording context.                                                                                                                                                                     |
 | `ScanResult`                 | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer.                                                                                                                                                                                                           |
-| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, `class-dependencies.md`, and `solution-topology.md`.                                                                      |
+| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, `class-dependencies.md`, `interface-inventory.md`, and `solution-topology.md`.                                                                      |
 
 
 ### Artifact Selection Model
@@ -132,6 +133,7 @@ The `Commands.Runners` namespace contains focused optional artifact-generation r
 | `DataAccessArtifactRunner`           | Produces `data-access-inventory.md` when `--artifacts data-access` is selected.                 |
 | `EdmxAnalysisArtifactRunner`         | Produces `edmx-analysis.md` when `--artifacts edmx-analysis` is selected.                       |
 | `ClassDependenciesArtifactRunner`    | Produces `class-dependencies.md` when `--artifacts class-dependencies` is selected.             |
+| `InterfaceInventoryArtifactRunner`    | Produces `interface-inventory.md` when `--artifacts interface-inventory` is selected.           |
 | `SolutionTopologyArtifactRunner`     | Produces `solution-topology.md` when `--artifacts solution-topology` is selected.               |
 
 Artifact runner implementation rules:
@@ -140,7 +142,7 @@ Artifact runner implementation rules:
 * Runner `ShouldRun` methods should use the parsed artifact selection, for example `context.Options.ShouldWriteArtifact(ArtifactName)`, so single, multiple, and `all` selections behave consistently.
 * Add a new runner when a new optional artifact is introduced.
 * Keep shared scan data on `ScanContext`; do not rediscover common solution/project/configuration facts inside runners.
-* Use `ScanContext.FileInventory` for artifact analyzers that need project-associated source/model files, such as class dependency, data-access, and EDMX analysis.
+* Use `ScanContext.FileInventory` for artifact analyzers that need project-associated source/model files, such as class dependency, interface inventory, data-access, and EDMX analysis.
 * Keep artifact-specific analyzer and Markdown writer calls inside the relevant runner.
 * Use `ArtifactOutputPathResolver` for optional artifact output paths.
 * Use `Commands/Runners/` rather than `Commands/Artifacts/`, because `artifacts/` is a gitignored generated-output folder name.
@@ -416,6 +418,29 @@ The implementation should remain static and evidence-backed. It should not run M
 
 For MVP, the report should favour useful review output over exhaustive semantic correctness. If a rule cannot produce clear source evidence, it should be skipped rather than inventing a relationship.
 
+### Interface Inventory
+
+The interface-inventory MVP addition should fit the existing static-first architecture. It uses focused source/configuration analysis models, an analyzer, and a Markdown writer rather than changing the normal discovery report or the class-dependencies report.
+
+Likely core types:
+
+| Type | Purpose |
+| --- | --- |
+| `InterfaceInventoryAnalyzer` | Consumes shared `ScanFileInventory` C# and XML/configuration evidence, plus discovered projects/config files where useful, and produces interface definitions, implementations, consumers, registrations, likely roles, and review findings. |
+| `InterfaceInventoryReport` | Root model for `interface-inventory.md`. |
+| `InterfaceDefinition` | Source-defined interface with name, full name, namespace, project, source path, line number, member counts, generic signature, inherited interfaces, marker attributes, visibility, and evidence. |
+| `InterfaceImplementation` | Static implementation evidence linking an interface to a class, record, or struct with project, path, line, implementation traits, and evidence. |
+| `InterfaceConsumer` | Static consumer evidence such as constructor parameter, field, property, method parameter, return type, local variable, generic type argument, collection consumption, inherited interface, endpoint delegate parameter, or service-locator usage. |
+| `InterfaceRegistrationEvidence` | DI/IoC or XML/configuration registration evidence with container kind, lifetime where extractable, interface, implementation, source path, line, evidence, and requires-review flag. |
+| `InterfaceInventoryFinding` | Review finding for multiple implementations, no static implementation found, no static consumer found, dynamic wiring, configuration-driven wiring, possible extension point, or other static analysis concern. |
+| `InterfaceInventoryMarkdownReportWriter` | Writes the `interface-inventory.md` artifact. |
+
+The analyzer should use Roslyn syntax parsing where useful and follow the static/no-build approach already used by class-dependencies. It should also inspect visible configuration/XML files defensively for Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory evidence where feasible.
+
+`InterfaceInventoryArtifactRunner` should live in `LegacyLens.Cli.Commands.Runners`, use `context.Options.ShouldWriteArtifact("interface-inventory")`, consume `ScanContext` and `ScanContext.FileInventory`, resolve its output path through `ArtifactOutputPathResolver`, write `interface-inventory.md`, and return a `ScanArtifactResult`. `ScanOptions.SupportedArtifactNames`, parser validation, `ScanResult`, and `ScanConsoleWriter` should be updated so single, comma-separated, and `all` artifact selections behave consistently.
+
+The implementation should remain static and evidence-backed. It should not build the solution, restore NuGet packages, execute container bootstrap code, load assemblies, apply transforms, resolve runtime dependency injection, prove runtime usage, prove that an interface is unused, prove a registration is active, or guarantee completeness. Factory, reflection, assembly scanning, XML/configuration-driven, alias, parent/child-object, profile-based, service-locator, and similar dynamic patterns should be marked as requiring review.
+
 ### EDMX Analysis
 
 The edmx-analysis MVP addition should fit the existing static-first architecture. It uses focused analysis models and a Markdown writer rather than duplicating broader data-access discovery logic. It should consume discovered projects for nearest-project association and the shared `ScanFileInventory` for `.edmx` and companion-file evidence.
@@ -620,6 +645,7 @@ Examples:
 * `DataAccessInventoryMarkdownReportWriter`
 * `EdmxAnalysisMarkdownReportWriter`
 * `ClassDependenciesMarkdownReportWriter`
+* `InterfaceInventoryMarkdownReportWriter`
 
 Avoid generic names such as `MarkdownReportWriter` when the writer only renders one specific report. For example, the writer for the main `discovery-report.md` artifact should be named `DiscoveryMarkdownReportWriter` rather than `MarkdownReportWriter`.
 
@@ -692,6 +718,8 @@ The edmx-analysis writer should keep the report separate from the main discovery
 
 The class-dependencies writer should keep the report separate from the main discovery report and should include Summary, Analysis Scope, Top Coupled Types, Coupling Concerns, Hardcoded Concrete Dependencies, Static Dependency Hotspots, Dependency Diagram, Type Dependency Inventory, Type Details, and Notes and Limitations sections. It should use cautious static-analysis wording and should not imply runtime usage, runtime dependency injection resolution, or runtime call graph generation.
 
+The interface-inventory writer should keep the report separate from the main discovery report and should include Summary, Analysis Scope, Review Summary, Possible Extension Points, Interfaces by Likely Role, Registration Evidence, Dynamic and Configuration-Driven Wiring Requiring Review, Interface Details, and Notes and Limitations sections. It should use cautious static-analysis wording and should not imply runtime usage, active runtime registration, unused interfaces, or completeness.
+
 ### Mermaid
 
 Currently implemented.
@@ -752,6 +780,7 @@ The sample should include:
 * data-access evidence
 * EDMX sample files where needed
 * class dependency examples where needed
+* interface inventory examples where needed
 
 The sample exists to validate report usefulness and regression-test the static discovery baseline. It should remain intentionally small enough for tests and documentation examples to stay readable.
 
