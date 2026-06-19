@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using LegacyLens.Core.Analysis;
 
 namespace LegacyLens.Reporting.Markdown;
@@ -57,7 +57,7 @@ public sealed class UpgradeReadinessMarkdownReportWriter
 
         foreach (var project in report.ProjectReadiness.OrderBy(x => x.ProjectName))
         {
-            markdown.AppendLine($"| {Escape(project.ProjectName)} | {Escape(ValueOrUnknown(project.CurrentTargetFramework))} | `{Escape(project.ProjectFilePath)}` |");
+            markdown.AppendLine($"| {Escape(project.ProjectName)} | {Escape(ValueOrUnknown(project.CurrentTargetFramework))} | {MarkdownTableCell.Code(project.ProjectFilePath)} |");
         }
 
         markdown.AppendLine();
@@ -72,7 +72,7 @@ public sealed class UpgradeReadinessMarkdownReportWriter
 
         foreach (var item in report.Overview)
         {
-            markdown.AppendLine($"| {Escape(item.Area)} | {Escape(item.Status)} | {Escape(item.Evidence)} |");
+            markdown.AppendLine($"| {Escape(item.Area)} | {Escape(item.Status)} | {MarkdownTableCell.Evidence(item.Evidence)} |");
         }
 
         markdown.AppendLine();
@@ -102,7 +102,7 @@ public sealed class UpgradeReadinessMarkdownReportWriter
 
         foreach (var concern in report.Concerns)
         {
-            markdown.AppendLine($"| {Escape(concern.Concern)} | {Escape(concern.Evidence)} | {Escape(concern.WhyItMatters)} |");
+            markdown.AppendLine($"| {Escape(concern.Concern)} | {MarkdownTableCell.Evidence(concern.Evidence)} | {Escape(concern.WhyItMatters)} |");
         }
 
         markdown.AppendLine();
@@ -117,7 +117,7 @@ public sealed class UpgradeReadinessMarkdownReportWriter
 
         foreach (var package in report.PackageConsiderations)
         {
-            markdown.AppendLine($"| {Escape(package.ProjectName)} | {Escape(package.PackageName)} | {Escape(ValueOrUnknown(package.Version))} | {Escape(ValueOrUnknown(package.ProjectTargetFramework))} | {Escape(ValueOrEmpty(package.PackageTargetFramework))} | {Escape(package.SourceFormat)} | `{Escape(package.SourcePath)}` | {Escape(package.PossibleConcern)} |");
+            markdown.AppendLine($"| {Escape(package.ProjectName)} | {Escape(package.PackageName)} | {Escape(ValueOrUnknown(package.Version))} | {Escape(ValueOrUnknown(package.ProjectTargetFramework))} | {Escape(ValueOrEmpty(package.PackageTargetFramework))} | {Escape(package.SourceFormat)} | {MarkdownTableCell.Code(package.SourcePath)} | {Escape(package.PossibleConcern)} |");
         }
 
         markdown.AppendLine();
@@ -132,7 +132,7 @@ public sealed class UpgradeReadinessMarkdownReportWriter
 
         foreach (var assembly in report.AssemblyConsiderations)
         {
-            markdown.AppendLine($"| {Escape(assembly.ProjectName)} | {Escape(assembly.AssemblyName)} | `{Escape(assembly.ProjectFilePath)}` | {Escape(assembly.PossibleConcern)} |");
+            markdown.AppendLine($"| {Escape(assembly.ProjectName)} | {Escape(assembly.AssemblyName)} | {MarkdownTableCell.Code(assembly.ProjectFilePath)} | {Escape(assembly.PossibleConcern)} |");
         }
 
         markdown.AppendLine();
@@ -147,7 +147,7 @@ public sealed class UpgradeReadinessMarkdownReportWriter
 
         foreach (var item in report.ConfigurationRuntimeConsiderations)
         {
-            markdown.AppendLine($"| `{Escape(item.Source)}` | {Escape(item.Finding)} | {Escape(item.PossibleConcern)} |");
+            markdown.AppendLine($"| {MarkdownTableCell.Code(item.Source)} | {Escape(item.Finding)} | {Escape(item.PossibleConcern)} |");
         }
 
         markdown.AppendLine();
@@ -199,6 +199,5 @@ public sealed class UpgradeReadinessMarkdownReportWriter
     private static string ValueOrEmpty(string? value) =>
         string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
 
-    private static string Escape(string? value) =>
-        (value ?? string.Empty).Replace("|", "\\|", StringComparison.Ordinal);
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }

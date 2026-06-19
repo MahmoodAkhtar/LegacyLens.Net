@@ -1,3 +1,5 @@
+
+using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 using LegacyLens.Core.Discovery;
@@ -10,6 +12,10 @@ namespace LegacyLens.Core.Analysis;
 
 public sealed class InterfaceInventoryAnalyzer
 {
+    private const int MaximumEvidenceLength = 160;
+    private const int MaximumXmlConfigurationEvidenceLength = 500;
+    private const string EvidenceEllipsis = "...";
+    
     private static readonly HashSet<string> IgnoredInterfaceNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "IDisposable",
@@ -602,40 +608,229 @@ public sealed class InterfaceInventoryAnalyzer
             yield break;
         }
 
+        foreach (var registration in DiscoverSpringNetXmlRegistrations(file, document, knownInterfaces))
+        {
+            yield return registration;
+        }
+
         foreach (var element in document.Descendants())
         {
-            var elementName = element.Name.LocalName;
-            var attributes = element.Attributes().ToDictionary(attribute => attribute.Name.LocalName, attribute => attribute.Value, StringComparer.OrdinalIgnoreCase);
-            var text = element.ToString(SaveOptions.DisableFormatting);
-            var interfaceName = FindKnownInterfaceName(attributes.Values.Append(text), knownInterfaces);
+            if (IsSpringNetObjectElement(element) || IsIgnoredConfigurationTextElement(element))
+            {
+                continue;
+            }
 
+            var elementName = element.Name.LocalName;
+            var attributes = element.Attributes()
+                .ToDictionary(attribute => attribute.Name.LocalName, attribute => attribute.Value, StringComparer.OrdinalIgnoreCase);
+            var evidenceValues = attributes.Values
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .ToArray();
+
+            var interfaceName = FindKnownInterfaceName(evidenceValues, knownInterfaces);
             if (string.IsNullOrWhiteSpace(interfaceName))
             {
                 continue;
             }
 
-            var kind = ClassifyXmlRegistrationKind(file.FullPath, elementName, text);
+            var kind = ClassifyXmlRegistrationKind(file.FullPath, elementName, evidenceValues);
             if (kind == InterfaceRegistrationKind.UnknownDynamicWiring)
             {
                 continue;
             }
 
-            var implementationType = FindImplementationCandidate(attributes.Values, interfaceName);
-            var lineNumber = element is IXmlLineInfo lineInfo && lineInfo.HasLineInfo()
-                ? lineInfo.LineNumber
-                : 1;
+            var implementationType = FindImplementationCandidate(evidenceValues, interfaceName);
+            var evidence = CreateExecutableElementEvidence(element);
+            if (string.IsNullOrWhiteSpace(evidence))
+            {
+                continue;
+            }
 
             yield return new InterfaceRegistrationEvidence(
                 file.ProjectName,
                 file.FullPath,
-                lineNumber,
+                GetXmlLineNumber(element),
                 interfaceName,
                 implementationType,
                 kind,
-                TrimEvidence(text),
+                TrimEvidence(evidence),
                 RequiresReview: true,
                 "Configuration-driven IoC evidence found. Static analysis cannot prove the section is loaded or active at runtime.");
         }
+    }
+
+    private static IEnumerable<InterfaceRegistrationEvidence> DiscoverSpringNetXmlRegistrations(
+        ConfigurationFileInfo file,
+        XDocument document,
+        IReadOnlyDictionary<string, InterfaceDefinition> knownInterfaces)
+    {
+        foreach (var objectElement in document.Descendants().Where(IsSpringNetObjectElement))
+        {
+            var objectValues = GetSpringNetObjectMatchingValues(objectElement).ToArray();
+            var interfaceName = FindKnownInterfaceName(objectValues, knownInterfaces);
+            if (string.IsNullOrWhiteSpace(interfaceName))
+            {
+                continue;
+            }
+
+            var implementationType = GetAttributeValue(objectElement, "type");
+            var simplifiedImplementationType = string.IsNullOrWhiteSpace(implementationType)
+                ? FindImplementationCandidate(objectValues, interfaceName)
+                : SimplifyTypeName(implementationType);
+
+            var evidence = CreateSpringNetObjectEvidence(objectElement);
+            if (string.IsNullOrWhiteSpace(evidence))
+            {
+                continue;
+            }
+
+            yield return new InterfaceRegistrationEvidence(
+                file.ProjectName,
+                file.FullPath,
+                GetXmlLineNumber(objectElement),
+                interfaceName,
+                simplifiedImplementationType,
+                InterfaceRegistrationKind.SpringNetXml,
+                TrimXmlConfigurationEvidence(evidence),
+                RequiresReview: true,
+                "Spring.NET XML configuration-driven IoC evidence found. Static analysis cannot prove the section is loaded or active at runtime.");
+        }
+    }
+
+    private static string TrimEvidence(string evidence)
+    {
+        return TrimEvidenceToLength(
+            evidence.Trim(),
+            MaximumEvidenceLength);
+    }
+
+    private static string TrimXmlConfigurationEvidence(string evidence)
+    {
+        return TrimEvidenceToLength(
+            Regex.Replace(evidence, @"\s+", " ").Trim(),
+            MaximumXmlConfigurationEvidenceLength);
+    }
+
+    private static string TrimEvidenceToLength(string evidence, int maximumLength)
+    {
+        if (evidence.Length <= maximumLength)
+        {
+            return evidence;
+        }
+
+        if (maximumLength <= EvidenceEllipsis.Length)
+        {
+            return EvidenceEllipsis[..maximumLength];
+        }
+
+        return evidence[..(maximumLength - EvidenceEllipsis.Length)] + EvidenceEllipsis;
+    }
+
+    private static bool IsSpringNetObjectElement(XElement element)
+    {
+        return element.Name.LocalName.Equals("object", StringComparison.OrdinalIgnoreCase) &&
+               (element.Name.NamespaceName.Contains("springframework", StringComparison.OrdinalIgnoreCase) ||
+                element.Name.NamespaceName.Contains("springframework.net", StringComparison.OrdinalIgnoreCase) ||
+                element.Name.NamespaceName.Contains("spring", StringComparison.OrdinalIgnoreCase) ||
+                element.AncestorsAndSelf().Any(ancestor =>
+                    ancestor.Name.LocalName.Equals("objects", StringComparison.OrdinalIgnoreCase) &&
+                    (ancestor.Name.NamespaceName.Contains("spring", StringComparison.OrdinalIgnoreCase) ||
+                     ancestor.Document?.Root?.Name.LocalName.Equals("objects", StringComparison.OrdinalIgnoreCase) == true)));
+    }
+
+    private static bool IsIgnoredConfigurationTextElement(XElement element)
+    {
+        return element.Name.LocalName.Equals("description", StringComparison.OrdinalIgnoreCase) ||
+               element.Name.LocalName.Equals("objects", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<string> GetSpringNetObjectMatchingValues(XElement objectElement)
+    {
+        foreach (var attributeName in new[]
+                 {
+                     "id", "name", "type", "factory-object", "factory-method", "parent", "abstract"
+                 })
+        {
+            var value = GetAttributeValue(objectElement, attributeName);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                yield return value;
+            }
+        }
+
+        foreach (var child in objectElement.Elements().Where(IsRelevantSpringNetWiringElement))
+        {
+            foreach (var attributeName in new[]
+                     {
+                         "name", "type", "ref", "value", "factory-object", "factory-method", "parent"
+                     })
+            {
+                var value = GetAttributeValue(child, attributeName);
+                if (!string.IsNullOrWhiteSpace(value))
+                {
+                    yield return value;
+                }
+            }
+        }
+    }
+
+    private static bool IsRelevantSpringNetWiringElement(XElement element)
+    {
+        return element.Name.LocalName.Equals("constructor-arg", StringComparison.OrdinalIgnoreCase) ||
+               element.Name.LocalName.Equals("property", StringComparison.OrdinalIgnoreCase) ||
+               element.Name.LocalName.Equals("lookup-method", StringComparison.OrdinalIgnoreCase) ||
+               element.Name.LocalName.Equals("replaced-method", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string CreateSpringNetObjectEvidence(XElement objectElement)
+    {
+        var evidenceParts = new List<string>();
+        var objectEvidence = CreateExecutableElementEvidence(objectElement);
+        if (!string.IsNullOrWhiteSpace(objectEvidence))
+        {
+            evidenceParts.Add(objectEvidence);
+        }
+
+        foreach (var child in objectElement.Elements().Where(IsRelevantSpringNetWiringElement))
+        {
+            var childEvidence = CreateExecutableElementEvidence(child);
+            if (!string.IsNullOrWhiteSpace(childEvidence))
+            {
+                evidenceParts.Add(childEvidence);
+            }
+        }
+
+        return string.Join(" ", evidenceParts);
+    }
+
+    private static string CreateExecutableElementEvidence(XElement element)
+    {
+        var attributes = element.Attributes()
+            .Where(attribute => !attribute.IsNamespaceDeclaration)
+            .Where(attribute => !string.IsNullOrWhiteSpace(attribute.Value))
+            .Select(attribute => $"{attribute.Name.LocalName}=\"{attribute.Value}\"")
+            .ToArray();
+
+        if (attributes.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        return $"<{element.Name.LocalName} {string.Join(" ", attributes)} />";
+    }
+
+    private static string? GetAttributeValue(XElement element, string localName)
+    {
+        return element.Attributes()
+            .FirstOrDefault(attribute => attribute.Name.LocalName.Equals(localName, StringComparison.OrdinalIgnoreCase))
+            ?.Value;
+    }
+
+    private static int GetXmlLineNumber(XElement element)
+    {
+        return element is IXmlLineInfo lineInfo && lineInfo.HasLineInfo()
+            ? lineInfo.LineNumber
+            : 1;
     }
 
     private static IEnumerable<ConfigurationFileInfo> DiscoverConfigurationFiles(
@@ -846,15 +1041,12 @@ public sealed class InterfaceInventoryAnalyzer
         return InterfaceRegistrationKind.UnknownDynamicWiring;
     }
 
-    private static InterfaceRegistrationKind ClassifyXmlRegistrationKind(string path, string elementName, string text)
+    private static InterfaceRegistrationKind ClassifyXmlRegistrationKind(
+        string path,
+        string elementName,
+        IEnumerable<string> attributeValues)
     {
-        var combined = $"{path} {elementName} {text}";
-
-        if (combined.Contains("spring", StringComparison.OrdinalIgnoreCase) ||
-            elementName.Equals("object", StringComparison.OrdinalIgnoreCase))
-        {
-            return InterfaceRegistrationKind.SpringNetXml;
-        }
+        var combined = $"{path} {elementName} {string.Join(" ", attributeValues)}";
 
         if (combined.Contains("castle", StringComparison.OrdinalIgnoreCase) ||
             combined.Contains("windsor", StringComparison.OrdinalIgnoreCase) ||
@@ -1064,6 +1256,12 @@ public sealed class InterfaceInventoryAnalyzer
             .Trim('?')
             .Trim();
 
+        var assemblySeparatorIndex = cleaned.IndexOf(',');
+        if (assemblySeparatorIndex > 0)
+        {
+            cleaned = cleaned[..assemblySeparatorIndex].Trim();
+        }
+
         var nullableIndex = cleaned.IndexOf('?');
         if (nullableIndex > 0)
         {
@@ -1110,21 +1308,6 @@ public sealed class InterfaceInventoryAnalyzer
     private static string GetMethodEvidence(MethodDeclarationSyntax method)
     {
         return TrimEvidence($"{method.ReturnType} {method.Identifier}{method.ParameterList}");
-    }
-
-    private static string TrimEvidence(string evidence)
-    {
-        var trimmed = string.Join(
-                " ",
-                evidence
-                    .Replace("\r", " ", StringComparison.Ordinal)
-                    .Replace("\n", " ", StringComparison.Ordinal)
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries))
-            .Trim();
-
-        return trimmed.Length <= 160
-            ? trimmed
-            : trimmed[..157] + "...";
     }
 
     private static string CreateInterfaceKey(InterfaceDefinition interfaceDefinition)

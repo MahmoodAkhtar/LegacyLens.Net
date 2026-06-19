@@ -91,7 +91,7 @@ public sealed class ClassDependenciesMarkdownReportWriter
 
         foreach (var hotspot in report.Hotspots)
         {
-            markdown.AppendLine($"| `{Escape(hotspot.Type)}` | {Escape(hotspot.ProjectName)} | {hotspot.OutgoingDependencyCount} | {hotspot.IncomingDependencyCount} | {hotspot.ConcernCount} | {Escape(hotspot.Notes)} |");
+            markdown.AppendLine($"| {MarkdownTableCell.Code(hotspot.Type)} | {Escape(hotspot.ProjectName)} | {hotspot.OutgoingDependencyCount} | {hotspot.IncomingDependencyCount} | {hotspot.ConcernCount} | {Escape(hotspot.Notes)} |");
         }
 
         markdown.AppendLine();
@@ -114,7 +114,7 @@ public sealed class ClassDependenciesMarkdownReportWriter
 
         foreach (var concern in report.Concerns)
         {
-            markdown.AppendLine($"| {concern.Severity} | `{Escape(concern.SourceType)}` | `{Escape(concern.TargetType)}` | {Escape(ToLabel(concern.DependencyKind))} | `{Escape(concern.Evidence)}` | {Escape(concern.WhyItMatters)} | {Escape(concern.Recommendation)} |");
+            markdown.AppendLine($"| {concern.Severity} | {MarkdownTableCell.Code(concern.SourceType)} | {MarkdownTableCell.Code(concern.TargetType)} | {Escape(ToLabel(concern.DependencyKind))} | {MarkdownTableCell.Code(concern.Evidence)} | {Escape(concern.WhyItMatters)} | {Escape(concern.Recommendation)} |");
         }
 
         markdown.AppendLine();
@@ -141,7 +141,7 @@ public sealed class ClassDependenciesMarkdownReportWriter
 
         foreach (var row in rows)
         {
-            markdown.AppendLine($"| `{Escape(row.SourceType)}` | `{Escape(row.TargetType)}` | {Escape(row.ProjectName)} | `{Escape(row.Evidence)}` | {row.Severity} | {Escape(row.Recommendation)} |");
+            markdown.AppendLine($"| {MarkdownTableCell.Code(row.SourceType)} | {MarkdownTableCell.Code(row.TargetType)} | {Escape(row.ProjectName)} | {MarkdownTableCell.Code(row.Evidence)} | {row.Severity} | {Escape(row.Recommendation)} |");
         }
 
         markdown.AppendLine();
@@ -168,7 +168,7 @@ public sealed class ClassDependenciesMarkdownReportWriter
 
         foreach (var row in rows)
         {
-            markdown.AppendLine($"| `{Escape(row.SourceType)}` | `{Escape(row.TargetType)}` | {Escape(row.ProjectName)} | `{Escape(row.Evidence)}` | {row.Severity} | {Escape(row.Recommendation)} |");
+            markdown.AppendLine($"| {MarkdownTableCell.Code(row.SourceType)} | {MarkdownTableCell.Code(row.TargetType)} | {Escape(row.ProjectName)} | {MarkdownTableCell.Code(row.Evidence)} | {row.Severity} | {Escape(row.Recommendation)} |");
         }
 
         markdown.AppendLine();
@@ -198,7 +198,7 @@ public sealed class ClassDependenciesMarkdownReportWriter
 
         foreach (var dependency in report.Dependencies)
         {
-            markdown.AppendLine($"| {Escape(dependency.ProjectName)} | `{Escape(dependency.SourceType)}` | `{Escape(dependency.TargetType)}` | {Escape(ToLabel(dependency.Kind))} | `{Escape(dependency.SourcePath)}` | {dependency.LineNumber} | `{Escape(dependency.Evidence)}` |");
+            markdown.AppendLine($"| {Escape(dependency.ProjectName)} | {MarkdownTableCell.Code(dependency.SourceType)} | {MarkdownTableCell.Code(dependency.TargetType)} | {Escape(ToLabel(dependency.Kind))} | {MarkdownTableCell.Code(dependency.SourcePath)} | {dependency.LineNumber} | {MarkdownTableCell.Code(dependency.Evidence)} |");
         }
 
         markdown.AppendLine();
@@ -226,7 +226,7 @@ public sealed class ClassDependenciesMarkdownReportWriter
             markdown.AppendLine();
             markdown.AppendLine($"- Project: {Escape(type.ProjectName)}");
             markdown.AppendLine($"- Kind: {type.Kind}");
-            markdown.AppendLine($"- Source: `{Escape(type.SourcePath)}`");
+            markdown.AppendLine($"- Source: {MarkdownTableCell.Code(type.SourcePath)}");
             markdown.AppendLine($"- Dependencies: {dependencies.Length}");
             markdown.AppendLine();
         }
@@ -262,6 +262,5 @@ public sealed class ClassDependenciesMarkdownReportWriter
             _ => kind.ToString()
         };
     }
-
-    private static string Escape(string? value) => (value ?? string.Empty).Replace("|", "\\|", StringComparison.Ordinal).Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }

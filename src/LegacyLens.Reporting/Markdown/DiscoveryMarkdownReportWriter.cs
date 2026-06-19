@@ -151,7 +151,7 @@ public sealed class DiscoveryMarkdownReportWriter
                      .ThenBy(x => x.ConfigFilePath))
         {
             builder.AppendLine(
-                $"| {behaviour.Kind} | {Escape(behaviour.Name ?? "")} | {behaviour.HasServiceMetadata} | {Escape(behaviour.ServiceMetadataHttpGetEnabled ?? "")} | {Escape(behaviour.ServiceMetadataHttpsGetEnabled ?? "")} | {behaviour.HasServiceDebug} | {Escape(behaviour.IncludeExceptionDetailInFaults ?? "")} | {behaviour.HasServiceThrottling} | {Escape(behaviour.MaxConcurrentCalls ?? "")} | {Escape(behaviour.MaxConcurrentSessions ?? "")} | {Escape(behaviour.MaxConcurrentInstances ?? "")} | {behaviour.HasWebHttp} | `{behaviour.ConfigFilePath}` |");
+                $"| {behaviour.Kind} | {Escape(behaviour.Name ?? "")} | {behaviour.HasServiceMetadata} | {Escape(behaviour.ServiceMetadataHttpGetEnabled ?? "")} | {Escape(behaviour.ServiceMetadataHttpsGetEnabled ?? "")} | {behaviour.HasServiceDebug} | {Escape(behaviour.IncludeExceptionDetailInFaults ?? "")} | {behaviour.HasServiceThrottling} | {Escape(behaviour.MaxConcurrentCalls ?? "")} | {Escape(behaviour.MaxConcurrentSessions ?? "")} | {Escape(behaviour.MaxConcurrentInstances ?? "")} | {behaviour.HasWebHttp} | {MarkdownTableCell.Code(behaviour.ConfigFilePath)} |");
         }
 
         builder.AppendLine();
@@ -176,7 +176,7 @@ public sealed class DiscoveryMarkdownReportWriter
         foreach (var solution in solutions.OrderBy(x => x.Name))
         {
             builder.AppendLine(
-                $"| {Escape(solution.Name)} | {solution.ProjectFilePaths.Count} | `{solution.SolutionFilePath}` |");
+                $"| {Escape(solution.Name)} | {solution.ProjectFilePaths.Count} | {MarkdownTableCell.Code(solution.SolutionFilePath)} |");
         }
 
         builder.AppendLine();
@@ -201,7 +201,7 @@ public sealed class DiscoveryMarkdownReportWriter
         foreach (var project in projects.OrderBy(x => x.Name))
         {
             builder.AppendLine(
-                $"| {Escape(project.Name)} | {Escape(project.TargetFramework ?? "Unknown")} | `{project.ProjectFilePath}` |");
+                $"| {Escape(project.Name)} | {Escape(project.TargetFramework ?? "Unknown")} | {MarkdownTableCell.Code(project.ProjectFilePath)} |");
         }
 
         builder.AppendLine();
@@ -310,7 +310,7 @@ public sealed class DiscoveryMarkdownReportWriter
             foreach (var reference in project.ProjectReferences.OrderBy(x => x))
             {
                 hasReferences = true;
-                builder.AppendLine($"| {Escape(project.Name)} | `{reference}` |");
+                builder.AppendLine($"| {Escape(project.Name)} | {MarkdownTableCell.Code(reference)} |");
             }
         }
 
@@ -338,7 +338,7 @@ public sealed class DiscoveryMarkdownReportWriter
             foreach (var assemblyReference in project.AssemblyReferences.OrderBy(x => x))
             {
                 hasAssemblyReferences = true;
-                builder.AppendLine($"| {Escape(project.Name)} | `{Escape(assemblyReference)}` |");
+                builder.AppendLine($"| {Escape(project.Name)} | {MarkdownTableCell.Code(assemblyReference)} |");
             }
         }
 
@@ -366,7 +366,7 @@ public sealed class DiscoveryMarkdownReportWriter
             foreach (var package in project.PackageReferences.OrderBy(x => x))
             {
                 hasPackages = true;
-                builder.AppendLine($"| {Escape(project.Name)} | `{Escape(package)}` |");
+                builder.AppendLine($"| {Escape(project.Name)} | {MarkdownTableCell.Code(package)} |");
             }
         }
 
@@ -400,7 +400,7 @@ public sealed class DiscoveryMarkdownReportWriter
         foreach (var item in reviewItems)
         {
             builder.AppendLine(
-                $"| {Escape(item.ProjectName)} | {Escape(item.ProjectTargetFramework ?? "Unknown")} | {Escape(item.PackageName)} | {Escape(item.Version ?? "unknown")} | {Escape(item.PackageTargetFramework ?? "")} | {Escape(item.SourceFormat)} | `{Escape(item.SourcePath)}` | {Escape(item.Concern)} |");
+                $"| {Escape(item.ProjectName)} | {Escape(item.ProjectTargetFramework ?? "Unknown")} | {Escape(item.PackageName)} | {Escape(item.Version ?? "unknown")} | {Escape(item.PackageTargetFramework ?? "")} | {Escape(item.SourceFormat)} | {MarkdownTableCell.Code(item.SourcePath)} | {Escape(item.Concern)} |");
         }
 
         builder.AppendLine();
@@ -426,7 +426,7 @@ public sealed class DiscoveryMarkdownReportWriter
         foreach (var endpoint in endpoints.OrderBy(x => x.ServiceName).ThenBy(x => x.Contract))
         {
             builder.AppendLine(
-                $"| {Escape(endpoint.ServiceName ?? "Unknown")} | {Escape(endpoint.Address ?? "")} | {Escape(endpoint.Binding ?? "")} | {Escape(endpoint.BindingConfiguration ?? "")} | {Escape(endpoint.SecurityMode ?? "")} | {Escape(endpoint.TransportClientCredentialType ?? "")} | {Escape(endpoint.MessageClientCredentialType ?? "")} | {endpoint.IsMetadataExchangeEndpoint} | {Escape(endpoint.Contract ?? "")} | `{endpoint.ConfigFilePath}` |");
+                $"| {Escape(endpoint.ServiceName ?? "Unknown")} | {Escape(endpoint.Address ?? "")} | {Escape(endpoint.Binding ?? "")} | {Escape(endpoint.BindingConfiguration ?? "")} | {Escape(endpoint.SecurityMode ?? "")} | {Escape(endpoint.TransportClientCredentialType ?? "")} | {Escape(endpoint.MessageClientCredentialType ?? "")} | {endpoint.IsMetadataExchangeEndpoint} | {Escape(endpoint.Contract ?? "")} | {MarkdownTableCell.Code(endpoint.ConfigFilePath)} |");
         }
 
         builder.AppendLine();
@@ -519,7 +519,7 @@ public sealed class DiscoveryMarkdownReportWriter
                 : string.Join(", ", contract.Operations.Select(Escape));
 
             builder.AppendLine(
-                $"| {Escape(contract.Name)} | {operations} | `{contract.SourceFilePath}` |");
+                $"| {Escape(contract.Name)} | {operations} | {MarkdownTableCell.Code(contract.SourceFilePath)} |");
         }
 
         builder.AppendLine();
@@ -551,7 +551,7 @@ public sealed class DiscoveryMarkdownReportWriter
                 : artifact.Name;
 
             builder.AppendLine(
-                $"| {Escape(artifact.Kind.ToString())} | {Escape(name)} | `{artifact.FilePath}` |");
+                $"| {Escape(artifact.Kind.ToString())} | {Escape(name)} | {MarkdownTableCell.Code(artifact.FilePath)} |");
         }
 
         builder.AppendLine();
@@ -576,7 +576,7 @@ public sealed class DiscoveryMarkdownReportWriter
         foreach (var configFile in configFiles.OrderBy(x => x.FilePath))
         {
             builder.AppendLine(
-                $"| `{configFile.FilePath}` | {configFile.AppSettingsCount} | {configFile.ConnectionStringsCount} | {configFile.CustomSectionCount} |");
+                $"| {MarkdownTableCell.Code(configFile.FilePath)} | {configFile.AppSettingsCount} | {configFile.ConnectionStringsCount} | {configFile.CustomSectionCount} |");
         }
 
         builder.AppendLine();
@@ -639,7 +639,7 @@ public sealed class DiscoveryMarkdownReportWriter
             var source = BuildSourceText(hint);
 
             builder.AppendLine(
-                $"| {hint.Severity} | {Escape(hint.Area)} | {Escape(hint.Finding)} | {Escape(evidence)} | {hint.Confidence} | {source} | {Escape(hint.Reason)} |");
+                $"| {hint.Severity} | {Escape(hint.Area)} | {Escape(hint.Finding)} | {MarkdownTableCell.Evidence(evidence)} | {hint.Confidence} | {source} | {Escape(hint.Reason)} |");
         }
 
         builder.AppendLine();
@@ -673,7 +673,7 @@ public sealed class DiscoveryMarkdownReportWriter
             return "None";
         }
 
-        return $"`{Escape(hint.EvidencePath)}`";
+        return $"{MarkdownTableCell.Code(hint.EvidencePath)}";
     }
 
     private static bool HasBindingDetails(WcfEndpoint endpoint)
@@ -697,8 +697,5 @@ public sealed class DiscoveryMarkdownReportWriter
                !string.IsNullOrWhiteSpace(endpoint.ReaderQuotaMaxNameTableCharCount);
     }
 
-    private static string Escape(string value)
-    {
-        return value.Replace("|", "\\|");
-    }
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }

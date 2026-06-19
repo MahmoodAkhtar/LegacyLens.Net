@@ -305,6 +305,25 @@ Quiet and verbose modes should follow the same artifact selection rules and shou
 
 ---
 
+
+## Markdown Table Cell Safety
+
+All generated Markdown reports and optional artifacts should keep table rows structurally valid and keep discovered evidence visible in rendered Markdown previews. Report writers should use shared Markdown-safe table-cell formatting rather than writing raw table-cell values directly.
+
+The formatting should protect values such as XML/configuration snippets, source-code snippets, paths, names, and evidence strings that contain Markdown-sensitive characters. In particular, values containing `<... />`, `|`, newlines, or backticks should not disappear, split a table row, or break inline-code formatting. Evidence cells should be treated as code-like by default and rendered as safe inline code where practical.
+
+Example evidence from `interface-inventory.md` should render visibly like this:
+
+| Interface | Evidence |
+|---|---|
+| `ICustomerService` | `<object id="customerServiceByInterface" type="SampleLegacyApp.Services.ICustomerService, SampleLegacyApp.Services" factory-object="customerService" factory-method="ToString" />` |
+
+This is a generated Markdown formatting rule only. The analyzer/discovery evidence should remain unchanged, and report writers should not remove or suppress XML evidence merely because it looks like an HTML/XML tag.
+
+Testing should cover XML-like evidence, pipe characters, newlines, backticks, Spring.NET registration evidence in `interface-inventory.md`, review findings that reuse XML evidence, and at least one additional artifact writer to prove the helper is shared.
+
+---
+
 ## Upgrade Readiness Report Output
 
 The MVP scope now includes a separate upgrade-readiness Markdown artifact:
@@ -1322,7 +1341,7 @@ The MVP scope now includes a separate interface-inventory Markdown artifact:
 output/interface-inventory.md
 ```
 
-The interface-inventory report should be a static, evidence-backed abstraction and extension-point report for understanding which interfaces exist, what implements them, where they are consumed, and how they may be registered or dynamically wired. It should inspect C# source files and relevant visible XML/configuration files without building the solution, executing code, loading assemblies, applying transforms, or resolving a runtime object graph.
+The interface-inventory report should be a static, evidence-backed abstraction and extension-point report for understanding which interfaces exist, what implements them, where they are consumed, and how they may be registered or dynamically wired. It should inspect C# source files and relevant visible XML/configuration files without building the solution, executing code, loading assemblies, applying transforms, or resolving a runtime object graph. XML evidence should be concise and configuration-bearing. For Spring.NET, comments, root `<objects>` text, arbitrary descendant text, and `<description>` text must not be used as matching input or reported as evidence.
 
 Representative structure:
 
@@ -1400,14 +1419,14 @@ Likely role: `Application service`
 
 | Source | Kind | Interface / Service | Implementation / Object | Evidence | Why Review |
 |---|---|---|---|---|---|
-| `Web.config` | Spring.NET XML | Unknown | `LegacyCustomerService` | `<object id="customerService" type="SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services" />` | Object definition may be active at runtime but does not prove interface-to-implementation mapping. |
+| `spring-service.xml` | Spring.NET XML | `ICustomerService` | `CustomerService` | `<object id="customerService" type="SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services">` + `<property name="serviceInterface" value="SampleLegacyApp.Services.ICustomerService" />` | Configuration-driven object/property wiring requires review and does not prove runtime activation. |
 
 ## Notes and Limitations
 
-This report is based on static source and configuration evidence. It does not prove runtime usage, runtime registration, active configuration, or completeness. Findings such as `No static implementation found`, `No static consumer found`, `Dynamic wiring may exist`, and `Configuration-driven wiring may exist` mean `requires review`, not proven absence or proven runtime behaviour.
+This report is based on static source and configuration evidence. It does not prove runtime usage, runtime registration, active configuration, or completeness. Findings such as `No static implementation found`, `No static consumer found`, `Dynamic wiring may exist`, and `Configuration-driven wiring may exist` mean `requires review`, not proven absence or proven runtime behaviour. Spring.NET XML comments, `<description>` text, and the root `<objects>` container are documentation or container structure, not executable registration evidence, and should not appear in evidence snippets.
 ````
 
-Suggested wording should stay cautious: `static source evidence`, `static configuration evidence`, `registration evidence found`, `dynamic wiring may exist`, `configuration-driven wiring may exist`, `requires review`, `possible extension point`, and `no static source usage detected`.
+Suggested wording should stay cautious: `static source evidence`, `static configuration evidence`, `registration evidence found`, `dynamic wiring may exist`, `configuration-driven wiring may exist`, `requires review`, `possible extension point`, and `no static source usage detected`. Evidence examples should avoid XML comments, `<description>` text, and broad serialized parent/root XML when the actionable registration evidence is a specific object, property, constructor argument, alias, parent, or factory-style configuration element.
 
 ---
 

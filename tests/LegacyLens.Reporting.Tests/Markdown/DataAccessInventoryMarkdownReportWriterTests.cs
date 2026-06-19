@@ -1,4 +1,4 @@
-﻿using LegacyLens.Core.Analysis;
+using LegacyLens.Core.Analysis;
 using LegacyLens.Reporting.Markdown;
 
 namespace LegacyLens.Reporting.Tests.Markdown;
@@ -172,9 +172,9 @@ public sealed class DataAccessInventoryMarkdownReportWriterTests : IDisposable
         Assert.Contains("| SampleLegacyApp.Data | 3 | Dapper, Entity Framework 6, Repository Pattern |", markdown);
 
         Assert.Contains("| Connection String | MainDatabase | Configuration: `C:\\Repo\\SampleLegacyApp.Web\\Web.config` |", markdown);
-        Assert.Contains("| Entity Framework 6 | EntityFramework | PackageReference: `C:\\Repo\\SampleLegacyApp.Data\\packages.config` | SampleLegacyApp.Data | EntityFramework 6.4.4 package reference found from packages.config.", markdown);
-        Assert.Contains("| Dapper | Dapper | PackageReference: `C:\\Repo\\SampleLegacyApp.Data\\SampleLegacyApp.Data.csproj` | SampleLegacyApp.Data | Dapper 2.1.35 package reference found from PackageReference.", markdown);
-        Assert.Contains("| Repository Pattern | CustomerRepository | SourceCode: `C:\\Repo\\SampleLegacyApp.Data\\CustomerRepository.cs` | SampleLegacyApp.Data | Repository class or interface candidate found.", markdown);
+        Assert.Contains("| Entity Framework 6 | EntityFramework | PackageReference: `C:\\Repo\\SampleLegacyApp.Data\\packages.config` | SampleLegacyApp.Data | `EntityFramework 6.4.4 package reference found from packages.config.`", markdown);
+        Assert.Contains("| Dapper | Dapper | PackageReference: `C:\\Repo\\SampleLegacyApp.Data\\SampleLegacyApp.Data.csproj` | SampleLegacyApp.Data | `Dapper 2.1.35 package reference found from PackageReference.`", markdown);
+        Assert.Contains("| Repository Pattern | CustomerRepository | SourceCode: `C:\\Repo\\SampleLegacyApp.Data\\CustomerRepository.cs` | SampleLegacyApp.Data | `Repository class or interface candidate found.`", markdown);
 
         Assert.Contains("Server=.;Database=Main;User Id=***;Password=***;", markdown);
         Assert.Contains("Classic Entity Framework detected.", markdown);
@@ -259,7 +259,7 @@ public sealed class DataAccessInventoryMarkdownReportWriterTests : IDisposable
         var markdown = File.ReadAllText(outputPath);
 
         Assert.Contains("## Database Provider Indicators", markdown);
-        Assert.Contains("| Database Provider | Microsoft.Data.SqlClient | PackageReference: `C:\\Repo\\Data.csproj` | SampleLegacyApp.Data | Microsoft.Data.SqlClient 5.2.2 package reference found from PackageReference.", markdown);
+        Assert.Contains("| Database Provider | Microsoft.Data.SqlClient | PackageReference: `C:\\Repo\\Data.csproj` | SampleLegacyApp.Data | `Microsoft.Data.SqlClient 5.2.2 package reference found from PackageReference.`", markdown);
     }
 
     [Fact]
@@ -328,7 +328,7 @@ public sealed class DataAccessInventoryMarkdownReportWriterTests : IDisposable
         var markdown = File.ReadAllText(outputPath);
 
         Assert.Contains("## EF / EDMX Details", markdown);
-        Assert.Contains("| EDMX / ObjectContext | LegacyModel.edmx | EDMX: `C:\\Repo\\Data\\LegacyModel.edmx` | SampleLegacyApp.Data | EDMX model file found.", markdown);
+        Assert.Contains("| EDMX / ObjectContext | LegacyModel.edmx | EDMX: `C:\\Repo\\Data\\LegacyModel.edmx` | SampleLegacyApp.Data | `EDMX model file found.`", markdown);
     }
 
     [Fact]
@@ -357,7 +357,7 @@ public sealed class DataAccessInventoryMarkdownReportWriterTests : IDisposable
         var markdown = File.ReadAllText(outputPath);
 
         Assert.Contains("## ADO.NET Indicators", markdown);
-        Assert.Contains("| ADO.NET | System.Data | AssemblyReference: `C:\\Repo\\Data.csproj` | SampleLegacyApp.Data | System.Data assembly reference found.", markdown);
+        Assert.Contains("| ADO.NET | System.Data | AssemblyReference: `C:\\Repo\\Data.csproj` | SampleLegacyApp.Data | `System.Data assembly reference found.`", markdown);
     }
 
     [Fact]
@@ -396,8 +396,8 @@ public sealed class DataAccessInventoryMarkdownReportWriterTests : IDisposable
         var markdown = File.ReadAllText(outputPath);
 
         Assert.Contains("## Raw SQL and Stored Procedure Indicators", markdown);
-        Assert.Contains("| Raw SQL | RawSqlQuery.cs | SourceCode: `C:\\Repo\\Data\\RawSqlQuery.cs` | SampleLegacyApp.Data | Possible raw SQL string detected.", markdown);
-        Assert.Contains("| Stored Procedure | StoredProcedureRunner.cs | SourceCode: `C:\\Repo\\Data\\StoredProcedureRunner.cs` | SampleLegacyApp.Data | Possible stored procedure usage detected.", markdown);
+        Assert.Contains("| Raw SQL | RawSqlQuery.cs | SourceCode: `C:\\Repo\\Data\\RawSqlQuery.cs` | SampleLegacyApp.Data | `Possible raw SQL string detected.`", markdown);
+        Assert.Contains("| Stored Procedure | StoredProcedureRunner.cs | SourceCode: `C:\\Repo\\Data\\StoredProcedureRunner.cs` | SampleLegacyApp.Data | `Possible stored procedure usage detected.`", markdown);
     }
 
     [Fact]
@@ -436,8 +436,8 @@ public sealed class DataAccessInventoryMarkdownReportWriterTests : IDisposable
         var markdown = File.ReadAllText(outputPath);
 
         Assert.Contains("## Repository and Unit-of-Work Candidates", markdown);
-        Assert.Contains("| Repository Pattern | CustomerRepository | SourceCode: `C:\\Repo\\Data\\CustomerRepository.cs` | SampleLegacyApp.Data | Repository class or interface candidate found.", markdown);
-        Assert.Contains("| Unit of Work Pattern | CustomerUnitOfWork | SourceCode: `C:\\Repo\\Data\\CustomerUnitOfWork.cs` | SampleLegacyApp.Data | Unit-of-work class or interface candidate found.", markdown);
+        Assert.Contains("| Repository Pattern | CustomerRepository | SourceCode: `C:\\Repo\\Data\\CustomerRepository.cs` | SampleLegacyApp.Data | `Repository class or interface candidate found.`", markdown);
+        Assert.Contains("| Unit of Work Pattern | CustomerUnitOfWork | SourceCode: `C:\\Repo\\Data\\CustomerUnitOfWork.cs` | SampleLegacyApp.Data | `Unit-of-work class or interface candidate found.`", markdown);
     }
 
     [Fact]
@@ -466,7 +466,7 @@ public sealed class DataAccessInventoryMarkdownReportWriterTests : IDisposable
         var markdown = File.ReadAllText(outputPath);
 
         Assert.Contains("## Migration Artifacts", markdown);
-        Assert.Contains("| Migration Artifact | Migrations | MigrationFolder: `C:\\Repo\\Data\\Migrations` | SampleLegacyApp.Data | Migrations folder found.", markdown);
+        Assert.Contains("| Migration Artifact | Migrations | MigrationFolder: `C:\\Repo\\Data\\Migrations` | SampleLegacyApp.Data | `Migrations folder found.`", markdown);
     }
 
     [Fact]

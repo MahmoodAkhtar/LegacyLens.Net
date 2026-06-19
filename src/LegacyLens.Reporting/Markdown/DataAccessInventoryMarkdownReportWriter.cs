@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using LegacyLens.Core.Analysis;
 
 namespace LegacyLens.Reporting.Markdown;
@@ -168,9 +168,9 @@ public sealed class DataAccessInventoryMarkdownReportWriter
             markdown.AppendLine(
                 $"| {Escape(GetCategoryLabel(finding.Category))} " +
                 $"| {Escape(finding.Name)} " +
-                $"| {Escape(GetSourceLabel(finding.SourceType))}: `{Escape(finding.SourcePath)}` " +
+                $"| {Escape(GetSourceLabel(finding.SourceType))}: {MarkdownTableCell.Code(finding.SourcePath)} " +
                 $"| {Escape(finding.ProjectName ?? string.Empty)} " +
-                $"| {Escape(finding.Evidence)} " +
+                $"| {MarkdownTableCell.Evidence(finding.Evidence)} " +
                 $"| {Escape(finding.MaskedValue ?? string.Empty)} " +
                 $"| {finding.Confidence} " +
                 $"| {Escape(finding.MigrationConsideration)} |");
@@ -208,9 +208,9 @@ public sealed class DataAccessInventoryMarkdownReportWriter
             markdown.AppendLine(
                 $"| {Escape(GetCategoryLabel(finding.Category))} " +
                 $"| {Escape(finding.Name)} " +
-                $"| {Escape(GetSourceLabel(finding.SourceType))}: `{Escape(finding.SourcePath)}` " +
+                $"| {Escape(GetSourceLabel(finding.SourceType))}: {MarkdownTableCell.Code(finding.SourcePath)} " +
                 $"| {Escape(finding.ProjectName ?? string.Empty)} " +
-                $"| {Escape(finding.Evidence)} " +
+                $"| {MarkdownTableCell.Evidence(finding.Evidence)} " +
                 $"| {Escape(finding.MigrationConsideration)} |");
         }
 
@@ -241,7 +241,7 @@ public sealed class DataAccessInventoryMarkdownReportWriter
         {
             markdown.AppendLine(
                 $"| {priority} " +
-                $"| `{Escape(finding.SourcePath)}` " +
+                $"| {MarkdownTableCell.Code(finding.SourcePath)} " +
                 $"| {Escape($"{GetCategoryLabel(finding.Category)}: {finding.Evidence}")} |");
 
             priority++;
@@ -371,8 +371,5 @@ public sealed class DataAccessInventoryMarkdownReportWriter
         };
     }
 
-    private static string Escape(string? value)
-    {
-        return (value ?? string.Empty).Replace("|", "\\|", StringComparison.Ordinal);
-    }
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }

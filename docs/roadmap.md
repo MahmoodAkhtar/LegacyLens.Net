@@ -17,6 +17,7 @@ After the MVP exit criteria are met, additional discovery work should be priorit
 - It improves prioritisation where the review summary ranks less actionable areas above clearly higher-value migration risks.
 - It adds support for a realistic legacy pattern found in an external sample application or real-world codebase.
 - It improves evidence for external runtime or build-time dependencies that materially affect migration, deployment, testing, onboarding, or local development.
+- It fixes Markdown rendering or table-structure defects that hide evidence or make generated reports misleading in common Markdown previews.
 
 Ideas that do not satisfy one of these rules should remain post-MVP backlog items.
 
@@ -90,6 +91,29 @@ Status: Implemented
 - Include WCF reader quota sections
 - Include WCF behaviour detail sections
 - Include modernisation review summary
+
+
+### Step 2a: Shared Markdown-safe table-cell formatting
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add or extend a shared Markdown table-cell formatting helper in the reporting layer.
+- Apply the helper across generated Markdown report writers where values are written into tables, including the main discovery report and optional artifacts such as upgrade readiness, upgrade blockers, external dependencies, configuration inventory, data access, EDMX analysis, class dependencies, interface inventory, and solution topology.
+- Keep XML/configuration evidence such as Spring.NET `<object ... />`, WCF `<endpoint ... />`, and configuration `<add ... />` visible in rendered Markdown previews.
+- Keep Markdown tables structurally valid when values contain pipe characters, newlines, backticks, raw HTML-like text, paths, configuration values, or source-code snippets.
+- Treat evidence cells as code-like by default and render them as safe inline code where practical.
+- Preserve existing empty/null fallback behaviour and sensitive-value masking rules.
+- Keep the fix in the Markdown reporting layer without changing discovery behaviour, analyzer models, raw evidence values, or artifact selection semantics.
+- Add focused tests for helper behaviour and generated Markdown output, including Spring.NET XML evidence in `interface-inventory.md` and at least one other artifact writer.
+
+Out of scope for MVP:
+
+- Changing analyzer/discovery logic to solve Markdown rendering.
+- Removing, suppressing, or weakening XML/configuration evidence.
+- Replacing Markdown reports with HTML reports.
+- Runtime validation of whether evidence is active or used.
 
 ### Step 3: Dependency diagram generation
 
@@ -515,11 +539,11 @@ MVP scope:
 - Discover classes, records, and structs implementing interfaces, including generic interface evidence where useful.
 - Discover static consumers through constructor parameters, fields, properties, method parameters, return types, local variables, generic type arguments, collection-based interface usage, inherited interfaces, endpoint delegate parameters, and service-locator/resolver calls where type arguments are visible.
 - Discover registration evidence for Microsoft DI, Castle Windsor, Autofac, Ninject, Unity, StructureMap, Simple Injector, LightInject, Lamar, Common Service Locator, ASP.NET MVC/Web API dependency resolver setup, and factory registrations where static syntax evidence is available.
-- Discover visible XML/configuration-driven IoC evidence for Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory sections where feasible.
-- Preserve evidence including project name, source/configuration path, line number where available, interface, implementation where extractable, consumer kind, registration kind, lifetime where extractable, concise snippet, and requires-review flag.
+- Discover visible XML/configuration-driven IoC evidence for Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory sections where feasible, using only meaningful configuration-bearing elements and attributes as evidence.
+- Preserve evidence including project name, source/configuration path, line number where available, interface, implementation where extractable, consumer kind, registration kind, lifetime where extractable, concise snippet, and requires-review flag. For Spring.NET, concise evidence should come from object/property/constructor/factory/alias/parent-style wiring, not comments, descriptions, root container text, or broad serialized XML.
 - Highlight interfaces with multiple implementations, no static implementation found, no static consumer found, dynamic wiring that may exist, configuration-driven wiring that may exist, likely roles, possible extension points, and requires-review evidence.
 - Use cautious report wording such as `Static source evidence`, `Static configuration evidence`, `No static implementation found`, `No static consumer found`, `Registration evidence found`, `Dynamic wiring may exist`, `Configuration-driven wiring may exist`, `Requires review`, `Possible extension point`, `Likely role`, `Static analysis finding`, and `No static source usage detected`.
-- Add unit tests for analyzer rules, registration extraction, XML/configuration evidence, dynamic review classification, CLI artifact selection, and Markdown output.
+- Add unit tests for analyzer rules, registration extraction, XML/configuration evidence, dynamic review classification, CLI artifact selection, and Markdown output. Regression coverage should prove XML comments and Spring.NET `<description>` text are ignored, the root `<objects>` element is not reported because descendants contain interface names, valid Spring.NET object/property evidence is still detected, XML evidence remains requires-review, and assembly-qualified XML type names simplify correctly.
 
 Out of scope for MVP:
 
@@ -533,7 +557,7 @@ Out of scope for MVP:
 - Resolving a runtime object graph or runtime dependency injection graph.
 - Proving runtime usage, active runtime registration, absence of usage, interface safety, or completeness.
 
-Implementation should use the MVP artifact selection model rather than one-off command handling.
+Implementation should use the MVP artifact selection model rather than one-off command handling. The Spring.NET XML evidence precision fix is an MVP report-quality correction, not a post-MVP enhancement, because it addresses misleading evidence in the generated `interface-inventory.md` report.
 
 ---
 

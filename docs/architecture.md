@@ -435,11 +435,11 @@ Likely core types:
 | `InterfaceInventoryFinding` | Review finding for multiple implementations, no static implementation found, no static consumer found, dynamic wiring, configuration-driven wiring, possible extension point, or other static analysis concern. |
 | `InterfaceInventoryMarkdownReportWriter` | Writes the `interface-inventory.md` artifact. |
 
-The analyzer should use Roslyn syntax parsing where useful and follow the static/no-build approach already used by class-dependencies. It should also inspect visible configuration/XML files defensively for Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory evidence where feasible.
+The analyzer should use Roslyn syntax parsing where useful and follow the static/no-build approach already used by class-dependencies. It should also inspect visible configuration/XML files defensively for Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory evidence where feasible. Spring.NET XML discovery belongs in `InterfaceInventoryAnalyzer` rather than the Markdown writer: the analyzer should iterate over meaningful `<object>` and related wiring elements, build concise evidence from executable/configuration-bearing attributes and immediate relevant child elements, and avoid broad `element.ToString()` or descendant-text matching. XML comments, `<description>` text, root `<objects>` text, and arbitrary descendant text must not influence interface matching, implementation extraction, findings, or evidence.
 
 `InterfaceInventoryArtifactRunner` should live in `LegacyLens.Cli.Commands.Runners`, use `context.Options.ShouldWriteArtifact("interface-inventory")`, consume `ScanContext` and `ScanContext.FileInventory`, resolve its output path through `ArtifactOutputPathResolver`, write `interface-inventory.md`, and return a `ScanArtifactResult`. `ScanOptions.SupportedArtifactNames`, parser validation, `ScanResult`, and `ScanConsoleWriter` should be updated so single, comma-separated, and `all` artifact selections behave consistently.
 
-The implementation should remain static and evidence-backed. It should not build the solution, restore NuGet packages, execute container bootstrap code, load assemblies, apply transforms, resolve runtime dependency injection, prove runtime usage, prove that an interface is unused, prove a registration is active, or guarantee completeness. Factory, reflection, assembly scanning, XML/configuration-driven, alias, parent/child-object, profile-based, service-locator, and similar dynamic patterns should be marked as requiring review.
+The implementation should remain static and evidence-backed. It should not build the solution, restore NuGet packages, execute container bootstrap code, load assemblies, apply transforms, resolve runtime dependency injection, prove runtime usage, prove that an interface is unused, prove a registration is active, or guarantee completeness. Factory, reflection, assembly scanning, XML/configuration-driven, alias, parent/child-object, profile-based, service-locator, and similar dynamic patterns should be marked as requiring review. Assembly-qualified XML type values should be simplified from the type name before the assembly comma, so interface and implementation names are reported as useful type names such as `ICustomerService` and `CustomerService` rather than assembly-name fragments.
 
 ### EDMX Analysis
 
@@ -646,6 +646,7 @@ Examples:
 * `EdmxAnalysisMarkdownReportWriter`
 * `ClassDependenciesMarkdownReportWriter`
 * `InterfaceInventoryMarkdownReportWriter`
+* `SolutionTopologyMarkdownReportWriter`
 
 Avoid generic names such as `MarkdownReportWriter` when the writer only renders one specific report. For example, the writer for the main `discovery-report.md` artifact should be named `DiscoveryMarkdownReportWriter` rather than `MarkdownReportWriter`.
 
@@ -670,6 +671,21 @@ LegacyLens.Reporting/
 ├── Markdown/
 └── Mermaid/
 ```
+
+
+### Shared Markdown Table-Cell Formatting
+
+Markdown table-cell safety is a shared reporting concern and should live in `LegacyLens.Reporting`, preferably under the Markdown reporting namespace alongside the Markdown writers. Avoid solving this separately inside each artifact writer. A small helper such as `MarkdownTableCell` can centralise behaviour for prose cells, code-like cells, and evidence cells.
+
+Suggested responsibilities:
+
+* `Escape(...)` for prose table cells: preserve empty/null fallback behaviour, normalize newlines into single-line table content, collapse repeated whitespace where appropriate, and escape table separators such as `|` so rows remain structurally valid.
+* `Code(...)` for code-like values: render safe inline code, handle embedded backticks without breaking Markdown, normalize multi-line values, and protect pipe characters.
+* `Evidence(...)` for evidence values: treat evidence as code-like by default so XML/configuration snippets such as `<object ... />`, WCF `<endpoint ... />`, configuration `<add ... />`, C# snippets, and other raw evidence remain visible in rendered Markdown previews.
+
+This helper should be used by Markdown writers such as `DiscoveryMarkdownReportWriter`, `UpgradeReadinessMarkdownReportWriter`, `UpgradeBlockersMarkdownReportWriter`, `ExternalDependenciesMarkdownReportWriter`, `DataAccessInventoryMarkdownReportWriter`, `EdmxAnalysisMarkdownReportWriter`, `ClassDependenciesMarkdownReportWriter`, `ConfigurationInventoryMarkdownReportWriter`, `InterfaceInventoryMarkdownReportWriter`, and `SolutionTopologyMarkdownReportWriter` wherever values are written into Markdown tables. Mermaid diagram writers should not use Markdown table-cell helpers unless they are writing Markdown table content.
+
+The formatter must not change analyzer models, discovery behaviour, masking decisions, or raw evidence values. It is responsible only for safe Markdown rendering. Tests should cover the helper directly and generated Markdown from representative writers, especially XML-like evidence, pipe characters, newlines, backticks, Spring.NET XML registration evidence in `interface-inventory.md`, and at least one non-interface artifact writer to prove the helper is shared.
 
 ### Markdown
 

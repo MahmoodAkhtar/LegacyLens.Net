@@ -173,9 +173,9 @@ public sealed class EdmxAnalysisMarkdownReportWriterTests : IDisposable
 
         Assert.Contains("## Upgrade Concerns", markdown);
         Assert.Contains("| Severity | Project | EDMX File | Concern | Evidence | Recommendation |", markdown);
-        Assert.Contains("| High | SampleLegacyApp.Data | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.edmx` | EDMX model requires migration decision | LegacyModel.edmx is an Entity Framework EDMX model. No direct EF Core EDMX equivalent exists. | Review whether to scaffold a new EF Core model from the database, keep EF6 isolated, or manually map equivalent entities and relationships. |", markdown);
-        Assert.Contains("| Medium | SampleLegacyApp.Data | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.edmx` | Stored procedure or function mapping requires review | Function imports, store functions, or modification function mappings were found. | Review stored procedure usage and decide whether EF Core stored procedure support, raw SQL, or explicit repository methods are needed. |", markdown);
-        Assert.Contains("| Low | SampleLegacyApp.Data | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.edmx` | Complex types require manual mapping review | 1 complex type(s) found. | Review whether EF Core owned entity types or explicit value-object mappings are appropriate. |", markdown);
+        Assert.Contains("| High | SampleLegacyApp.Data | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.edmx` | EDMX model requires migration decision | `LegacyModel.edmx is an Entity Framework EDMX model. No direct EF Core EDMX equivalent exists.` | Review whether to scaffold a new EF Core model from the database, keep EF6 isolated, or manually map equivalent entities and relationships. |", markdown);
+        Assert.Contains("| Medium | SampleLegacyApp.Data | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.edmx` | Stored procedure or function mapping requires review | `Function imports, store functions, or modification function mappings were found.` | Review stored procedure usage and decide whether EF Core stored procedure support, raw SQL, or explicit repository methods are needed. |", markdown);
+        Assert.Contains("| Low | SampleLegacyApp.Data | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.edmx` | Complex types require manual mapping review | `1 complex type(s) found.` | Review whether EF Core owned entity types or explicit value-object mappings are appropriate. |", markdown);
     }
 
     [Fact]
@@ -280,8 +280,8 @@ public sealed class EdmxAnalysisMarkdownReportWriterTests : IDisposable
 
         Assert.Contains("## Companion Generated Files", markdown);
         Assert.Contains("| Project | EDMX File | Kind | File | Evidence |", markdown);
-        Assert.Contains("| SampleLegacyApp.Data | `LegacyModel.edmx` | T4 template | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.Context.tt` | T4 template found near EDMX file. |", markdown);
-        Assert.Contains("| SampleLegacyApp.Data | `LegacyModel.edmx` | Designer generated code | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.Designer.cs` | .Designer.cs file found near EDMX file. |", markdown);
+        Assert.Contains("| SampleLegacyApp.Data | `LegacyModel.edmx` | T4 template | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.Context.tt` | `T4 template found near EDMX file.` |", markdown);
+        Assert.Contains("| SampleLegacyApp.Data | `LegacyModel.edmx` | Designer generated code | `C:\\Repo\\SampleLegacyApp.Data\\LegacyModel.Designer.cs` | `.Designer.cs file found near EDMX file.` |", markdown);
     }
 
     [Fact]

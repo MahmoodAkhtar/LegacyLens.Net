@@ -231,7 +231,7 @@ public sealed class ExternalDependenciesMarkdownReportWriterTests : IDisposable
         Assert.Contains("| Category | Name / Identifier | Source | Evidence | Masked Value | Requires Confirmation |",
             markdown);
         Assert.Contains(
-            "| Database | MainDatabase | Configuration | Connection string configured with provider System.Data.SqlClient. | `Server=.;Database=Main;User Id=***;Password=***;` | Yes |",
+            "| Database | MainDatabase | Configuration | `Connection string configured with provider System.Data.SqlClient.` | `Server=.;Database=Main;User Id=***;Password=***;` | Yes |",
             markdown);
     }
 
@@ -266,8 +266,31 @@ public sealed class ExternalDependenciesMarkdownReportWriterTests : IDisposable
             "| Name / Identifier | Source Type | Project | Source File | Evidence | Masked Value | Confidence | Notes |",
             markdown);
         Assert.Contains(
-            "| MainDatabase | Configuration | Legacy.Web | `C:\\Repo\\Web.config` | Connection string configured. | `Server=.;Database=Main;` | High | Runtime usage is not verified. |",
+            "| MainDatabase | Configuration | Legacy.Web | `C:\\Repo\\Web.config` | `Connection string configured.` | `Server=.;Database=Main;` | High | Runtime usage is not verified. |",
             markdown);
+    }
+
+    [Fact]
+    public void Write_WhenEvidenceContainsXmlPipeNewlineAndBackticks_RendersEvidenceWithSharedMarkdownSafeFormatting()
+    {
+        var outputPath = Path.Combine(_tempDirectory, "external-dependencies.md");
+        var report = new ExternalDependenciesReport(
+            new[]
+            {
+                CreateDependency(
+                    ExternalDependencyCategory.WcfServiceEndpoint,
+                    "Legacy.CustomerService",
+                    ExternalDependencySourceType.WcfEndpoint,
+                    @"C:\Repo\Web.config",
+                    "<endpoint address=\"http://example.test|api\">\n`binding`\n</endpoint>")
+            });
+        var writer = new ExternalDependenciesMarkdownReportWriter();
+
+        writer.Write(outputPath, report);
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains("`` <endpoint address=\"http://example.test\\|api\"> `binding` </endpoint> ``", markdown);
     }
 
     [Fact]
@@ -336,7 +359,7 @@ public sealed class ExternalDependenciesMarkdownReportWriterTests : IDisposable
         Assert.Contains("## Build-Time / Package Feed Dependencies", markdown);
         Assert.Contains("| Source | Evidence | Notes |", markdown);
         Assert.Contains(
-            "| `C:\\Repo\\NuGet.config` | Non-nuget.org package source found. | Private feed availability and credentials require confirmation. |",
+            "| `C:\\Repo\\NuGet.config` | `Non-nuget.org package source found.` | Private feed availability and credentials require confirmation. |",
             markdown);
     }
 
@@ -372,14 +395,14 @@ public sealed class ExternalDependenciesMarkdownReportWriterTests : IDisposable
 
         var markdown = File.ReadAllText(outputPath);
 
-        Assert.Contains("| Database | Configuration | Configuration | Evidence.", markdown);
-        Assert.Contains("| Database | Package | Package Reference | Evidence.", markdown);
-        Assert.Contains("| Database | Assembly | Assembly Reference | Evidence.", markdown);
-        Assert.Contains("| Database | WCF | WCF Endpoint | Evidence.", markdown);
-        Assert.Contains("| Database | NuGet | NuGet.config | Evidence.", markdown);
-        Assert.Contains("| Database | Source | Source Code | Evidence.", markdown);
-        Assert.Contains("| Database | Project | Project File | Evidence.", markdown);
-        Assert.Contains("| Database | Unknown | Unknown | Evidence.", markdown);
+        Assert.Contains("| Database | Configuration | Configuration | `Evidence.`", markdown);
+        Assert.Contains("| Database | Package | Package Reference | `Evidence.`", markdown);
+        Assert.Contains("| Database | Assembly | Assembly Reference | `Evidence.`", markdown);
+        Assert.Contains("| Database | WCF | WCF Endpoint | `Evidence.`", markdown);
+        Assert.Contains("| Database | NuGet | NuGet.config | `Evidence.`", markdown);
+        Assert.Contains("| Database | Source | Source Code | `Evidence.`", markdown);
+        Assert.Contains("| Database | Project | Project File | `Evidence.`", markdown);
+        Assert.Contains("| Database | Unknown | Unknown | `Evidence.`", markdown);
     }
 
     [Fact]

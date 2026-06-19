@@ -102,14 +102,14 @@ public sealed class EdmxAnalysisMarkdownReportWriter
                      .ThenBy(model => model.FilePath, StringComparer.OrdinalIgnoreCase))
         {
             markdown.AppendLine(
-                $"| {Escape(model.ProjectName ?? "Unknown")} | `{Escape(model.FilePath)}` | {YesNo(model.HasConceptualModel)} | {YesNo(model.HasStorageModel)} | {YesNo(model.HasMappingModel)} | {YesNo(model.HasDesignerMetadata)} | {ParseStatus(model)} |");
+                $"| {Escape(model.ProjectName ?? "Unknown")} | {MarkdownTableCell.Code(model.FilePath)} | {YesNo(model.HasConceptualModel)} | {YesNo(model.HasStorageModel)} | {YesNo(model.HasMappingModel)} | {YesNo(model.HasDesignerMetadata)} | {ParseStatus(model)} |");
         }
 
         markdown.AppendLine();
 
         foreach (var model in report.Models.Where(model => !string.IsNullOrWhiteSpace(model.ParseError)))
         {
-            markdown.AppendLine($"- `{Escape(model.FilePath)}` parse error: {Escape(model.ParseError)}");
+            markdown.AppendLine($"- {MarkdownTableCell.Code(model.FilePath)} parse error: {Escape(model.ParseError)}");
         }
 
         if (report.Models.Any(model => !string.IsNullOrWhiteSpace(model.ParseError)))
@@ -139,7 +139,7 @@ public sealed class EdmxAnalysisMarkdownReportWriter
 
         foreach (var namespaceUri in namespaceUris)
         {
-            markdown.AppendLine($"- `{Escape(namespaceUri)}`");
+            markdown.AppendLine($"- {MarkdownTableCell.Code(namespaceUri)}");
         }
 
         markdown.AppendLine();
@@ -175,7 +175,7 @@ public sealed class EdmxAnalysisMarkdownReportWriter
         foreach (var row in rows)
         {
             markdown.AppendLine(
-                $"| {row.Concern.Severity} | {Escape(row.Model.ProjectName ?? "Unknown")} | `{Escape(row.Model.FilePath)}` | {Escape(row.Concern.Concern)} | {Escape(row.Concern.Evidence)} | {Escape(row.Concern.Recommendation)} |");
+                $"| {row.Concern.Severity} | {Escape(row.Model.ProjectName ?? "Unknown")} | {MarkdownTableCell.Code(row.Model.FilePath)} | {Escape(row.Concern.Concern)} | {MarkdownTableCell.Evidence(row.Concern.Evidence)} | {Escape(row.Concern.Recommendation)} |");
         }
 
         markdown.AppendLine();
@@ -419,7 +419,7 @@ public sealed class EdmxAnalysisMarkdownReportWriter
         foreach (var row in rows)
         {
             markdown.AppendLine(
-                $"| {Escape(row.Model.ProjectName ?? "Unknown")} | `{Escape(Path.GetFileName(row.Model.FilePath))}` | {Escape(row.File.Kind)} | `{Escape(row.File.FilePath)}` | {Escape(row.File.Evidence)} |");
+                $"| {Escape(row.Model.ProjectName ?? "Unknown")} | {MarkdownTableCell.Code(Path.GetFileName(row.Model.FilePath))} | {Escape(row.File.Kind)} | {MarkdownTableCell.Code(row.File.FilePath)} | {MarkdownTableCell.Evidence(row.File.Evidence)} |");
         }
 
         markdown.AppendLine();
@@ -486,14 +486,5 @@ public sealed class EdmxAnalysisMarkdownReportWriter
             null => "Unknown"
         };
     }
-
-    private static string Escape(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        return value.Replace("|", "\\|", StringComparison.Ordinal);
-    }
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }

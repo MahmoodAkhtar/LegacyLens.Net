@@ -102,8 +102,8 @@ public sealed class InterfaceInventoryMarkdownReportWriterTests : IDisposable
         Assert.Contains("| Interfaces with no static consumer found | 1 |", markdown);
         Assert.Contains("| Dynamic/configuration-driven wiring items requiring review | 1 |", markdown);
 
-        Assert.Contains("| Info | `ICustomerService` | Multiple static implementations found | 2 implementation type(s) were discovered.", markdown);
-        Assert.Contains("| Review | `IPluginExtension` | Dynamic or configuration-driven wiring requires review | Spring.NET object definition", markdown);
+        Assert.Contains("| Info | `ICustomerService` | Multiple static implementations found | `2 implementation type(s) were discovered.`", markdown);
+        Assert.Contains("| Review | `IPluginExtension` | Dynamic or configuration-driven wiring requires review | `Spring.NET object definition`", markdown);
 
         Assert.Contains("| `ICustomerService` | SampleLegacyApp.Services | Service boundary | None | 2 | 2 | 1 |", markdown);
         Assert.Contains("| `IPluginExtension` | SampleLegacyApp.Services | General abstraction | None | 0 | 0 | 1 |", markdown);
@@ -154,12 +154,100 @@ public sealed class InterfaceInventoryMarkdownReportWriterTests : IDisposable
         Assert.Contains("Service \\| boundary", markdown);
     }
 
+
+    [Fact]
+    public void Write_WhenRegistrationEvidenceIsXmlLike_RendersEvidenceAsMarkdownSafeInlineCode()
+    {
+        var outputPath = Path.Combine(_tempDirectory, "interface-inventory.md");
+        var writer = new InterfaceInventoryMarkdownReportWriter();
+        var xmlEvidence = "<object id=\"customerServiceByInterface\" type=\"SampleLegacyApp.Services.ICustomerService, SampleLegacyApp.Services\" factory-object=\"customerService\" factory-method=\"ToString\" />";
+
+        writer.Write(outputPath, CreateReportWithXmlEvidence(xmlEvidence, xmlEvidence));
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains($"| `ICustomerService` | `CustomerService` | Spring.NET XML | Yes | SampleLegacyApp.Web | `C:\\Repo\\SampleLegacyApp.Web\\spring-service.xml` | 12 | `{xmlEvidence}` |", markdown);
+        Assert.DoesNotContain($"| {xmlEvidence} |", markdown);
+    }
+
+    [Fact]
+    public void Write_WhenReviewFindingReusesXmlEvidence_RendersFindingEvidenceAsMarkdownSafeInlineCode()
+    {
+        var outputPath = Path.Combine(_tempDirectory, "interface-inventory.md");
+        var writer = new InterfaceInventoryMarkdownReportWriter();
+        var xmlEvidence = "<object id=\"customerServiceByInterface\" type=\"SampleLegacyApp.Services.ICustomerService, SampleLegacyApp.Services\" />";
+
+        writer.Write(outputPath, CreateReportWithXmlEvidence(xmlEvidence, xmlEvidence));
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains($"| Review | `ICustomerService` | Configuration-driven wiring requires review | `{xmlEvidence}` |", markdown);
+    }
+
+    [Fact]
+    public void Write_WhenEvidenceContainsPipeNewlineAndBackticks_KeepsTableRowStructurallySafe()
+    {
+        var outputPath = Path.Combine(_tempDirectory, "interface-inventory.md");
+        var writer = new InterfaceInventoryMarkdownReportWriter();
+        var registrationEvidence = "<object id=\"customer|service\">\r\n`factory`\r\n</object>";
+
+        writer.Write(outputPath, CreateReportWithXmlEvidence(registrationEvidence, registrationEvidence));
+
+        var markdown = File.ReadAllText(outputPath);
+
+        Assert.Contains("`` <object id=\"customer\\|service\"> `factory` </object> ``", markdown);
+        Assert.DoesNotContain("<object id=\"customer|service\">\r\n", markdown);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_tempDirectory))
         {
             Directory.Delete(_tempDirectory, recursive: true);
         }
+    }
+
+    private static InterfaceInventoryReport CreateReportWithXmlEvidence(string registrationEvidence, string findingEvidence)
+    {
+        return new InterfaceInventoryReport(
+            new[]
+            {
+                new InterfaceDefinition(
+                    "SampleLegacyApp.Services",
+                    @"C:\Repo\SampleLegacyApp.Services\CustomerService.cs",
+                    3,
+                    "ICustomerService",
+                    "SampleLegacyApp.Services.ICustomerService",
+                    Array.Empty<string>(),
+                    "Service boundary",
+                    true)
+            },
+            Array.Empty<InterfaceImplementation>(),
+            Array.Empty<InterfaceConsumer>(),
+            new[]
+            {
+                new InterfaceRegistrationEvidence(
+                    "SampleLegacyApp.Web",
+                    @"C:\Repo\SampleLegacyApp.Web\spring-service.xml",
+                    12,
+                    "ICustomerService",
+                    "CustomerService",
+                    InterfaceRegistrationKind.SpringNetXml,
+                    registrationEvidence,
+                    true,
+                    "Configuration-driven IoC evidence found.")
+            },
+            new[]
+            {
+                new InterfaceInventoryFinding(
+                    InterfaceInventoryFindingSeverity.Review,
+                    "ICustomerService",
+                    "Configuration-driven wiring requires review",
+                    findingEvidence,
+                    "Confirm whether this registration source is active at runtime.")
+            },
+            1,
+            1);
     }
 
     private static InterfaceInventoryReport CreateEmptyReport()

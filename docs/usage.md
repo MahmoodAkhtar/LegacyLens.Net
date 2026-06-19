@@ -132,6 +132,18 @@ When `--output-dir` is used, the report file is written as:
 
 Use either `--output` or `--output-dir`, not both.
 
+### Markdown Report Safety
+
+Generated Markdown reports are intended to be readable in both raw Markdown and rendered previews. Table cells should be formatted through shared Markdown-safe helpers so evidence and discovered values remain visible even when they contain XML-like text, source-code snippets, paths, pipe characters, newlines, or backticks.
+
+For example, Spring.NET XML registration evidence in `interface-inventory.md` should render visibly as inline code:
+
+```markdown
+`<object id="customerServiceByInterface" type="SampleLegacyApp.Services.ICustomerService, SampleLegacyApp.Services" factory-object="customerService" factory-method="ToString" />`
+```
+
+This formatting must not change discovery behaviour, analyzer models, masking rules, artifact selection, or CLI options. It only affects how generated Markdown table cells are rendered.
+
 ### Artifact Selection
 
 The main `discovery-report.md` is always generated. The optional `--artifacts <value>` option controls which additional artifact reports are generated from the same scan.
@@ -325,9 +337,9 @@ Intended usage:
 legacylens scan <path> --output-dir ./output --artifacts interface-inventory
 ```
 
-The report should remain static and evidence-backed. It should analyse `.cs` source files and visible configuration/XML files where useful to discover source-defined interfaces, implementations, consumers, DI/IoC registration evidence, and dynamic or configuration-driven wiring that requires review. It should help a developer answer which abstractions already exist and where new functionality or replacement behaviour may need to implement, reuse, or review an existing interface.
+The report should remain static and evidence-backed. It should analyse `.cs` source files and visible configuration/XML files where useful to discover source-defined interfaces, implementations, consumers, DI/IoC registration evidence, and dynamic or configuration-driven wiring that requires review. It should help a developer answer which abstractions already exist and where new functionality or replacement behaviour may need to implement, reuse, or review an existing interface. For Spring.NET XML, evidence should come from meaningful configuration-bearing elements and attributes such as `<object id="..." type="...">`, `constructor-arg`, `property`, `factory-object`, `factory-method`, `parent`, `abstract`, alias-style wiring, or similar executable wiring. XML comments, the root `<objects>` element, arbitrary descendant text, and `<description>` text should not create registration evidence or appear in report snippets.
 
-The report should not claim to build the solution, restore packages, execute container bootstrap code, load assemblies, apply transforms, resolve runtime dependency injection, prove runtime usage, prove an interface is unused, prove an interface is registered, or guarantee completeness. Use cautious wording such as `static source evidence`, `registration evidence found`, `configuration-driven wiring may exist`, `requires review`, `possible extension point`, and `no static source usage detected`.
+The report should not claim to build the solution, restore packages, execute container bootstrap code, load assemblies, apply transforms, resolve runtime dependency injection, prove runtime usage, prove an interface is unused, prove an interface is registered, or guarantee completeness. Use cautious wording such as `static source evidence`, `static configuration evidence`, `registration evidence found`, `configuration-driven wiring may exist`, `requires review`, `possible extension point`, and `no static source usage detected`. XML/configuration-driven Spring.NET evidence should remain marked as requiring review even when the object or property evidence is meaningful.
 
 ### Solution Topology Artifact
 

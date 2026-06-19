@@ -1,3 +1,4 @@
+
 using LegacyLens.Core.Analysis;
 using LegacyLens.Core.Discovery;
 using LegacyLens.Core.Files;
@@ -267,6 +268,221 @@ public sealed class InterfaceInventoryAnalyzerTests : IDisposable
             item.Finding == "Dynamic or configuration-driven wiring requires review");
 
         Assert.Equal(2, report.ConfigurationFileCount);
+    }
+
+
+    [Fact]
+    public void Analyze_IgnoresSpringNetXmlCommentsWhenDiscoveringRegistrationEvidence()
+    {
+        WriteSourceFile(
+            "ServiceTypes.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public interface ICustomerService
+            {
+            }
+
+            public sealed class CustomerService : ICustomerService
+            {
+            }
+            """);
+
+        File.WriteAllText(
+            Path.Combine(_projectDirectory, "spring-objects.xml"),
+            """
+            <objects xmlns="http://www.springframework.net">
+              <!-- Expected interface-inventory.md signal for ICustomerService and CustomerService. -->
+              <object id="customerService" type="SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services" />
+            </objects>
+            """);
+
+        var analyzer = new InterfaceInventoryAnalyzer();
+
+        var report = analyzer.Analyze(
+            new[] { CreateProject() },
+            CreateInventory(new[] { CreateProject() }));
+
+        Assert.DoesNotContain(report.Registrations, item =>
+            item.Kind == InterfaceRegistrationKind.SpringNetXml &&
+            item.InterfaceName == "ICustomerService");
+
+        Assert.DoesNotContain(report.Registrations, item =>
+            item.Evidence.Contains("Expected interface-inventory.md signal", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Analyze_IgnoresSpringNetDescriptionTextWhenDiscoveringRegistrationEvidence()
+    {
+        WriteSourceFile(
+            "ServiceTypes.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public interface ICustomerService
+            {
+            }
+
+            public sealed class CustomerService : ICustomerService
+            {
+            }
+            """);
+
+        File.WriteAllText(
+            Path.Combine(_projectDirectory, "spring-objects.xml"),
+            """
+            <objects xmlns="http://www.springframework.net">
+              <object id="customerService" type="SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services">
+                <description>Manual-test Spring.NET object definition for ICustomerService.</description>
+              </object>
+            </objects>
+            """);
+
+        var analyzer = new InterfaceInventoryAnalyzer();
+
+        var report = analyzer.Analyze(
+            new[] { CreateProject() },
+            CreateInventory(new[] { CreateProject() }));
+
+        Assert.DoesNotContain(report.Registrations, item =>
+            item.Kind == InterfaceRegistrationKind.SpringNetXml &&
+            item.InterfaceName == "ICustomerService");
+
+        Assert.DoesNotContain(report.Registrations, item =>
+            item.Evidence.Contains("<description", StringComparison.OrdinalIgnoreCase) ||
+            item.Evidence.Contains("Manual-test Spring.NET object definition", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void Analyze_DoesNotReportRootSpringObjectsElementAsRegistrationEvidence()
+    {
+        WriteSourceFile(
+            "ServiceTypes.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public interface ICustomerService
+            {
+            }
+
+            public sealed class CustomerService : ICustomerService
+            {
+            }
+            """);
+
+        File.WriteAllText(
+            Path.Combine(_projectDirectory, "spring-objects.xml"),
+            """
+            <objects xmlns="http://www.springframework.net">
+              <!-- ICustomerService and CustomerService are mentioned only in root descendant comment text. -->
+              Manual-test Spring.NET object definition for ICustomerService.
+            </objects>
+            """);
+
+        var analyzer = new InterfaceInventoryAnalyzer();
+
+        var report = analyzer.Analyze(
+            new[] { CreateProject() },
+            CreateInventory(new[] { CreateProject() }));
+
+        Assert.DoesNotContain(report.Registrations, item =>
+            item.Kind == InterfaceRegistrationKind.SpringNetXml &&
+            item.Evidence.Contains("<objects", StringComparison.OrdinalIgnoreCase));
+
+        Assert.DoesNotContain(report.Registrations, item =>
+            item.InterfaceName == "ICustomerService" &&
+            item.Kind == InterfaceRegistrationKind.SpringNetXml);
+    }
+
+    [Fact]
+    public void Analyze_UsesSpringNetObjectAttributesForRegistrationEvidence()
+    {
+        WriteSourceFile(
+            "ServiceTypes.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public interface ICustomerService
+            {
+            }
+
+            public sealed class CustomerService : ICustomerService
+            {
+            }
+            """);
+
+        File.WriteAllText(
+            Path.Combine(_projectDirectory, "spring-objects.xml"),
+            """
+            <objects xmlns="http://www.springframework.net">
+              <!-- Expected interface-inventory.md signal for ICustomerService. -->
+              <object id="customerService" type="SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services">
+                <description>Manual-test Spring.NET object definition for ICustomerService.</description>
+                <property name="serviceInterface" value="SampleLegacyApp.Services.ICustomerService" />
+              </object>
+            </objects>
+            """);
+
+        var analyzer = new InterfaceInventoryAnalyzer();
+
+        var report = analyzer.Analyze(
+            new[] { CreateProject() },
+            CreateInventory(new[] { CreateProject() }));
+
+        var registration = Assert.Single(report.Registrations.Where(item =>
+            item.InterfaceName == "ICustomerService" &&
+            item.Kind == InterfaceRegistrationKind.SpringNetXml));
+
+        Assert.Equal("CustomerService", registration.ImplementationType);
+        Assert.True(registration.RequiresReview);
+        Assert.Contains("<object", registration.Evidence);
+        Assert.Contains("type=\"SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services\"", registration.Evidence);
+        Assert.Contains("<property", registration.Evidence);
+        Assert.Contains("value=\"SampleLegacyApp.Services.ICustomerService\"", registration.Evidence);
+        Assert.DoesNotContain("Expected interface-inventory.md signal", registration.Evidence);
+        Assert.DoesNotContain("<description", registration.Evidence);
+        Assert.DoesNotContain("Manual-test Spring.NET object definition", registration.Evidence);
+    }
+
+    [Fact]
+    public void Analyze_SimplifiesAssemblyQualifiedXmlTypeNamesCorrectly()
+    {
+        WriteSourceFile(
+            "ServiceTypes.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public interface ICustomerService
+            {
+            }
+
+            public sealed class CustomerService : ICustomerService
+            {
+            }
+            """);
+
+        File.WriteAllText(
+            Path.Combine(_projectDirectory, "spring-objects.xml"),
+            """
+            <objects xmlns="http://www.springframework.net">
+              <object id="customerService" type="SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services">
+                <property name="serviceInterface" value="SampleLegacyApp.Services.ICustomerService, SampleLegacyApp.Services" />
+              </object>
+            </objects>
+            """);
+
+        var analyzer = new InterfaceInventoryAnalyzer();
+
+        var report = analyzer.Analyze(
+            new[] { CreateProject() },
+            CreateInventory(new[] { CreateProject() }));
+
+        var registration = Assert.Single(report.Registrations.Where(item =>
+            item.InterfaceName == "ICustomerService" &&
+            item.Kind == InterfaceRegistrationKind.SpringNetXml));
+
+        Assert.Equal("ICustomerService", registration.InterfaceName);
+        Assert.Equal("CustomerService", registration.ImplementationType);
     }
 
     public void Dispose()

@@ -94,7 +94,7 @@ public sealed class InterfaceInventoryMarkdownReportWriter
 
         foreach (var finding in report.Findings)
         {
-            markdown.AppendLine($"| {finding.Severity} | `{Escape(finding.InterfaceName)}` | {Escape(finding.Finding)} | {Escape(finding.Evidence)} | {Escape(finding.Recommendation)} |");
+            markdown.AppendLine($"| {finding.Severity} | {MarkdownTableCell.Code(finding.InterfaceName)} | {Escape(finding.Finding)} | {MarkdownTableCell.Evidence(finding.Evidence)} | {Escape(finding.Recommendation)} |");
         }
 
         markdown.AppendLine();
@@ -130,7 +130,7 @@ public sealed class InterfaceInventoryMarkdownReportWriter
                 ? "Multiple implementations may indicate a strategy, plugin, or replaceable service boundary."
                 : "Naming suggests this interface may represent a useful abstraction or extension seam.";
 
-            markdown.AppendLine($"| `{Escape(item.Name)}` | {Escape(item.ProjectName)} | {Escape(item.LikelyRole)} | {implementationCount} | {consumerCount} | {registrationCount} | {Escape(whyReview)} |");
+            markdown.AppendLine($"| {MarkdownTableCell.Code(item.Name)} | {Escape(item.ProjectName)} | {Escape(item.LikelyRole)} | {implementationCount} | {consumerCount} | {registrationCount} | {Escape(whyReview)} |");
         }
 
         markdown.AppendLine();
@@ -153,7 +153,7 @@ public sealed class InterfaceInventoryMarkdownReportWriter
 
         foreach (var item in report.Interfaces)
         {
-            markdown.AppendLine($"| `{Escape(item.Name)}` | {Escape(item.ProjectName)} | {Escape(item.LikelyRole)} | {Escape(FormatList(item.InheritedInterfaces))} | {CountImplementations(report, item.Name)} | {CountConsumers(report, item.Name)} | {CountRegistrations(report, item.Name)} | `{Escape(item.SourcePath)}` | {item.LineNumber} |");
+            markdown.AppendLine($"| {MarkdownTableCell.Code(item.Name)} | {Escape(item.ProjectName)} | {Escape(item.LikelyRole)} | {Escape(FormatList(item.InheritedInterfaces))} | {CountImplementations(report, item.Name)} | {CountConsumers(report, item.Name)} | {CountRegistrations(report, item.Name)} | {MarkdownTableCell.Code(item.SourcePath)} | {item.LineNumber} |");
         }
 
         markdown.AppendLine();
@@ -176,7 +176,7 @@ public sealed class InterfaceInventoryMarkdownReportWriter
 
         foreach (var implementation in report.Implementations)
         {
-            markdown.AppendLine($"| `{Escape(implementation.InterfaceName)}` | `{Escape(implementation.ImplementationType)}` | {Escape(implementation.ProjectName)} | `{Escape(implementation.SourcePath)}` | {implementation.LineNumber} | `{Escape(implementation.Evidence)}` |");
+            markdown.AppendLine($"| {MarkdownTableCell.Code(implementation.InterfaceName)} | {MarkdownTableCell.Code(implementation.ImplementationType)} | {Escape(implementation.ProjectName)} | {MarkdownTableCell.Code(implementation.SourcePath)} | {implementation.LineNumber} | {MarkdownTableCell.Code(implementation.Evidence)} |");
         }
 
         markdown.AppendLine();
@@ -199,7 +199,7 @@ public sealed class InterfaceInventoryMarkdownReportWriter
 
         foreach (var consumer in report.Consumers)
         {
-            markdown.AppendLine($"| `{Escape(consumer.InterfaceName)}` | `{Escape(consumer.ConsumerType)}` | {Escape(ToLabel(consumer.Kind))} | {Escape(consumer.ProjectName)} | `{Escape(consumer.SourcePath)}` | {consumer.LineNumber} | `{Escape(consumer.Evidence)}` |");
+            markdown.AppendLine($"| {MarkdownTableCell.Code(consumer.InterfaceName)} | {MarkdownTableCell.Code(consumer.ConsumerType)} | {Escape(ToLabel(consumer.Kind))} | {Escape(consumer.ProjectName)} | {MarkdownTableCell.Code(consumer.SourcePath)} | {consumer.LineNumber} | {MarkdownTableCell.Code(consumer.Evidence)} |");
         }
 
         markdown.AppendLine();
@@ -222,7 +222,7 @@ public sealed class InterfaceInventoryMarkdownReportWriter
 
         foreach (var registration in report.Registrations)
         {
-            markdown.AppendLine($"| `{Escape(registration.InterfaceName)}` | `{Escape(registration.ImplementationType ?? "Unknown")}` | {Escape(ToLabel(registration.Kind))} | {FormatBoolean(registration.RequiresReview)} | {Escape(registration.ProjectName)} | `{Escape(registration.SourcePath)}` | {registration.LineNumber} | `{Escape(registration.Evidence)}` | {Escape(registration.Notes)} |");
+            markdown.AppendLine($"| {MarkdownTableCell.Code(registration.InterfaceName)} | {MarkdownTableCell.Code(registration.ImplementationType ?? "Unknown")} | {Escape(ToLabel(registration.Kind))} | {FormatBoolean(registration.RequiresReview)} | {Escape(registration.ProjectName)} | {MarkdownTableCell.Code(registration.SourcePath)} | {registration.LineNumber} | {MarkdownTableCell.Code(registration.Evidence)} | {Escape(registration.Notes)} |");
         }
 
         markdown.AppendLine();
@@ -245,10 +245,10 @@ public sealed class InterfaceInventoryMarkdownReportWriter
             markdown.AppendLine($"### {Escape(item.Name)}");
             markdown.AppendLine();
             markdown.AppendLine($"- Project: {Escape(item.ProjectName)}");
-            markdown.AppendLine($"- Full name: `{Escape(item.FullName)}`");
+            markdown.AppendLine($"- Full name: {MarkdownTableCell.Code(item.FullName)}");
             markdown.AppendLine($"- Likely role: {Escape(item.LikelyRole)}");
             markdown.AppendLine($"- Possible extension point: {FormatBoolean(item.IsPossibleExtensionPoint)}");
-            markdown.AppendLine($"- Source: `{Escape(item.SourcePath)}` line {item.LineNumber}");
+            markdown.AppendLine($"- Source: {MarkdownTableCell.Code(item.SourcePath)} line {item.LineNumber}");
             markdown.AppendLine($"- Inherited interfaces: {Escape(FormatList(item.InheritedInterfaces))}");
             markdown.AppendLine($"- Static implementations: {CountImplementations(report, item.Name)}");
             markdown.AppendLine($"- Static consumers: {CountConsumers(report, item.Name)}");
@@ -290,7 +290,7 @@ public sealed class InterfaceInventoryMarkdownReportWriter
     {
         return values.Count == 0
             ? "None"
-            : string.Join(", ", values.Select(value => $"`{value}`"));
+            : string.Join(", ", values.Select(MarkdownTableCell.Code));
     }
 
     private static string FormatBoolean(bool value)
@@ -331,9 +331,5 @@ public sealed class InterfaceInventoryMarkdownReportWriter
             _ => kind.ToString()
         };
     }
-
-    private static string Escape(string value)
-    {
-        return value.Replace("|", "\\|", StringComparison.Ordinal);
-    }
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }

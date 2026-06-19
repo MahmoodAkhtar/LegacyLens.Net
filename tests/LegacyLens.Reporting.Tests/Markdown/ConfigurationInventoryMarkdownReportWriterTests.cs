@@ -134,10 +134,10 @@ public sealed class ConfigurationInventoryMarkdownReportWriterTests : IDisposabl
         Assert.Contains("#### Configuration API Usage", markdown);
 
         Assert.Contains("| Name | Value | Evidence | Requires Review |", markdown);
-        Assert.Contains("| ApiBaseUrl | https://api.example.test | App setting configured. | Yes |", markdown);
-        Assert.Contains("| MainDatabase | Server=.;Password=***; | Connection string configured. | Yes |", markdown);
-        Assert.Contains("| Web.config | N/A | Configuration file found. | Yes |", markdown);
-        Assert.Contains("| ConnectionStrings:RabbitMQ | amqp://***:***@rabbitmq-dev:5672/sample | JSON setting configured. | Yes |", markdown);
+        Assert.Contains("| ApiBaseUrl | https://api.example.test | `App setting configured.` | Yes |", markdown);
+        Assert.Contains("| MainDatabase | Server=.;Password=***; | `Connection string configured.` | Yes |", markdown);
+        Assert.Contains("| Web.config | N/A | `Configuration file found.` | Yes |", markdown);
+        Assert.Contains("| ConnectionStrings:RabbitMQ | amqp://***:***@rabbitmq-dev:5672/sample | `JSON setting configured.` | Yes |", markdown);
         Assert.Contains("ConfigurationManager.AppSettings", markdown);
     }
 
@@ -190,7 +190,7 @@ public sealed class ConfigurationInventoryMarkdownReportWriterTests : IDisposabl
 
         Assert.Contains("### SampleLegacyApp.Web — appsettings.json", markdown);
         Assert.Contains("#### JSON Configuration", markdown);
-        Assert.Contains("| RabbitMQ:HostName | rabbitmq-dev | RabbitMQ:HostName evidence found. | Yes |", markdown);
+        Assert.Contains("| RabbitMQ:HostName | rabbitmq-dev | `RabbitMQ:HostName evidence found.` | Yes |", markdown);
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public sealed class ConfigurationInventoryMarkdownReportWriterTests : IDisposabl
 
         var markdown = File.ReadAllText(outputPath);
 
-        Assert.Contains("| Web.config | N/A | Web.config evidence found. | Yes |", markdown);
+        Assert.Contains("| Web.config | N/A | `Web.config evidence found.` | Yes |", markdown);
         Assert.DoesNotContain("| Web.config | Unknown |", markdown);
     }
 
@@ -518,6 +518,3 @@ public sealed class ConfigurationInventoryMarkdownReportWriterTests : IDisposabl
         }
     }
 }
-
-
-

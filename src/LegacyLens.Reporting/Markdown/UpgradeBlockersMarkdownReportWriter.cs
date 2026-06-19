@@ -1,5 +1,3 @@
-// src/LegacyLens.Reporting/Markdown/UpgradeBlockersMarkdownReportWriter.cs
-
 using System.Text;
 using LegacyLens.Core.Analysis;
 
@@ -101,7 +99,7 @@ public sealed class UpgradeBlockersMarkdownReportWriter
 
             foreach (var evidence in blocker.Evidence)
             {
-                markdown.AppendLine($"| {Escape(ValueOrUnknown(evidence.ProjectName))} | `{Escape(evidence.Source)}` | {Escape(evidence.Finding)} |");
+                markdown.AppendLine($"| {Escape(ValueOrUnknown(evidence.ProjectName))} | {MarkdownTableCell.Code(evidence.Source)} | {Escape(evidence.Finding)} |");
             }
 
             markdown.AppendLine();
@@ -181,6 +179,5 @@ public sealed class UpgradeBlockersMarkdownReportWriter
     private static string ValueOrUnknown(string? value) =>
         string.IsNullOrWhiteSpace(value) ? "unknown" : value.Trim();
 
-    private static string Escape(string? value) =>
-        (value ?? string.Empty).Replace("|", "\\|", StringComparison.Ordinal);
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }

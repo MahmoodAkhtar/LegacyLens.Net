@@ -90,7 +90,7 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
         foreach (var usage in report.SourceUsages)
         {
             markdown.AppendLine(
-                $"| {Escape(GetUsageKindDisplayName(usage.Kind))} | {Escape(FormatUsageKey(usage.Key))} | {Escape(GetUsageResolutionDisplayName(usage.Resolution))} | {Escape(FormatProjectName(usage.ProjectName))} | `{Escape(GetSourceFileDisplayName(usage.SourcePath))}` | {usage.LineNumber} | `{Escape(usage.Evidence)}` | {FormatBoolean(usage.RequiresReview)} |");
+                $"| {Escape(GetUsageKindDisplayName(usage.Kind))} | {Escape(FormatUsageKey(usage.Key))} | {Escape(GetUsageResolutionDisplayName(usage.Resolution))} | {Escape(FormatProjectName(usage.ProjectName))} | {MarkdownTableCell.Code(GetSourceFileDisplayName(usage.SourcePath))} | {usage.LineNumber} | {MarkdownTableCell.Code(usage.Evidence)} | {FormatBoolean(usage.RequiresReview)} |");
         }
 
         markdown.AppendLine();
@@ -116,7 +116,7 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
         foreach (var reconciliation in report.KeyReconciliations)
         {
             markdown.AppendLine(
-                $"| {Escape(GetUsageKindDisplayName(reconciliation.Kind))} | {Escape(reconciliation.Key)} | `{Escape(GetSourceFileDisplayName(reconciliation.ConfigSourcePath))}` | {Escape(GetStaticSourceUsageDisplayName(reconciliation.StaticSourceUsage))} | {Escape(reconciliation.Notes)} |");
+                $"| {Escape(GetUsageKindDisplayName(reconciliation.Kind))} | {Escape(reconciliation.Key)} | {MarkdownTableCell.Code(GetSourceFileDisplayName(reconciliation.ConfigSourcePath))} | {Escape(GetStaticSourceUsageDisplayName(reconciliation.StaticSourceUsage))} | {Escape(reconciliation.Notes)} |");
         }
 
         markdown.AppendLine();
@@ -197,7 +197,7 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
         {
             markdown.AppendLine($"### {Escape(fileGroup.ProjectName)} — {Escape(GetSourceFileDisplayName(fileGroup.SourcePath))}");
             markdown.AppendLine();
-            markdown.AppendLine($"Source path: `{Escape(fileGroup.SourcePath)}`");
+            markdown.AppendLine($"Source path: {MarkdownTableCell.Code(fileGroup.SourcePath)}");
             markdown.AppendLine();
 
             foreach (var categoryGroup in fileGroup.Findings
@@ -214,7 +214,7 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
                 foreach (var finding in categoryGroup)
                 {
                     markdown.AppendLine(
-                        $"| {Escape(finding.Name)} | {Escape(FormatValue(finding.MaskedValue))} | {Escape(finding.Evidence)} | {FormatBoolean(finding.RequiresReview)} |");
+                        $"| {Escape(finding.Name)} | {Escape(FormatValue(finding.MaskedValue))} | {MarkdownTableCell.Evidence(finding.Evidence)} | {FormatBoolean(finding.RequiresReview)} |");
                 }
 
                 markdown.AppendLine();
@@ -258,7 +258,7 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
         foreach (var file in files)
         {
             markdown.AppendLine(
-                $"| {Escape(file.ProjectName)} | {Escape(file.SourceFile)} | {file.FindingCount} | {file.RequiresReviewCount} | {Escape(string.Join(", ", file.Categories))} | `{Escape(file.SourcePath)}` |");
+                $"| {Escape(file.ProjectName)} | {Escape(file.SourceFile)} | {file.FindingCount} | {file.RequiresReviewCount} | {Escape(string.Join(", ", file.Categories))} | {MarkdownTableCell.Code(file.SourcePath)} |");
         }
 
         markdown.AppendLine();
@@ -440,17 +440,5 @@ public sealed class ConfigurationInventoryMarkdownReportWriter
     }
 
     private static string FormatBoolean(bool value) => value ? "Yes" : "No";
-
-    private static string Escape(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        return value.Replace("|", "\\|", StringComparison.Ordinal);
-    }
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }
-
-
-

@@ -138,7 +138,7 @@ public sealed class ExternalDependenciesMarkdownReportWriter
                 $"| {Escape(GetCategoryDisplayName(dependency.Category))} " +
                 $"| {Escape(dependency.Name)} " +
                 $"| {Escape(GetSourceDisplayName(dependency.SourceType))} " +
-                $"| {Escape(dependency.Evidence)} " +
+                $"| {MarkdownTableCell.Evidence(dependency.Evidence)} " +
                 $"| {FormatOptionalCode(dependency.MaskedValue)} " +
                 $"| {FormatBoolean(dependency.RequiresConfirmation)} |");
         }
@@ -178,7 +178,7 @@ public sealed class ExternalDependenciesMarkdownReportWriter
                 $"| {Escape(GetSourceDisplayName(dependency.SourceType))} " +
                 $"| {Escape(dependency.ProjectName)} " +
                 $"| {FormatOptionalCode(dependency.SourcePath)} " +
-                $"| {Escape(dependency.Evidence)} " +
+                $"| {MarkdownTableCell.Evidence(dependency.Evidence)} " +
                 $"| {FormatOptionalCode(dependency.MaskedValue)} " +
                 $"| {Escape(dependency.Confidence.ToString())} " +
                 $"| {Escape(dependency.Notes)} |");
@@ -214,7 +214,7 @@ public sealed class ExternalDependenciesMarkdownReportWriter
         {
             markdown.AppendLine(
                 $"| {FormatOptionalCode(dependency.SourcePath)} " +
-                $"| {Escape(dependency.Evidence)} " +
+                $"| {MarkdownTableCell.Evidence(dependency.Evidence)} " +
                 $"| {Escape(dependency.Notes)} |");
         }
 
@@ -325,16 +325,8 @@ public sealed class ExternalDependenciesMarkdownReportWriter
             return string.Empty;
         }
 
-        return $"`{Escape(value)}`";
+        return $"{MarkdownTableCell.Code(value)}";
     }
 
-    private static string Escape(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
-
-        return value.Replace("|", "\\|", StringComparison.Ordinal);
-    }
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }

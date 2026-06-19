@@ -102,9 +102,9 @@ public sealed class UpgradeReadinessMarkdownReportWriterTests : IDisposable
         var markdown = File.ReadAllText(outputPath);
 
         Assert.Contains("## Upgrade Readiness Overview", markdown);
-        Assert.Contains("| Target frameworks | Requires review | .NET Framework projects detected |", markdown);
-        Assert.Contains("| Legacy ASP.NET | Possible blocker | System.Web or legacy ASP.NET artifacts detected |", markdown);
-        Assert.Contains("| WCF | Requires review | System.ServiceModel or WCF configuration evidence detected |", markdown);
+        Assert.Contains("| Target frameworks | Requires review | `.NET Framework projects detected` |", markdown);
+        Assert.Contains("| Legacy ASP.NET | Possible blocker | `System.Web or legacy ASP.NET artifacts detected` |", markdown);
+        Assert.Contains("| WCF | Requires review | `System.ServiceModel or WCF configuration evidence detected` |", markdown);
     }
 
     [Fact]
@@ -140,9 +140,9 @@ public sealed class UpgradeReadinessMarkdownReportWriterTests : IDisposable
         var markdown = File.ReadAllText(outputPath);
 
         Assert.Contains("## Possible Upgrade Concerns", markdown);
-        Assert.Contains("| .NET Framework target framework | SampleLegacyApp.Web (net48), SampleLegacyApp.Data (net48) | Requires review before moving to modern .NET. |", markdown);
-        Assert.Contains("| Legacy ASP.NET runtime | System.Web or legacy ASP.NET artifact evidence found | ASP.NET Core does not use the System.Web request pipeline. |", markdown);
-        Assert.Contains("| WCF usage | 1 endpoint(s), 1 service contract(s), and System.ServiceModel evidence where present | WCF service boundaries, bindings, metadata, and clients need migration decisions. |", markdown);
+        Assert.Contains("| .NET Framework target framework | `SampleLegacyApp.Web (net48), SampleLegacyApp.Data (net48)` | Requires review before moving to modern .NET. |", markdown);
+        Assert.Contains("| Legacy ASP.NET runtime | `System.Web or legacy ASP.NET artifact evidence found` | ASP.NET Core does not use the System.Web request pipeline. |", markdown);
+        Assert.Contains("| WCF usage | `1 endpoint(s), 1 service contract(s), and System.ServiceModel evidence where present` | WCF service boundaries, bindings, metadata, and clients need migration decisions. |", markdown);
     }
 
     [Fact]

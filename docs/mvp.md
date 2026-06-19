@@ -41,6 +41,9 @@ Current MVP functionality includes implemented capabilities and newly required M
 - package source format and source path reporting for package references
 - static package compatibility review for upgrade planning, including possible compatibility concerns based on package, version, project target framework, and package target framework evidence
 - Markdown discovery report generation
+- shared Markdown-safe table-cell formatting across generated Markdown reports and optional artifacts
+- visible, structurally safe evidence table cells for XML/configuration snippets, source-code snippets, paths, pipe characters, newlines, and backticks
+- reporting-layer Markdown escaping/inline-code formatting without changing discovery behaviour, analyzer models, or raw evidence values
 - target framework summary reporting in the generated Markdown report
 - package reference summary reporting in the generated Markdown report
 - package compatibility review reporting in the generated Markdown report
@@ -251,7 +254,7 @@ Out of scope for MVP:
 - Guaranteeing completeness.
 - Exposing full secrets or sensitive values.
 
-### Class Dependencies Artifact
+### Interface Inventory Artifact
 
 The `interface-inventory` capability is an MVP-scope addition. It should produce `interface-inventory.md` as a separate Markdown artifact. It is a static, evidence-backed interface and extension-point report for understanding available abstractions before implementing new functionality, replacing behaviour, refactoring, testing, or modernising a .NET codebase.
 
@@ -263,11 +266,11 @@ MVP scope:
 - Discover classes, records, and structs implementing interfaces through base lists, including generic interface evidence where useful.
 - Discover consumers through constructor parameters, fields, properties, method parameters, return types, local variables, generic type arguments, collection-based interface consumption, inherited interfaces, endpoint delegate parameters, and service-locator or resolver calls where type arguments are visible.
 - Discover registration evidence for Microsoft DI, Castle Windsor, Autofac, Ninject, Unity, StructureMap, Simple Injector, LightInject, Lamar, Common Service Locator, ASP.NET MVC/Web API dependency resolver setup, and factory registrations where simple static evidence exists.
-- Discover visible XML/configuration-driven IoC evidence for Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory sections where feasible.
-- Preserve evidence including project name, source/config path, line number where available, interface name, implementation name where extractable, registration kind, lifetime where extractable, consumer kind, concise snippet, and requires-review flag.
+- Discover visible XML/configuration-driven IoC evidence for Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory sections where feasible, using only meaningful configuration-bearing elements and attributes as evidence.
+- Preserve evidence including project name, source/config path, line number where available, interface name, implementation name where extractable, registration kind, lifetime where extractable, consumer kind, concise snippet, and requires-review flag. Spring.NET evidence snippets should be concise object/property/constructor/factory/alias/parent-style configuration snippets rather than comments, descriptions, root container text, or broad serialized XML.
 - Highlight interfaces with multiple implementations, no static implementation found, no static consumer found, dynamic wiring that may exist, configuration-driven wiring that may exist, likely roles, and possible extension points.
-- Mark factory-based, reflection-based, container-scanning, XML/configuration-driven, alias-based, parent/child-object, profile-based, service-locator, and otherwise dynamic evidence as requiring review.
-- Add unit tests for interface discovery, implementation mapping, consumer mapping, registration evidence, XML/configuration evidence, dynamic wiring classification, CLI artifact selection, and Markdown output.
+- Mark factory-based, reflection-based, container-scanning, XML/configuration-driven, alias-based, parent/child-object, profile-based, service-locator, and otherwise dynamic evidence as requiring review. Spring.NET XML evidence should remain `RequiresReview = true`.
+- Add unit tests for interface discovery, implementation mapping, consumer mapping, registration evidence, XML/configuration evidence, dynamic wiring classification, CLI artifact selection, and Markdown output. Add regression tests proving Spring.NET XML comments, `<description>` text, and root `<objects>` text do not create registration evidence, while real object/property evidence still does and assembly-qualified XML type names simplify correctly.
 
 Out of scope for MVP:
 
@@ -281,6 +284,8 @@ Out of scope for MVP:
 - Resolving runtime dependency injection or proving the runtime object graph.
 - Reflection, dynamic loading, runtime factory behaviour, generated code behaviour, or conditional runtime behaviour analysis.
 - Proving that an interface is used, unused, active, registered, safe to implement, or complete.
+
+### Class Dependencies Artifact
 
 The `class-dependencies` capability is an MVP-scope addition. It should produce `class-dependencies.md` as a separate Markdown artifact. It is a static, evidence-backed source-level dependency report for understanding class and type coupling before refactoring, testing, or modernising a .NET codebase.
 
@@ -320,6 +325,7 @@ The MVP exit criteria are:
 - The package compatibility review shows package name, version where available, project target framework, package target framework where available, source format, source path, and possible compatibility concern without claiming to perform full NuGet compatibility resolution.
 - Modernisation hints include useful evidence metadata where a clear source exists, including evidence kind, evidence name, confidence, source path, and reason.
 - The report does not contain known duplicated, misleading, or materially low-value findings that would confuse a reader.
+- Generated Markdown tables remain structurally valid and evidence remains visible in rendered previews, including XML-like evidence such as Spring.NET `<object ... />` registration snippets.
 - Existing automated tests pass.
 - The upgrade-readiness report includes current project targets, project-level readiness classifications, possible upgrade concerns, package upgrade considerations, assembly reference considerations, configuration/runtime considerations, and clear static-analysis limitations.
 - The upgrade-blockers report includes a blocker overview, grouped blocker details, impact labels, evidence, why each blocker matters, decisions required, suggested review order, and clear static-analysis limitations.

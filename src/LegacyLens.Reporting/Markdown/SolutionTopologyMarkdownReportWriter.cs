@@ -98,7 +98,7 @@ public sealed class SolutionTopologyMarkdownReportWriter
 
         foreach (var solution in report.Solutions)
         {
-            markdown.AppendLine($"| {Escape(solution.Name)} | {solution.ProjectCount} | {Join(solution.PossibleEntryPointProjects)} | {Join(solution.PossibleTestProjects)} | `{Escape(solution.SolutionFilePath)}` | {Escape(solution.Notes)} |");
+            markdown.AppendLine($"| {Escape(solution.Name)} | {solution.ProjectCount} | {Join(solution.PossibleEntryPointProjects)} | {Join(solution.PossibleTestProjects)} | {MarkdownTableCell.Code(solution.SolutionFilePath)} | {Escape(solution.Notes)} |");
         }
 
         markdown.AppendLine();
@@ -128,7 +128,7 @@ public sealed class SolutionTopologyMarkdownReportWriter
             foreach (var membership in group.OrderBy(x => x.ProjectName, StringComparer.OrdinalIgnoreCase))
             {
                 projectLookup.TryGetValue(membership.ProjectFilePath, out var project);
-                markdown.AppendLine($"| {Escape(membership.ProjectName)} | {Escape(project?.TargetFramework ?? "Unknown")} | {Escape(ToRoleLabel(project?.Role.Role ?? ProjectTopologyRole.Unknown))} | {project?.OutgoingProjectReferenceCount ?? 0} | {project?.IncomingProjectReferenceCount ?? 0} | {project?.PackageReferenceCount ?? 0} | {project?.AssemblyReferenceCount ?? 0} | `{Escape(membership.ProjectFilePath)}` |");
+                markdown.AppendLine($"| {Escape(membership.ProjectName)} | {Escape(project?.TargetFramework ?? "Unknown")} | {Escape(ToRoleLabel(project?.Role.Role ?? ProjectTopologyRole.Unknown))} | {project?.OutgoingProjectReferenceCount ?? 0} | {project?.IncomingProjectReferenceCount ?? 0} | {project?.PackageReferenceCount ?? 0} | {project?.AssemblyReferenceCount ?? 0} | {MarkdownTableCell.Code(membership.ProjectFilePath)} |");
             }
 
             markdown.AppendLine();
@@ -152,7 +152,7 @@ public sealed class SolutionTopologyMarkdownReportWriter
 
         foreach (var project in report.SharedProjects)
         {
-            markdown.AppendLine($"| {Escape(project.ProjectName)} | {Join(project.SolutionNames)} | {project.SolutionCount} | {Escape(project.WhyItMatters)} | `{Escape(project.ProjectFilePath)}` |");
+            markdown.AppendLine($"| {Escape(project.ProjectName)} | {Join(project.SolutionNames)} | {project.SolutionCount} | {Escape(project.WhyItMatters)} | {MarkdownTableCell.Code(project.ProjectFilePath)} |");
         }
 
         markdown.AppendLine();
@@ -177,7 +177,7 @@ public sealed class SolutionTopologyMarkdownReportWriter
 
         foreach (var project in report.Projects)
         {
-            markdown.AppendLine($"| {Escape(project.Name)} | {Escape(ToRoleLabel(project.Role.Role))} | {project.Role.Confidence} | {Escape(project.Layer)} | {Escape(FirstEvidence(project.Role.Evidence))} |");
+            markdown.AppendLine($"| {Escape(project.Name)} | {Escape(ToRoleLabel(project.Role.Role))} | {project.Role.Confidence} | {Escape(project.Layer)} | {MarkdownTableCell.Evidence(FirstEvidence(project.Role.Evidence))} |");
         }
 
         markdown.AppendLine();
@@ -201,7 +201,7 @@ public sealed class SolutionTopologyMarkdownReportWriter
 
         foreach (var project in entryPoints)
         {
-            markdown.AppendLine($"| {Escape(project.Name)} | {Escape(project.PossibleEntryPointType ?? "Unknown application entry point")} | {project.EntryPointConfidence} | {Escape(FirstEvidence(project.EntryPointEvidence))} | Review startup, hosting, routing, configuration, and project references first. |");
+            markdown.AppendLine($"| {Escape(project.Name)} | {Escape(project.PossibleEntryPointType ?? "Unknown application entry point")} | {project.EntryPointConfidence} | {MarkdownTableCell.Evidence(FirstEvidence(project.EntryPointEvidence))} | Review startup, hosting, routing, configuration, and project references first. |");
         }
 
         markdown.AppendLine();
@@ -225,7 +225,7 @@ public sealed class SolutionTopologyMarkdownReportWriter
 
         foreach (var project in testProjects)
         {
-            markdown.AppendLine($"| {Escape(project.Name)} | {project.TestProjectConfidence} | {Escape(FirstEvidence(project.TestProjectEvidence))} |");
+            markdown.AppendLine($"| {Escape(project.Name)} | {project.TestProjectConfidence} | {MarkdownTableCell.Evidence(FirstEvidence(project.TestProjectEvidence))} |");
         }
 
         markdown.AppendLine();
@@ -296,7 +296,7 @@ public sealed class SolutionTopologyMarkdownReportWriter
 
         foreach (var cycle in report.PossibleCircularDependencies)
         {
-            markdown.AppendLine($"| {Escape(cycle.Cycle)} | {Join(cycle.ProjectsInvolved)} | {Escape(cycle.Evidence)} | {Escape(cycle.SuggestedReview)} |");
+            markdown.AppendLine($"| {Escape(cycle.Cycle)} | {Join(cycle.ProjectsInvolved)} | {MarkdownTableCell.Evidence(cycle.Evidence)} | {Escape(cycle.SuggestedReview)} |");
         }
 
         markdown.AppendLine();
@@ -319,7 +319,7 @@ public sealed class SolutionTopologyMarkdownReportWriter
 
         foreach (var step in report.SuggestedReadingOrder)
         {
-            markdown.AppendLine($"| {step.Order} | {Escape(step.ProjectName)} | {Escape(step.Reason)} | {Escape(step.Evidence)} |");
+            markdown.AppendLine($"| {step.Order} | {Escape(step.ProjectName)} | {Escape(step.Reason)} | {MarkdownTableCell.Evidence(step.Evidence)} |");
         }
 
         markdown.AppendLine();
@@ -342,7 +342,7 @@ public sealed class SolutionTopologyMarkdownReportWriter
 
         foreach (var dependency in report.Dependencies)
         {
-            markdown.AppendLine($"| {Escape(dependency.SourceProject)} | {Escape(dependency.TargetProject)} | {Join(dependency.SourceSolutionNames)} | `{Escape(dependency.SourceProjectFilePath)}` | `{Escape(dependency.TargetProjectFilePath)}` | `{Escape(dependency.Evidence)}` |");
+            markdown.AppendLine($"| {Escape(dependency.SourceProject)} | {Escape(dependency.TargetProject)} | {Join(dependency.SourceSolutionNames)} | {MarkdownTableCell.Code(dependency.SourceProjectFilePath)} | {MarkdownTableCell.Code(dependency.TargetProjectFilePath)} | {MarkdownTableCell.Code(dependency.Evidence)} |");
         }
 
         markdown.AppendLine();
@@ -393,16 +393,5 @@ public sealed class SolutionTopologyMarkdownReportWriter
         };
     }
 
-    private static string Escape(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return string.Empty;
-        }
-
-        return value
-            .Replace("|", "\\|", StringComparison.Ordinal)
-            .Replace("\r", " ", StringComparison.Ordinal)
-            .Replace("\n", " ", StringComparison.Ordinal);
-    }
+    private static string Escape(string? value) => MarkdownTableCell.Escape(value);
 }

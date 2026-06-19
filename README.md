@@ -29,6 +29,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope solution-topology artifact that produces `solution-topology.md` with static, evidence-backed solution, project, dependency, and ownership-boundary orientation information
 - flexible artifact selection from a single scan command, including one artifact, a comma-separated subset of artifacts, or every supported artifact using `--artifacts all`
 - phase-based visual progress feedback during scans, including a real animated console spinner for active phases, useful completed counts, elapsed time, selected artifact generation progress, and final output paths
+- shared Markdown-safe table-cell formatting across generated reports so evidence, XML/configuration snippets, source-code snippets, paths, and other discovered values remain visible and do not break Markdown tables
 
 ## Quick start
 
@@ -148,7 +149,7 @@ The MVP scope now also includes an optional interface-inventory artifact:
 legacylens scan <path> --output-dir ./output --artifacts interface-inventory
 ```
 
-This report should help a developer understand available abstractions and likely extension points by discovering source-defined interfaces, statically discoverable implementations, interface consumers, DI/IoC registration evidence, and dynamic or configuration-driven wiring that requires review. It should remain static and evidence-backed, inspect C# source and visible configuration/XML evidence where useful, and avoid claiming runtime completeness, proven runtime usage, definite registration, or that an interface is safe to implement without review.
+This report should help a developer understand available abstractions and likely extension points by discovering source-defined interfaces, statically discoverable implementations, interface consumers, DI/IoC registration evidence, and dynamic or configuration-driven wiring that requires review. It should remain static and evidence-backed, inspect C# source and visible configuration/XML evidence where useful, and avoid claiming runtime completeness, proven runtime usage, definite registration, or that an interface is safe to implement without review. Spring.NET and similar XML evidence should be limited to meaningful executable configuration, such as object definitions, object type attributes, property or constructor wiring, aliases, parent/factory attributes, and other wiring-bearing elements. XML comments, root container text, and descriptive text such as `<description>` should not be used for matching, evidence, interface names, implementation names, findings, or report snippets.
 
 The MVP scope now also includes an optional solution-topology artifact:
 
@@ -157,6 +158,10 @@ legacylens scan <path> --output-dir ./output --artifacts solution-topology
 ```
 
 This report should help a developer understand solution membership, project relationships, dependency direction, entry points, configuration hotspots, and likely ownership or review boundaries using static evidence only.
+
+### Markdown report safety
+
+All generated Markdown reports should use shared table-cell formatting for values written into Markdown tables. Evidence, configuration snippets, XML-like values, source-code snippets, paths, and other discovered values should be escaped or formatted as safe inline code where appropriate so rendered previews, including VS Code Markdown preview, do not hide values such as `<object ... />` or split rows when values contain `|`, newlines, or backticks. This is a reporting-layer concern only; raw discovery and analyzer evidence should remain unchanged.
 
 ## Example output
 
@@ -292,7 +297,7 @@ The current implementation can scan a folder containing .NET solutions and proje
 - data access inventory inputs for `data-access-inventory.md`, using static evidence such as connection strings, data access packages, database provider references, EDMX and related T4 files, LINQ to SQL files, source-level data access indicators, repository or unit-of-work class names, raw SQL indicators, stored procedure indicators, and migration folders where discoverable
 - EDMX analysis inputs for `edmx-analysis.md`, using static EDMX XML evidence such as conceptual entities, entity sets, keys, associations, navigation properties, complex types, function imports, storage entity sets, tables/views, columns, store functions, defining queries, entity mappings, scalar property mappings, modification function mappings, query views, designer metadata, and companion generated files where discoverable
 - class dependency analysis inputs for `class-dependencies.md`, using static C# source evidence such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, and generic type usage where discoverable
-- interface inventory analysis inputs for `interface-inventory.md`, using static C# source and visible XML/configuration evidence such as interface declarations, implementations, consumers, generic interface usages, collection-based interface consumption, service-locator usage, Microsoft DI registrations, legacy IoC registrations, and Spring.NET/Castle Windsor/Unity-style configuration-driven wiring where discoverable
+- interface inventory analysis inputs for `interface-inventory.md`, using static C# source and visible XML/configuration evidence such as interface declarations, implementations, consumers, generic interface usages, collection-based interface consumption, service-locator usage, Microsoft DI registrations, legacy IoC registrations, and Spring.NET/Castle Windsor/Unity-style configuration-driven wiring where discoverable; XML comments, descriptive text, and broad descendant text are ignored so only meaningful configuration-bearing elements and attributes are treated as evidence
 - a prioritised modernisation review summary that groups detailed modernisation hints into higher-level review areas such as WCF migration, legacy ASP.NET migration, routing review, startup and request pipeline review, configuration review, dependency review, target framework review, and project dependency review
 
 ### MVP-scope upgrade-readiness artifact
