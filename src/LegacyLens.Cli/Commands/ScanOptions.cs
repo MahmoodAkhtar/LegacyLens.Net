@@ -10,6 +10,7 @@ public sealed class ScanOptions
     public const string DataAccessArtifact = "data-access";
     public const string EdmxAnalysisArtifact = "edmx-analysis";
     public const string ClassDependenciesArtifact = "class-dependencies";
+    public const string ClassDependencyScopeArtifact = "class-dependency-scope";
     public const string InterfaceInventoryArtifact = "interface-inventory";
     public const string SolutionTopologyArtifact = "solution-topology";
 
@@ -22,6 +23,7 @@ public sealed class ScanOptions
         DataAccessArtifact,
         EdmxAnalysisArtifact,
         ClassDependenciesArtifact,
+        ClassDependencyScopeArtifact,
         InterfaceInventoryArtifact,
         SolutionTopologyArtifact
     ];
@@ -37,6 +39,7 @@ public sealed class ScanOptions
 
     public string? Artifacts { get; init; }
     public string? UpgradeTarget { get; init; }
+    public string? ClassDependencyType { get; init; }
 
     public IReadOnlyList<string> SelectedArtifacts
     {
@@ -64,6 +67,12 @@ public sealed class ScanOptions
 
     public bool ShouldWriteClassDependencies => ShouldWriteArtifact(ClassDependenciesArtifact);
 
+    public bool ShouldWriteClassDependencyScope => ShouldWriteArtifact(ClassDependencyScopeArtifact);
+
+    public bool ShouldWriteScopedClassDependencyArtifact =>
+        !string.IsNullOrWhiteSpace(ClassDependencyType) &&
+        (ShouldWriteArtifact(ClassDependencyScopeArtifact) || ShouldWriteAllArtifacts);
+
     public bool ShouldWriteInterfaceInventory => ShouldWriteArtifact(InterfaceInventoryArtifact);
 
     public bool ShouldWriteSolutionTopology => ShouldWriteArtifact(SolutionTopologyArtifact);
@@ -80,4 +89,8 @@ public sealed class ScanOptions
         ShouldWriteAllArtifacts ||
         ShouldWriteArtifact(UpgradeReadinessArtifact) ||
         ShouldWriteArtifact(UpgradeBlockersArtifact);
+
+    public bool HasScopedClassDependencyArtifactSelection =>
+        ShouldWriteAllArtifacts ||
+        ShouldWriteArtifact(ClassDependencyScopeArtifact);
 }

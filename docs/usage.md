@@ -36,6 +36,8 @@ Options:
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
 --artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.
+--class-dependency-type <fully-qualified-type-name>
+                        Fully qualified type name for the parameterised class-dependency-scope artifact.
 --upgrade-target <tfm>  Optional target-framework context for upgrade-readiness or upgrade-blockers report wording only; does not change discovery scope or perform compatibility checks.
 -h, --help             Show help.
 --version              Show version.
@@ -65,6 +67,8 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts configura
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts data-access
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts edmx-analysis
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-dependencies
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-dependency-scope --class-dependency-type SampleLegacyApp.Services.CustomerService
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all --class-dependency-type SampleLegacyApp.Services.CustomerService
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts interface-inventory
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology
 legacylens --help
@@ -155,6 +159,8 @@ The scanner should still detect `[ServiceContract]`, `[ServiceContractAttribute]
 
 The main `discovery-report.md` is always generated. The optional `--artifacts <value>` option controls which additional artifact reports are generated from the same scan.
 
+The `class-dependency-scope` artifact is parameterised. It is selected through `--artifacts`, but it also needs `--class-dependency-type <fully-qualified-type-name>` so the scanner knows which root type to centre the scoped report on.
+
 `--artifacts` accepts:
 
 - one artifact name, for example `solution-topology`
@@ -170,6 +176,7 @@ Supported artifact names are:
 - `data-access`
 - `edmx-analysis`
 - `class-dependencies`
+- `class-dependency-scope`
 - `interface-inventory`
 - `solution-topology`
 - `all`
@@ -190,6 +197,8 @@ legacylens scan <path> --artifacts all,data-access
 ```
 
 Unknown artifact names should produce a clear validation error that lists the supported values.
+
+`--class-dependency-type` should be accepted only when `--artifacts` includes `class-dependency-scope` or uses `all`. If `class-dependency-scope` is explicitly selected without a type name, the CLI should return `The class-dependency-scope artifact requires --class-dependency-type <fully-qualified-type-name>.` If the type option is used with unrelated artifacts, the CLI should return `Use --class-dependency-type only when --artifacts includes class-dependency-scope or all.` `--artifacts all` should remain suitable for normal batch scans and should generate the scoped artifact only when the type option is also supplied.
 
 `--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when the selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it does not change discovery scope or perform compatibility checks:
 
@@ -385,6 +394,32 @@ The report should remain static and evidence-backed. It should analyse `.cs` sou
 The report should include coupling summaries, high-dependency hotspots, hardcoded concrete dependencies, static dependency concerns, evidence-backed review notes, a focused Mermaid diagram with dependency-kind edge labels, a full type dependency inventory, and per-type details where useful.
 
 The report should not claim to build the solution, restore NuGet packages, resolve runtime dependency injection, execute code, understand reflection or dynamic loading, fully understand generated code, prove runtime usage, or produce a runtime call graph.
+
+### Scoped Class Dependency Artifact
+
+The MVP scope now includes an optional on-demand `class-dependency-scope` artifact that should produce a type-specific timestamped Markdown file rather than a fixed filename:
+
+```text
+<output-dir>/class-dependency-scope.<safe-fully-qualified-type-name>.<yyyyMMdd-HHmmss>.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-dependency-scope --class-dependency-type SampleLegacyApp.Services.CustomerService
+```
+
+Example output filename:
+
+```text
+output/class-dependency-scope.SampleLegacyApp.Services.CustomerService.20260620-153045.md
+```
+
+Repeated runs for the same type should not overwrite earlier scoped reports. The filename should use local machine time in sortable Windows-safe `yyyyMMdd-HHmmss` form, while the report body should include both local and UTC generated timestamps. The fully qualified type name should be sanitised for use in a filename, preserving letters, numbers, `.`, `_`, and `-` where practical and replacing invalid filename characters with safe separators.
+
+The report should resolve the requested fully qualified type name case-insensitively against discovered source-defined types, show direct outbound dependencies, direct inbound dependants, review concerns involving the root type, and a compact Mermaid diagram centred on that type. If no matching type is found, it should still generate a report with the requested type name, source files analysed, discovered type count, generated timestamps, and a clear no-match message. If multiple discovered types have the same full name, it should report ambiguity with project and source-path evidence rather than guessing.
+
+The scoped report should reuse the existing no-build `ClassDependencyAnalyzer` and shared file inventory instead of introducing a second dependency scanner. It should remain static, evidence-backed, and source-visible only; it should not claim runtime dependency injection resolution, reflection or dynamic loading understanding, transitive dependency completeness, generated-code behaviour, or runtime call graph accuracy.
 
 
 ### Console Output Modes

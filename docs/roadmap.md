@@ -577,6 +577,8 @@ Implementation should use the MVP artifact selection model rather than one-off c
 
 Status: MVP scope addition
 
+Related MVP addition: add `class-dependency-scope` as an on-demand, parameterised scoped class dependency artifact for a requested fully qualified type.
+
 MVP scope:
 
 - Add a `class-dependencies` capability that can produce `class-dependencies.md`.
@@ -602,4 +604,32 @@ Out of scope for MVP:
 - Proving that a dependency is always used or unused at runtime.
 
 Implementation should use the MVP artifact selection model rather than one-off command handling.
+
+---
+
+### Step 5h: Scoped class dependency report for focused refactoring
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add a parameterised optional artifact named `class-dependency-scope`.
+- Add `--class-dependency-type <fully-qualified-type-name>` as the required root type option when `class-dependency-scope` is explicitly selected.
+- Keep `--artifacts all` useful for normal batch scans by not requiring a type name and not generating scoped reports unless `--class-dependency-type` is supplied.
+- Generate all normal artifacts plus the scoped report when `--artifacts all --class-dependency-type <type>` is used.
+- Reuse `ClassDependencyAnalyzer` and `ScanContext.FileInventory`; do not add a second source dependency scanner.
+- Filter/project the existing class dependency report into a scoped report with the requested type, resolved root type, direct outbound dependencies, direct inbound dependants, related concerns, generated timestamp metadata, and a compact Mermaid diagram.
+- Resolve requested types against `DiscoveredType.FullName` case-insensitively and do not silently fall back to short-name matching.
+- Report no-match and duplicate full-name ambiguity states clearly rather than guessing.
+- Write scoped artifacts using `class-dependency-scope.<safe-fully-qualified-type-name>.<yyyyMMdd-HHmmss>.md` so repeated refactoring runs preserve historical output files.
+- Use local time only in the filename, but include both local and UTC generated timestamps in the report body.
+- Add tests for parser validation, `all` interaction, filename sanitisation, timestamped output naming, no-match reporting, ambiguity reporting, inbound/outbound filtering, Mermaid output, and console output paths.
+
+Out of scope for MVP:
+
+- Runtime DI graph generation.
+- Reflection or dynamic loading analysis.
+- Transitive dependency closure as a correctness guarantee.
+- Runtime call graph analysis.
+- Automatically comparing historical reports.
 

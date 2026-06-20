@@ -137,6 +137,7 @@ Current MVP functionality includes implemented capabilities and newly required M
 - optional `--artifacts data-access` command support for producing the data-access artifact
 - optional `--artifacts edmx-analysis` command support for producing the edmx-analysis artifact
 - optional `--artifacts class-dependencies` command support for producing the class-dependencies artifact
+- optional `--artifacts class-dependency-scope` command support for producing a timestamped scoped class dependency artifact when `--class-dependency-type <fully-qualified-type-name>` is supplied
 - optional `--artifacts interface-inventory` command support for producing the interface-inventory artifact
 - optional `--artifacts solution-topology` command support for producing the solution-topology artifact
 - optional `--artifacts <name1,name2>` command support for generating a selected comma-separated subset of optional artifacts
@@ -148,6 +149,10 @@ Current MVP functionality includes implemented capabilities and newly required M
 - validation that `all` cannot be combined with other artifact names
 - normal `discovery-report.md` generation regardless of optional artifact selection
 - optional `--upgrade-target <tfm>` command support as upgrade report wording context only when selected artifacts include upgrade-readiness, upgrade-blockers, or all; it does not change discovery scope or perform compatibility checks
+- optional `--class-dependency-type <fully-qualified-type-name>` command support as scoped class dependency type context only when selected artifacts include class-dependency-scope or all; it does not change normal artifact discovery scope
+- validation that class-dependency-scope requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected
+- validation that plain `--artifacts all` does not require a class dependency type and does not generate scoped reports unless a type is supplied
+- validation that `--class-dependency-type` is rejected when the selected artifacts do not include class-dependency-scope or all
 - static class dependency analysis for identifying source-level type relationships and coupling concerns
 - class-dependencies report generation as `class-dependencies.md`
 - class-dependencies discovery of source-defined types such as classes, interfaces, records, structs, and enums where useful
@@ -158,6 +163,10 @@ Current MVP functionality includes implemented capabilities and newly required M
 - class-dependencies focused Mermaid diagram generation with dependency-kind edge labels
 - class-dependencies evidence reporting with project name, source path, line number, source type, target type, dependency kind, and concise source evidence where possible
 - class-dependencies notes and limitations explaining static no-build analysis and that findings mean “requires review”, not “proven runtime usage”
+- class-dependency-scope report generation using type-specific timestamped filenames such as `class-dependency-scope.SampleLegacyApp.Services.CustomerService.20260620-153045.md`
+- class-dependency-scope reporting for a requested fully qualified root type, direct outbound source-level dependencies, direct inbound dependants, related concerns, compact Mermaid diagram, generated local and UTC timestamps, and static analysis limitations
+- class-dependency-scope no-match and ambiguity reporting without silently falling back to short-name matching or guessing between duplicate full-name matches
+- class-dependency-scope preservation of historical reports by default through timestamped filenames during repeated refactoring runs
 - static interface-inventory analysis for identifying available abstractions and likely extension points
 - interface-inventory report generation as `interface-inventory.md`
 - interface-inventory discovery of interface definitions, implementations, static consumers, generic and collection-based interface usage, inherited interfaces, endpoint delegate parameters, service-locator usage, DI/IoC registration evidence, and visible XML/configuration-driven wiring where discoverable
@@ -293,6 +302,8 @@ Out of scope for MVP:
 
 The `class-dependencies` capability is an MVP-scope addition. It should produce `class-dependencies.md` as a separate Markdown artifact. It is a static, evidence-backed source-level dependency report for understanding class and type coupling before refactoring, testing, or modernising a .NET codebase.
 
+The on-demand `class-dependency-scope` capability is also an MVP-scope addition. It should produce a separate timestamped Markdown artifact for one requested fully qualified type and is intended to help a developer understand a narrow section of a large codebase during refactoring without reading the full `class-dependencies.md` report.
+
 MVP scope:
 
 - Add a `class-dependencies` capability that can produce `class-dependencies.md`.
@@ -316,6 +327,38 @@ Out of scope for MVP:
 - Reflection, dynamic loading, factory behaviour, generated code behaviour, or conditional runtime behaviour analysis.
 - Runtime call graphs.
 - Proving that a dependency is always used or unused at runtime.
+
+### Scoped Class Dependency Artifact
+
+The `class-dependency-scope` capability is an MVP-scope addition. It should produce a focused, timestamped Markdown artifact for one requested fully qualified type. It answers: “For this specific type, what does it directly depend on, what directly depends on it, and what review concerns involve it?”
+
+MVP scope:
+
+- Add a `class-dependency-scope` artifact name and a `--class-dependency-type <fully-qualified-type-name>` CLI option.
+- Require `--class-dependency-type` when `class-dependency-scope` is explicitly selected.
+- Allow `--artifacts all --class-dependency-type <type>` to generate all normal artifacts plus the scoped report.
+- Keep plain `--artifacts all` valid without a scoped type and do not generate scoped reports in that case.
+- Reject `--class-dependency-type` when selected artifacts do not include `class-dependency-scope` or `all`.
+- Reuse the existing no-build `ClassDependencyAnalyzer` and `ScanContext.FileInventory`; do not create a second dependency scanner.
+- Resolve the requested fully qualified type name case-insensitively against `DiscoveredType.FullName`.
+- Do not silently fall back to short-name matching.
+- Report no-match and ambiguity cases clearly with source files analysed, discovered type counts, project/source-path evidence where available, and generated timestamp metadata.
+- Include direct outbound dependencies where the root type is the source.
+- Include direct inbound dependants where the root type is the target.
+- Include concerns where the root type is either source or target.
+- Include a compact Mermaid diagram centred on the root type.
+- Write each report to `class-dependency-scope.<safe-fully-qualified-type-name>.<yyyyMMdd-HHmmss>.md` using a local sortable filename timestamp.
+- Include both local and UTC generated timestamps inside the report body.
+- Preserve historical reports by default so repeated refactoring runs for the same type do not overwrite earlier files.
+
+Out of scope for MVP:
+
+- Runtime dependency injection resolution.
+- Reflection or dynamic loading analysis.
+- Transitive dependency completeness.
+- Runtime call graph generation.
+- Proving runtime usage.
+- Treating simple-name matches as semantically certain when multiple source-defined types share the same short name.
 
 ## MVP Exit Criteria
 

@@ -66,6 +66,7 @@ LegacyLens.Cli/
 ├── Commands/
 │   ├── Runners/
 │   │   ├── ClassDependenciesArtifactRunner.cs
+│   │   ├── ScopedClassDependencyArtifactRunner.cs
 │   │   ├── InterfaceInventoryArtifactRunner.cs
 │   │   ├── ConfigurationInventoryArtifactRunner.cs
 │   │   ├── DataAccessArtifactRunner.cs
@@ -94,9 +95,9 @@ The `Commands` namespace contains the command model and scan orchestration types
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ScanCommand`                | Orchestrates static discovery, reports phase-based progress through a CLI progress abstraction, builds the shared file inventory once after project discovery, runs analysis, writes the main report, executes artifact runners, and creates the final `ScanResult` for `legacylens scan <path>`.                                                                                              |
 | `ScanContext`                | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, prioritised review areas, and the shared `ScanFileInventory` for report writing and optional artifact runners. |
-| `ScanOptions`                | Represents validated scan options from the CLI parser, including output selection, console mode, parsed artifact selection, and optional upgrade report wording context.                                                                                                                                                                     |
+| `ScanOptions`                | Represents validated scan options from the CLI parser, including output selection, console mode, parsed artifact selection, optional scoped class dependency type context, and optional upgrade report wording context.                                                                                                                                                                     |
 | `ScanResult`                 | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer.                                                                                                                                                                                                           |
-| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, `class-dependencies.md`, `interface-inventory.md`, and `solution-topology.md`.                                                                      |
+| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, `class-dependencies.md`, timestamped `class-dependency-scope.<type>.<timestamp>.md` reports, `interface-inventory.md`, and `solution-topology.md`.                                                                      |
 
 
 ### Artifact Selection Model
@@ -113,6 +114,8 @@ The `Commands` namespace contains the command model and scan orchestration types
 * a helper such as `ShouldWriteArtifact(string artifactName)`
 
 The normal `discovery-report.md` remains outside optional artifact selection and should always be generated for a successful scan.
+
+`class-dependency-scope` is a parameterised optional artifact. It should be a supported artifact name, but it requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected. `--artifacts all` should not require a type name and should not generate scoped reports unless the type option is also supplied. Supplying `--class-dependency-type` without `class-dependency-scope` or `all` should be rejected during parsing.
 
 `--upgrade-target <tfm>` validation should be based on the parsed selection. It is optional target-framework context for upgrade report wording only. It is valid when the selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and invalid when the selected artifacts contain no upgrade-related artifact. It must not change discovery scope, enable extra analysis, or imply compatibility checking.
 
@@ -133,6 +136,7 @@ The `Commands.Runners` namespace contains focused optional artifact-generation r
 | `DataAccessArtifactRunner`           | Produces `data-access-inventory.md` when `--artifacts data-access` is selected.                 |
 | `EdmxAnalysisArtifactRunner`         | Produces `edmx-analysis.md` when `--artifacts edmx-analysis` is selected.                       |
 | `ClassDependenciesArtifactRunner`    | Produces `class-dependencies.md` when `--artifacts class-dependencies` is selected.             |
+| `ScopedClassDependencyArtifactRunner` | Produces timestamped `class-dependency-scope.<type>.<yyyyMMdd-HHmmss>.md` files when `--artifacts class-dependency-scope --class-dependency-type <fully-qualified-type-name>` is selected, or when `all` is selected with a type name. |
 | `InterfaceInventoryArtifactRunner`    | Produces `interface-inventory.md` when `--artifacts interface-inventory` is selected.           |
 | `SolutionTopologyArtifactRunner`     | Produces `solution-topology.md` when `--artifacts solution-topology` is selected.               |
 
@@ -145,6 +149,7 @@ Artifact runner implementation rules:
 * Use `ScanContext.FileInventory` for artifact analyzers that need project-associated source/model files, such as class dependency, interface inventory, data-access, and EDMX analysis.
 * Keep artifact-specific analyzer and Markdown writer calls inside the relevant runner.
 * Use `ArtifactOutputPathResolver` for optional artifact output paths.
+* For parameterised scoped class dependency output, build a safe filename from the requested fully qualified type name plus a local sortable `yyyyMMdd-HHmmss` timestamp before passing it to `ArtifactOutputPathResolver`, so repeated refactoring runs preserve historical reports.
 * Use `Commands/Runners/` rather than `Commands/Artifacts/`, because `artifacts/` is a gitignored generated-output folder name.
 
 Optional artifact path resolution should use this precedence:
@@ -158,6 +163,8 @@ The normal `discovery-report.md` output-path resolution currently remains inside
 ### Parsing
 
 The `Parsing` namespace contains command-line parsing and validation. It should validate the public CLI contract before `ScanCommand` runs. Examples include required scan path validation, unsupported option handling, mutually exclusive `--output` and `--output-dir`, mutually exclusive `--quiet` and `--verbose`, supported artifact values, comma-separated artifact values, `all`, invalid combinations such as `all,data-access`, duplicate de-duplication, and valid use of `--upgrade-target` as upgrade report wording context only.
+
+Parsing should also validate the scoped class dependency option rules: `--class-dependency-type` is required when `class-dependency-scope` is explicitly selected, allowed with `all`, invalid with unrelated artifacts, and should not make plain `--artifacts all` require a type name.
 
 ### Progress
 
@@ -223,7 +230,7 @@ Current analysis work includes:
 * producing configuration-inventory analysis models for a separate `configuration-inventory.md` artifact
 * producing data-access analysis models for a separate `data-access-inventory.md` artifact
 * producing EDMX analysis models for a separate `edmx-analysis.md` artifact
-* producing class dependency analysis models for a separate `class-dependencies.md` artifact
+* producing class dependency analysis models for a separate `class-dependencies.md` artifact and scoped class dependency projection models for timestamped `class-dependency-scope` artifacts
 * identifying legacy ASP.NET indicators from `System.Web` assembly references
 * identifying `System.Web.*` assembly references as legacy ASP.NET review items
 * identifying WebForms pages as legacy ASP.NET migration risk indicators

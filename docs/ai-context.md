@@ -51,7 +51,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, configuration API usage, source-code configuration key usage, and cautious reconciliation against visible configured entries, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, a separate `interface-inventory.md` artifact for source-level interface, implementation, consumer, registration, and extension-point analysis, and a separate `solution-topology.md` artifact for solution/project relationship orientation.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, configuration API usage, source-code configuration key usage, and cautious reconciliation against visible configured entries, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, a parameterised timestamped `class-dependency-scope.<type>.<timestamp>.md` artifact for focused per-type dependency review, a separate `interface-inventory.md` artifact for source-level interface, implementation, consumer, registration, and extension-point analysis, and a separate `solution-topology.md` artifact for solution/project relationship orientation.
 
 ## Current implemented capability summary
 
@@ -73,6 +73,7 @@ LegacyLens.NET currently discovers:
 - data access inventory inputs such as connection strings, provider names, EF6, EF Core, EDMX/T4, LINQ to SQL, ADO.NET, Dapper, NHibernate, raw SQL, stored procedure, repository, unit-of-work, and migration artifact indicators where discoverable
 - EDMX analysis inputs such as `.edmx` files, CSDL conceptual entities/entity sets/keys/navigation properties/complex types/function imports, SSDL storage entity sets/tables/views/columns/functions/defining queries, MSL mappings/scalar properties/function import mappings/modification function mappings/query views, designer metadata, and companion generated files where discoverable
 - class dependency analysis inputs such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, generic type usage, coupling hotspots, hardcoded concrete dependencies, and static dependency concerns where discoverable
+- scoped class dependency analysis output for one requested fully qualified type, including direct outbound dependencies, direct inbound dependants, related concerns, and a compact Mermaid diagram where source-level evidence allows it
 - interface inventory analysis inputs such as interface definitions, implementations, consumers, generic and collection-based interface usage, service-locator usage, Microsoft DI registrations, legacy IoC registration patterns, and Spring.NET/Castle Windsor/Unity-style XML or configuration-driven wiring where discoverable, with Spring.NET XML comments, descriptions, root container text, and arbitrary descendant text ignored as registration evidence
 
 
@@ -109,11 +110,33 @@ The normal `discovery-report.md` is always generated. Artifact names are case-in
 
 Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, `interface-inventory`, and `solution-topology`.
 
+Add `class-dependency-scope` to the supported artifact names as a parameterised artifact. It requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected, is valid with `--artifacts all` only as an additional scoped output when the type option is supplied, and must not make plain `--artifacts all` require a type name.
+
 `--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it should be rejected when none of the selected artifacts are upgrade-related. It must not change discovery scope, enable extra analysis, or imply compatibility checking.
 
 Implementation should keep the artifact runner model. Prefer a parsed artifact selection model on `ScanOptions`, such as selected artifact names, `ShouldWriteAllArtifacts`, and `ShouldWriteArtifact(string artifactName)`. Avoid returning to repeated artifact `if` blocks inside `ScanCommand`.
 
 ## MVP package compatibility review addition
+## MVP scoped class dependency artifact addition
+
+`class-dependency-scope` is MVP scope as an on-demand parameterised artifact for focused refactoring and codebase navigation. Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-dependency-scope --class-dependency-type SampleLegacyApp.Services.CustomerService
+```
+
+The generated file should use a type-specific, timestamped, Windows-safe filename such as:
+
+```text
+class-dependency-scope.SampleLegacyApp.Services.CustomerService.20260620-153045.md
+```
+
+The filename timestamp should be local machine time in sortable `yyyyMMdd-HHmmss` form. The report body should include both local and UTC generated timestamps. Repeated runs should preserve historical reports by default.
+
+Implementation should reuse `ClassDependencyAnalyzer` and `ScanContext.FileInventory`; do not create a second dependency scanner. Prefer a scoped projection over the existing `ClassDependencyReport`, with focused models/writers such as `ScopedClassDependencyReport`, `ScopedClassDependencyAnalyzer`, `ScopedClassDependencyMarkdownReportWriter`, `ScopedClassDependencyMermaidDiagramWriter`, and `ScopedClassDependencyArtifactRunner` if useful. Resolve the requested type against `DiscoveredType.FullName` case-insensitively. Do not silently fall back to short-name matching. No-match reports should still be generated with requested type, source files analysed, discovered type count, generated timestamps, and a clear no-match message. Duplicate full-name matches should produce an ambiguity section with project/source-path evidence rather than guessing.
+
+The scoped report should include direct outbound dependencies from the root type, direct inbound dependants to the root type, concerns involving the root type, a compact Mermaid diagram centred on the type, and clear limitations. It must not claim runtime DI resolution, reflection or dynamic loading understanding, transitive dependency completeness, generated-code behaviour, or runtime call graph accuracy. Existing `class-dependencies.md` output behaviour should be preserved.
+
 
 Package compatibility review is now MVP scope. It should enrich package discovery with package version, project target framework, package target framework where available, source format, source path, and possible compatibility concerns. It should remain static and evidence-backed, and it should not be described as full NuGet restore, transitive dependency resolution, online package lookup, package asset inspection, or guaranteed compatibility checking against a destination framework.
 

@@ -89,7 +89,70 @@ public sealed class ScanArtifactRunnerTests
         Assert.Throws<ArgumentNullException>(() => runner.ShouldRun(null!));
     }
 
-    private static ScanContext CreateContext(string? artifact)
+
+    [Fact]
+    public void ScopedClassDependencyArtifactRunner_ArtifactName_ReturnsExpectedArtifactName()
+    {
+        var runner = new ScopedClassDependencyArtifactRunner();
+
+        Assert.Equal(ScanOptions.ClassDependencyScopeArtifact, runner.ArtifactName);
+    }
+
+    [Fact]
+    public void ScopedClassDependencyArtifactRunner_ShouldRun_WhenSelectedWithType_ReturnsTrue()
+    {
+        var context = CreateContext(
+            ScanOptions.ClassDependencyScopeArtifact,
+            classDependencyType: "SampleLegacyApp.Services.CustomerService");
+        var runner = new ScopedClassDependencyArtifactRunner();
+
+        var shouldRun = runner.ShouldRun(context);
+
+        Assert.True(shouldRun);
+    }
+
+    [Fact]
+    public void ScopedClassDependencyArtifactRunner_ShouldRun_WhenSelectedWithoutType_ReturnsFalse()
+    {
+        var context = CreateContext(ScanOptions.ClassDependencyScopeArtifact);
+        var runner = new ScopedClassDependencyArtifactRunner();
+
+        var shouldRun = runner.ShouldRun(context);
+
+        Assert.False(shouldRun);
+    }
+
+    [Fact]
+    public void ScopedClassDependencyArtifactRunner_ShouldRun_WhenAllArtifactsSelectedWithoutType_ReturnsFalse()
+    {
+        var context = CreateContextForAllArtifacts();
+        var runner = new ScopedClassDependencyArtifactRunner();
+
+        var shouldRun = runner.ShouldRun(context);
+
+        Assert.False(shouldRun);
+    }
+
+    [Fact]
+    public void ScopedClassDependencyArtifactRunner_ShouldRun_WhenAllArtifactsSelectedWithType_ReturnsTrue()
+    {
+        var context = CreateContextForAllArtifacts("SampleLegacyApp.Services.CustomerService");
+        var runner = new ScopedClassDependencyArtifactRunner();
+
+        var shouldRun = runner.ShouldRun(context);
+
+        Assert.True(shouldRun);
+    }
+
+    [Fact]
+    public void ScopedClassDependencyArtifactRunner_ShouldRun_WhenContextIsNull_ThrowsArgumentNullException()
+    {
+        var runner = new ScopedClassDependencyArtifactRunner();
+
+        Assert.Throws<ArgumentNullException>(() => runner.ShouldRun(null!));
+    }
+
+    private static ScanContext CreateContext(string? artifact, string? classDependencyType = null)
     {
         var scanPath = Directory.GetCurrentDirectory();
 
@@ -101,11 +164,12 @@ public sealed class ScanArtifactRunnerTests
                 Artifacts = artifact,
                 SelectedArtifacts = artifact is null
                     ? []
-                    : [artifact]
+                    : [artifact],
+                ClassDependencyType = classDependencyType
             });
     }
 
-    private static ScanContext CreateContextForAllArtifacts()
+    private static ScanContext CreateContextForAllArtifacts(string? classDependencyType = null)
     {
         var scanPath = Directory.GetCurrentDirectory();
 
@@ -115,7 +179,8 @@ public sealed class ScanArtifactRunnerTests
             {
                 Path = scanPath,
                 Artifacts = ScanOptions.AllArtifactsSelection,
-                ShouldWriteAllArtifacts = true
+                ShouldWriteAllArtifacts = true,
+                ClassDependencyType = classDependencyType
             });
     }
 

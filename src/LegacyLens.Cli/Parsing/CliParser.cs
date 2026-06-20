@@ -50,6 +50,7 @@ public sealed class CliParser
         string[] selectedArtifacts = [];
         var shouldWriteAllArtifacts = false;
         string? upgradeTarget = null;
+        string? classDependencyType = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -118,6 +119,16 @@ public sealed class CliParser
                 continue;
             }
 
+            if (arg.Equals("--class-dependency-type", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!TryReadOptionValue(args, ref i, arg, out classDependencyType, out var error))
+                {
+                    return CliParseResult.Error(error);
+                }
+
+                continue;
+            }
+
             if (arg.Equals("--upgrade-target", StringComparison.OrdinalIgnoreCase))
             {
                 if (!TryReadOptionValue(args, ref i, arg, out upgradeTarget, out var error))
@@ -172,7 +183,8 @@ public sealed class CliParser
             Artifacts = artifacts,
             SelectedArtifacts = selectedArtifacts,
             ShouldWriteAllArtifacts = shouldWriteAllArtifacts,
-            UpgradeTarget = upgradeTarget
+            UpgradeTarget = upgradeTarget,
+            ClassDependencyType = classDependencyType
         };
 
         if (!string.IsNullOrWhiteSpace(upgradeTarget) &&
@@ -180,6 +192,20 @@ public sealed class CliParser
         {
             return CliParseResult.Error(
                 "Use --upgrade-target only as upgrade report wording context when --artifacts includes upgrade-readiness, upgrade-blockers, or all.");
+        }
+
+        if (options.SelectedArtifacts.Contains(ScanOptions.ClassDependencyScopeArtifact, StringComparer.OrdinalIgnoreCase) &&
+            string.IsNullOrWhiteSpace(classDependencyType))
+        {
+            return CliParseResult.Error(
+                "The class-dependency-scope artifact requires --class-dependency-type <fully-qualified-type-name>.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(classDependencyType) &&
+            !options.HasScopedClassDependencyArtifactSelection)
+        {
+            return CliParseResult.Error(
+                "Use --class-dependency-type only when --artifacts includes class-dependency-scope or all.");
         }
 
         return CliParseResult.Scan(options);

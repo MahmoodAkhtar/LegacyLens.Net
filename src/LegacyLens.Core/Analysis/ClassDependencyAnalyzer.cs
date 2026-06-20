@@ -58,7 +58,7 @@ public sealed class ClassDependencyAnalyzer
 
         var knownTypes = discoveredTypes
             .GroupBy(type => type.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(group => group.Key, group => group.ToArray(), StringComparer.OrdinalIgnoreCase);
 
         var dependencies = sourceFiles
             .SelectMany(file => DiscoverDependencies(file, discoveredTypes, knownTypes))
@@ -140,7 +140,7 @@ public sealed class ClassDependencyAnalyzer
     private static IEnumerable<ClassDependency> DiscoverDependencies(
         SourceFileInfo sourceFile,
         IReadOnlyCollection<DiscoveredType> discoveredTypes,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         if (string.IsNullOrWhiteSpace(sourceFile.Source))
         {
@@ -167,7 +167,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         foreach (var dependency in DiscoverBaseTypeDependencies(sourceFile, sourceType, typeDeclaration, knownTypes))
         {
@@ -224,7 +224,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         if (typeDeclaration.BaseList is null)
         {
@@ -250,7 +250,8 @@ public sealed class ClassDependencyAnalyzer
                 targetType,
                 kind,
                 GetLineNumber(sourceFile.SyntaxTree, baseType),
-                baseType.ToString());
+                baseType.ToString(),
+                knownTypes);
         }
     }
 
@@ -258,7 +259,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         foreach (var attribute in OwnNodes<AttributeSyntax>(typeDeclaration))
         {
@@ -275,7 +276,8 @@ public sealed class ClassDependencyAnalyzer
                 targetType,
                 ClassDependencyKind.Attribute,
                 GetLineNumber(sourceFile.SyntaxTree, attribute),
-                $"[{attribute}]");
+                $"[{attribute}]",
+                knownTypes);
         }
     }
 
@@ -283,7 +285,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         foreach (var field in OwnNodes<FieldDeclarationSyntax>(typeDeclaration))
         {
@@ -297,7 +299,8 @@ public sealed class ClassDependencyAnalyzer
                     targetType,
                     ClassDependencyKind.Field,
                     GetLineNumber(sourceFile.SyntaxTree, field),
-                    GetDeclarationEvidence(field));
+                    GetDeclarationEvidence(field),
+                    knownTypes);
             }
 
             foreach (var variable in field.Declaration.Variables)
@@ -315,7 +318,8 @@ public sealed class ClassDependencyAnalyzer
                         targetType,
                         ClassDependencyKind.ObjectCreation,
                         GetLineNumber(sourceFile.SyntaxTree, implicitNew),
-                        "new()");
+                        "new()",
+                        knownTypes);
                 }
             }
         }
@@ -325,7 +329,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         foreach (var property in OwnNodes<PropertyDeclarationSyntax>(typeDeclaration))
         {
@@ -339,7 +343,8 @@ public sealed class ClassDependencyAnalyzer
                     targetType,
                     ClassDependencyKind.Property,
                     GetLineNumber(sourceFile.SyntaxTree, property),
-                    GetPropertyEvidence(property));
+                    GetPropertyEvidence(property),
+                    knownTypes);
             }
 
             if (property.Initializer?.Value is ImplicitObjectCreationExpressionSyntax implicitNew &&
@@ -351,7 +356,8 @@ public sealed class ClassDependencyAnalyzer
                     targetType,
                     ClassDependencyKind.ObjectCreation,
                     GetLineNumber(sourceFile.SyntaxTree, implicitNew),
-                    "new()");
+                    "new()",
+                    knownTypes);
             }
         }
     }
@@ -360,7 +366,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         foreach (var constructor in OwnNodes<ConstructorDeclarationSyntax>(typeDeclaration))
         {
@@ -376,7 +382,8 @@ public sealed class ClassDependencyAnalyzer
                         parameterType,
                         ClassDependencyKind.ConstructorParameter,
                         GetLineNumber(sourceFile.SyntaxTree, constructor),
-                        GetConstructorEvidence(constructor));
+                        GetConstructorEvidence(constructor),
+                        knownTypes);
                 }
             }
         }
@@ -386,7 +393,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         foreach (var method in OwnNodes<MethodDeclarationSyntax>(typeDeclaration))
         {
@@ -400,7 +407,8 @@ public sealed class ClassDependencyAnalyzer
                     returnType,
                     ClassDependencyKind.ReturnType,
                     GetLineNumber(sourceFile.SyntaxTree, method),
-                    GetMethodEvidence(method));
+                    GetMethodEvidence(method),
+                    knownTypes);
             }
 
             foreach (var parameter in method.ParameterList.Parameters)
@@ -415,7 +423,8 @@ public sealed class ClassDependencyAnalyzer
                         parameterType,
                         ClassDependencyKind.MethodParameter,
                         GetLineNumber(sourceFile.SyntaxTree, method),
-                        GetMethodEvidence(method));
+                        GetMethodEvidence(method),
+                        knownTypes);
                 }
             }
         }
@@ -425,7 +434,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         foreach (var local in OwnNodes<LocalDeclarationStatementSyntax>(typeDeclaration))
         {
@@ -440,7 +449,8 @@ public sealed class ClassDependencyAnalyzer
                     targetType,
                     ClassDependencyKind.LocalVariable,
                     GetLineNumber(sourceFile.SyntaxTree, local),
-                    GetLocalDeclarationEvidence(local));
+                    GetLocalDeclarationEvidence(local),
+                    knownTypes);
             }
 
             foreach (var variable in local.Declaration.Variables)
@@ -458,7 +468,8 @@ public sealed class ClassDependencyAnalyzer
                         targetType,
                         ClassDependencyKind.ObjectCreation,
                         GetLineNumber(sourceFile.SyntaxTree, implicitNew),
-                        "new()");
+                        "new()",
+                        knownTypes);
                 }
             }
         }
@@ -468,7 +479,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         foreach (var objectCreation in OwnNodes<ObjectCreationExpressionSyntax>(typeDeclaration))
         {
@@ -482,7 +493,8 @@ public sealed class ClassDependencyAnalyzer
                     targetType,
                     ClassDependencyKind.ObjectCreation,
                     GetLineNumber(sourceFile.SyntaxTree, objectCreation),
-                    GetObjectCreationEvidence(objectCreation));
+                    GetObjectCreationEvidence(objectCreation),
+                    knownTypes);
             }
         }
     }
@@ -515,7 +527,7 @@ public sealed class ClassDependencyAnalyzer
         SourceFileInfo sourceFile,
         DiscoveredType sourceType,
         TypeDeclarationSyntax typeDeclaration,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
         foreach (var genericName in OwnNodes<GenericNameSyntax>(typeDeclaration))
         {
@@ -531,7 +543,8 @@ public sealed class ClassDependencyAnalyzer
                         targetType,
                         ClassDependencyKind.GenericTypeArgument,
                         GetLineNumber(sourceFile.SyntaxTree, argument),
-                        genericName.ToString());
+                        genericName.ToString(),
+                        knownTypes);
                 }
             }
         }
@@ -608,16 +621,25 @@ public sealed class ClassDependencyAnalyzer
         string targetType,
         ClassDependencyKind kind,
         int lineNumber,
-        string evidence)
+        string evidence,
+        IReadOnlyDictionary<string, DiscoveredType[]>? knownTypes = null)
     {
+        var simplifiedTargetType = SimplifyTypeName(targetType);
+        var resolvedTargetType = knownTypes is null
+            ? null
+            : ResolveUniqueTargetType(simplifiedTargetType, knownTypes);
+
         return new ClassDependency(
             sourceFile.ProjectName,
             sourceFile.SourcePath,
             lineNumber,
             sourceType.Name,
-            SimplifyTypeName(targetType),
+            simplifiedTargetType,
             kind,
-            TrimEvidence(evidence));
+            TrimEvidence(evidence),
+            sourceType.FullName,
+            resolvedTargetType?.FullName,
+            resolvedTargetType?.SourcePath);
     }
 
     private static IEnumerable<ClassDependencyConcern> CreateConcerns(ClassDependency dependency)
@@ -636,7 +658,9 @@ public sealed class ClassDependencyAnalyzer
                 dependency.LineNumber,
                 dependency.Evidence,
                 "Concrete construction hides the dependency and can make testing, replacement, and migration harder.",
-                "Consider constructor injection behind an interface or an explicit factory if the dependency has behaviour or infrastructure impact.");
+                "Consider constructor injection behind an interface or an explicit factory if the dependency has behaviour or infrastructure impact.",
+                dependency.SourceFullName,
+                dependency.TargetFullName);
         }
 
         if (dependency.Kind == ClassDependencyKind.StaticMemberAccess)
@@ -653,7 +677,9 @@ public sealed class ClassDependencyAnalyzer
                 dependency.LineNumber,
                 dependency.Evidence,
                 "Static/global access can hide runtime dependencies and may need review during migration or test isolation.",
-                CreateStaticAccessRecommendation(dependency.TargetType));
+                CreateStaticAccessRecommendation(dependency.TargetType),
+                dependency.SourceFullName,
+                dependency.TargetFullName);
         }
 
         if (dependency.Kind is ClassDependencyKind.Field or ClassDependencyKind.Property &&
@@ -669,7 +695,9 @@ public sealed class ClassDependencyAnalyzer
                 dependency.LineNumber,
                 dependency.Evidence,
                 "Concrete member dependencies increase coupling between types and may make substitution harder.",
-                "Review whether this dependency should be represented by an interface, abstraction, or value object.");
+                "Review whether this dependency should be represented by an interface, abstraction, or value object.",
+                dependency.SourceFullName,
+                dependency.TargetFullName);
         }
 
         if (dependency.Kind == ClassDependencyKind.ConstructorParameter && LooksConcrete(dependency.TargetType))
@@ -684,7 +712,9 @@ public sealed class ClassDependencyAnalyzer
                 dependency.LineNumber,
                 dependency.Evidence,
                 "Constructor injection is visible, but injecting a concrete class still couples the source type to an implementation.",
-                "Review whether an interface or stable abstraction is useful before refactoring or migration.");
+                "Review whether an interface or stable abstraction is useful before refactoring or migration.",
+                dependency.SourceFullName,
+                dependency.TargetFullName);
         }
 
         if (dependency.Kind == ClassDependencyKind.BaseClass && LooksConcrete(dependency.TargetType))
@@ -699,7 +729,9 @@ public sealed class ClassDependencyAnalyzer
                 dependency.LineNumber,
                 dependency.Evidence,
                 "Inheritance from a concrete base type can couple behaviour and lifecycle in ways that are harder to migrate than composition.",
-                "Review whether the base class contains framework, infrastructure, or shared mutable behaviour before migration.");
+                "Review whether the base class contains framework, infrastructure, or shared mutable behaviour before migration.",
+                dependency.SourceFullName,
+                dependency.TargetFullName);
         }
 
         if (dependency.Kind == ClassDependencyKind.Attribute && IsFrameworkAttribute(dependency.TargetType))
@@ -714,7 +746,9 @@ public sealed class ClassDependencyAnalyzer
                 dependency.LineNumber,
                 dependency.Evidence,
                 "Framework-specific attributes can represent routing, filters, authorization, serialization, or service behaviour that may need migration mapping.",
-                "Review the target framework equivalent and confirm behaviour is preserved during migration.");
+                "Review the target framework equivalent and confirm behaviour is preserved during migration.",
+                dependency.SourceFullName,
+                dependency.TargetFullName);
         }
     }
 
@@ -727,20 +761,20 @@ public sealed class ClassDependencyAnalyzer
             .Select(type =>
             {
                 var outgoing = dependencies
-                    .Where(dependency => dependency.SourceType.Equals(type.Name, StringComparison.OrdinalIgnoreCase))
-                    .Select(dependency => dependency.TargetType)
+                    .Where(dependency => IsSourceIdentityMatch(dependency, type))
+                    .Select(dependency => dependency.TargetFullName ?? dependency.TargetType)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Count();
 
                 var incoming = dependencies
-                    .Where(dependency => dependency.TargetType.Equals(type.Name, StringComparison.OrdinalIgnoreCase))
-                    .Select(dependency => dependency.SourceType)
+                    .Where(dependency => IsTargetIdentityMatch(dependency, type))
+                    .Select(dependency => dependency.SourceFullName ?? dependency.SourceType)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Count();
 
                 var concernCount = concerns.Count(concern =>
-                    concern.SourceType.Equals(type.Name, StringComparison.OrdinalIgnoreCase) ||
-                    concern.TargetType.Equals(type.Name, StringComparison.OrdinalIgnoreCase));
+                    IsConcernSourceIdentityMatch(concern, type) ||
+                    IsConcernTargetIdentityMatch(concern, type));
 
                 return new ClassCouplingHotspot(
                     type.Name,
@@ -774,9 +808,39 @@ public sealed class ClassDependencyAnalyzer
         return "Several incoming source-level dependencies found.";
     }
 
+
+    private static bool IsSourceIdentityMatch(ClassDependency dependency, DiscoveredType type) =>
+        !string.IsNullOrWhiteSpace(dependency.SourceFullName)
+            ? dependency.SourceFullName.Equals(type.FullName, StringComparison.OrdinalIgnoreCase)
+            : dependency.SourcePath.Equals(type.SourcePath, StringComparison.OrdinalIgnoreCase) &&
+              dependency.SourceType.Equals(type.Name, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTargetIdentityMatch(ClassDependency dependency, DiscoveredType type) =>
+        !string.IsNullOrWhiteSpace(dependency.TargetFullName) &&
+        dependency.TargetFullName.Equals(type.FullName, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsConcernSourceIdentityMatch(ClassDependencyConcern concern, DiscoveredType type) =>
+        !string.IsNullOrWhiteSpace(concern.SourceFullName)
+            ? concern.SourceFullName.Equals(type.FullName, StringComparison.OrdinalIgnoreCase)
+            : concern.SourcePath.Equals(type.SourcePath, StringComparison.OrdinalIgnoreCase) &&
+              concern.SourceType.Equals(type.Name, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsConcernTargetIdentityMatch(ClassDependencyConcern concern, DiscoveredType type) =>
+        !string.IsNullOrWhiteSpace(concern.TargetFullName) &&
+        concern.TargetFullName.Equals(type.FullName, StringComparison.OrdinalIgnoreCase);
+
+    private static DiscoveredType? ResolveUniqueTargetType(
+        string targetType,
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
+    {
+        return knownTypes.TryGetValue(targetType, out var matches) && matches.Length == 1
+            ? matches[0]
+            : null;
+    }
+
     private static bool ShouldIncludeTarget(
         string targetType,
-        IReadOnlyDictionary<string, DiscoveredType> knownTypes,
+        IReadOnlyDictionary<string, DiscoveredType[]> knownTypes,
         bool includeKnownFrameworkType)
     {
         if (string.IsNullOrWhiteSpace(targetType))
@@ -797,11 +861,11 @@ public sealed class ClassDependencyAnalyzer
         return includeKnownFrameworkType && IsKnownFrameworkOrInfrastructureType(targetType);
     }
 
-    private static bool IsInterfaceType(string targetType, IReadOnlyDictionary<string, DiscoveredType> knownTypes)
+    private static bool IsInterfaceType(string targetType, IReadOnlyDictionary<string, DiscoveredType[]> knownTypes)
     {
-        if (knownTypes.TryGetValue(targetType, out var discoveredType))
+        if (knownTypes.TryGetValue(targetType, out var discoveredTypes) && discoveredTypes.Length == 1)
         {
-            return discoveredType.Kind == ClassDiscoveredTypeKind.Interface;
+            return discoveredTypes[0].Kind == ClassDiscoveredTypeKind.Interface;
         }
 
         return targetType.StartsWith("I", StringComparison.Ordinal) && targetType.Length > 1 &&
@@ -925,11 +989,11 @@ public sealed class ClassDependencyAnalyzer
 
     private static string CreateDependencyKey(ClassDependency dependency) =>
         string.Join("|", dependency.ProjectName, dependency.SourcePath, dependency.LineNumber, dependency.SourceType,
-            dependency.TargetType, dependency.Kind, dependency.Evidence);
+            dependency.SourceFullName, dependency.TargetType, dependency.TargetFullName, dependency.Kind, dependency.Evidence);
 
     private static string CreateConcernKey(ClassDependencyConcern concern) =>
-        string.Join("|", concern.SourcePath, concern.LineNumber, concern.SourceType, concern.TargetType,
-            concern.DependencyKind, concern.Evidence);
+        string.Join("|", concern.SourcePath, concern.LineNumber, concern.SourceType, concern.SourceFullName,
+            concern.TargetType, concern.TargetFullName, concern.DependencyKind, concern.Evidence);
 
     private sealed record SourceFileInfo(
         string ProjectName,

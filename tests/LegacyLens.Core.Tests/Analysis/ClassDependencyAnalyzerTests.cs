@@ -633,6 +633,95 @@ public sealed class ClassDependencyAnalyzerTests : IDisposable
             dependency.Kind == ClassDependencyKind.ObjectCreation);
     }
     
+
+    [Fact]
+    public void Analyze_PreservesSourceFullNameOnDependenciesAndConcerns()
+    {
+        WriteSourceFile(
+            "OrderService.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public class OrderRepository
+            {
+            }
+
+            public class OrderService
+            {
+                private readonly OrderRepository _repository;
+            }
+            """);
+
+        var analyzer = new ClassDependencyAnalyzer();
+
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
+
+        var dependency = Assert.Single(report.Dependencies, dependency =>
+            dependency.SourceType == "OrderService" &&
+            dependency.TargetType == "OrderRepository" &&
+            dependency.Kind == ClassDependencyKind.Field);
+
+        Assert.Equal("SampleLegacyApp.Services.OrderService", dependency.SourceFullName);
+        Assert.Equal("SampleLegacyApp.Services.OrderRepository", dependency.TargetFullName);
+
+        var concern = Assert.Single(report.Concerns, concern =>
+            concern.SourceType == "OrderService" &&
+            concern.TargetType == "OrderRepository" &&
+            concern.DependencyKind == ClassDependencyKind.Field);
+
+        Assert.Equal("SampleLegacyApp.Services.OrderService", concern.SourceFullName);
+        Assert.Equal("SampleLegacyApp.Services.OrderRepository", concern.TargetFullName);
+    }
+
+    [Fact]
+    public void Analyze_WhenTargetShortNameIsAmbiguous_LeavesTargetIdentityUnresolved()
+    {
+        WriteSourceFile(
+            "FirstDependency.cs",
+            """
+            namespace SampleLegacyApp.First;
+
+            public class SharedDependency
+            {
+            }
+            """);
+
+        WriteSourceFile(
+            "SecondDependency.cs",
+            """
+            namespace SampleLegacyApp.Second;
+
+            public class SharedDependency
+            {
+            }
+            """);
+
+        WriteSourceFile(
+            "OrderService.cs",
+            """
+            namespace SampleLegacyApp.Services;
+
+            public class OrderService
+            {
+                private readonly SharedDependency _dependency;
+            }
+            """);
+
+        var analyzer = new ClassDependencyAnalyzer();
+
+        var report = analyzer.Analyze(CreateInventory(new[] { CreateProject() }));
+
+        var dependency = Assert.Single(report.Dependencies, dependency =>
+            dependency.SourceType == "OrderService" &&
+            dependency.TargetType == "SharedDependency" &&
+            dependency.Kind == ClassDependencyKind.Field);
+
+        Assert.Equal("SampleLegacyApp.Services.OrderService", dependency.SourceFullName);
+        Assert.Null(dependency.TargetFullName);
+        Assert.Null(dependency.TargetSourcePath);
+    }
+
+
     public void Dispose()
     {
         if (Directory.Exists(_rootPath))

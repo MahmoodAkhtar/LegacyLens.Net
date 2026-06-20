@@ -38,7 +38,10 @@ public sealed record ClassDependency(
     string SourceType,
     string TargetType,
     ClassDependencyKind Kind,
-    string Evidence);
+    string Evidence,
+    string? SourceFullName = null,
+    string? TargetFullName = null,
+    string? TargetSourcePath = null);
 
 public enum ClassDependencyKind
 {
@@ -66,7 +69,9 @@ public sealed record ClassDependencyConcern(
     int LineNumber,
     string Evidence,
     string WhyItMatters,
-    string Recommendation);
+    string Recommendation,
+    string? SourceFullName = null,
+    string? TargetFullName = null);
 
 public enum ClassDependencyConcernSeverity
 {

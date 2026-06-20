@@ -1,4 +1,3 @@
-
 using System.Reflection;
 using LegacyLens.Cli.Commands;
 
@@ -45,7 +44,9 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  -h, --help             Show help.");
         Console.WriteLine("  --version              Show version.");
         Console.WriteLine("  --artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.");
-        Console.WriteLine("                           Supported artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, interface-inventory, solution-topology, all.");
+        Console.WriteLine("                           Supported artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, class-dependency-scope, interface-inventory, solution-topology, all.");
+        Console.WriteLine("  --class-dependency-type <fully-qualified-type-name>");
+        Console.WriteLine("                           Fully qualified type name for the parameterised class-dependency-scope artifact.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional target-framework context for upgrade report wording only; valid with upgrade-readiness, upgrade-blockers, or all.");
     }
 
@@ -106,6 +107,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ClassDependenciesOutputPath))
         {
             Console.WriteLine($"Class dependencies report generated: {result.ClassDependenciesOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.ScopedClassDependencyOutputPath))
+        {
+            Console.WriteLine($"Scoped class dependency report generated: {result.ScopedClassDependencyOutputPath}");
         }
 
         if (!string.IsNullOrWhiteSpace(result.InterfaceInventoryOutputPath))
@@ -204,6 +210,13 @@ public sealed class ScanConsoleWriter
             Console.WriteLine(result.ClassDependenciesOutputPath);
         }
 
+        if (!string.IsNullOrWhiteSpace(result.ScopedClassDependencyOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Scoped class dependency report generated:");
+            Console.WriteLine(result.ScopedClassDependencyOutputPath);
+        }
+
         if (!string.IsNullOrWhiteSpace(result.InterfaceInventoryOutputPath))
         {
             Console.WriteLine();
@@ -267,6 +280,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ClassDependenciesOutputPath))
         {
             Console.WriteLine($"Class dependencies report generated: {result.ClassDependenciesOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.ScopedClassDependencyOutputPath))
+        {
+            Console.WriteLine($"Scoped class dependency report generated: {result.ScopedClassDependencyOutputPath}");
         }
 
         if (!string.IsNullOrWhiteSpace(result.InterfaceInventoryOutputPath))
