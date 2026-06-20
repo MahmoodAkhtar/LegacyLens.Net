@@ -14,6 +14,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 
 - solutions, projects, target frameworks, project references, assembly references, and NuGet package references
 - WCF endpoints, binding details, behaviours, service contracts, and operation contracts
+- project-aware WCF service-contract scanning that reuses the shared file inventory during normal CLI scans so large negative scans avoid a duplicate full-root C# filesystem walk
 - legacy ASP.NET, ASP.NET MVC, and ASP.NET Web API discovery signals
 - configuration files, app settings, connection strings, and custom configuration sections
 - evidence-backed modernisation hints and prioritised modernisation review areas
@@ -227,7 +228,7 @@ For detailed report examples, see [docs/report-output.md](docs/report-output.md)
 
 LegacyLens.NET is currently in late MVP development and is focused on hardening the first usable discovery baseline.
 
-The current MVP already provides a standalone CLI scan command with phase-based visual progress feedback that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, configuration inventory, data access inventory, EDMX analysis, and class dependency analysis.
+The current MVP already provides a standalone CLI scan command with phase-based visual progress feedback that produces a static Markdown discovery report with solution structure, project dependencies, package and assembly references, WCF configuration, WCF service contracts, selected legacy ASP.NET and ASP.NET MVC/Web API signals, evidence-backed modernisation hints, and a prioritised modernisation review summary. The MVP scope also includes separate static artifacts for upgrade readiness, upgrade blockers, external dependency inventory, configuration inventory, data access inventory, EDMX analysis, class dependency analysis, interface inventory, and solution topology. WCF service-contract scanning should use the shared project-aware file inventory during normal CLI scans so the tool does not perform a second broad recursive `.cs` scan merely to prove that no WCF contracts exist.
 
 The current implementation can scan a folder containing .NET solutions and projects and discover:
 
@@ -253,8 +254,9 @@ The current implementation can scan a folder containing .NET solutions and proje
 - `appSettings` entry counts
 - `connectionStrings` entry counts
 - custom configuration section counts from `configSections`
-- WCF service contracts from C# source files
+- WCF service contracts from project-associated C# source files
 - WCF operations marked with `[OperationContract]`, scoped to the containing `[ServiceContract]` interface
+- inventory-backed WCF service-contract scanning during normal CLI execution, using the shared project-aware C# file inventory rather than a separate recursive full-root `.cs` scan
 - legacy ASP.NET artifacts from files such as `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax`
 - WebForms pages
 - WebForms user controls

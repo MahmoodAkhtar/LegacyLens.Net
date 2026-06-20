@@ -67,8 +67,11 @@ Current MVP functionality includes implemented capabilities and newly required M
 - WCF service throttling setting discovery from `<serviceThrottling>`
 - WCF endpoint `webHttp` behaviour discovery
 - WCF behaviour reporting in the generated Markdown report
-- WCF service contract discovery from C# source files
-- WCF operation discovery from `[OperationContract]` methods
+- WCF service contract discovery from project-associated C# source files
+- WCF service-contract scanning during normal CLI execution using the shared project-aware file inventory rather than a duplicate recursive full-root `.cs` scan
+- WCF service-contract discovery that remains independent of configured WCF endpoints or behaviours, because source-level contracts can exist without configuration endpoints
+- WCF service-contract pre-filtering that skips indexed C# files without `ServiceContract` or `ServiceContractAttribute` text before applying heavier interface and operation matching
+- WCF operation discovery from `[OperationContract]` and `[OperationContractAttribute]` methods
 - WCF operation discovery scoped to the containing service contract interface
 - WCF service contract reporting
 - legacy ASP.NET artifact discovery from `.aspx`, `.ascx`, `.master`, `.asmx`, `.ashx`, and `Global.asax` files
@@ -223,6 +226,7 @@ MVP scope:
 
 - Add a `configuration-inventory` capability that can produce `configuration-inventory.md`.
 - Use existing project discovery, configuration discovery, and shared file inventory where possible rather than duplicating broad scan logic.
+- Keep normal CLI WCF service-contract scanning on the shared file-inventory path so large codebases with no WCF contracts do not pay for an additional independent recursive C# source walk.
 - Discover visible configuration files such as `App.config`, `Web.config`, `*.config`, `Web.Debug.config`, `Web.Release.config`, `appsettings.json`, `appsettings.*.json`, `.settings` files, and useful build/package configuration files such as `NuGet.config` where relevant.
 - Associate configuration files and configuration findings with discovered projects where possible.
 - Report app settings with key names and values where values are discoverable, masking or redacting sensitive parts.

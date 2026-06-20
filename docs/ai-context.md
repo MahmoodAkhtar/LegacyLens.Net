@@ -76,6 +76,15 @@ LegacyLens.NET currently discovers:
 - interface inventory analysis inputs such as interface definitions, implementations, consumers, generic and collection-based interface usage, service-locator usage, Microsoft DI registrations, legacy IoC registration patterns, and Spring.NET/Castle Windsor/Unity-style XML or configuration-driven wiring where discoverable, with Spring.NET XML comments, descriptions, root container text, and arbitrary descendant text ignored as registration evidence
 
 
+
+## WCF service-contract scanner performance refactor
+
+The WCF service-contract scanner performance refactor is MVP scope. `WcfServiceContractScanner` should keep its name because it still collects raw WCF source-contract evidence. During normal CLI scans, `ScanCommand` should call an inventory-based overload, such as `Scan(ScanFileInventory fileInventory)` or `Scan(IReadOnlyCollection<ScanFile> csharpFiles)`, using the shared project-aware file inventory already built after project discovery.
+
+The normal CLI path must not perform a second recursive `Directory.GetFiles(rootPath, "*.cs", SearchOption.AllDirectories)` over the full scan root. It should iterate indexed C# files, use `ScanFile.Content` where available, and cheaply skip files that do not contain `ServiceContract` or `ServiceContractAttribute` before applying the existing service-contract/interface parsing logic. Detection should still support `[ServiceContract]`, `[ServiceContractAttribute]`, `[OperationContract]`, and `[OperationContractAttribute]`, and it must not be conditional on WCF endpoints or WCF behaviours being found.
+
+The existing `Scan(string rootPath)` overload can remain for compatibility and existing tests, preserving null/empty and missing-path exception behaviour, but it should delegate into shared parsing logic where practical. The inventory-backed normal scan intentionally focuses on C# files associated with discovered project directories and should respect shared inventory exclusions such as `bin`, `obj`, `output`, `reports`, and other generated/build-output folders. This is a performance and architecture alignment change; it must not change the public CLI contract, artifact selection behaviour, static/no-build model, or generated Markdown report format.
+
 ## Markdown report rendering safety
 
 Markdown-safe table-cell formatting is MVP scope as a shared reporting-layer concern. All generated Markdown reports and optional artifacts should keep table rows structurally valid and keep evidence visible in raw Markdown and rendered previews such as VS Code Markdown preview. Writers should avoid writing raw evidence, XML, configuration snippets, source-code snippets, paths, names, or other discovered values directly into table cells when those values may contain Markdown-sensitive characters.

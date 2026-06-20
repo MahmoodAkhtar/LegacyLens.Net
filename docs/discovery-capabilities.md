@@ -15,6 +15,13 @@ The MVP visual progress feedback capability changes the CLI runtime experience o
 
 Shared Markdown-safe table-cell formatting changes generated report rendering only. It does not add static discovery signals, change analyzers, change source/configuration evidence collection, or change artifact selection. Markdown writers should escape table separators, normalize table-cell whitespace, and render evidence/code-like values as safe inline code so values such as Spring.NET `<object ... />` registration evidence remain visible in rendered Markdown previews and do not break table structure when they contain pipes, newlines, or backticks.
 
+
+## WCF Service-Contract Inventory Note
+
+The WCF service-contract performance refactor changes how normal CLI scanning obtains C# source inputs; it does not add a new report, change the public CLI contract, or change the generated Markdown report format. During normal CLI scans, `WcfServiceContractScanner` should consume the shared project-aware `ScanFileInventory` instead of performing its own independent recursive full-root `*.cs` filesystem walk. The scanner remains responsible for collecting raw WCF service-contract evidence.
+
+The inventory-backed path should still detect `[ServiceContract]`, `[ServiceContractAttribute]`, `[OperationContract]`, and `[OperationContractAttribute]`, and it must not be conditional on WCF endpoints or WCF behaviours being discovered. Because the normal path uses the shared inventory, it intentionally focuses on C# files under discovered project directories and follows central exclusions for build output and generated output folders.
+
 ## What LegacyLens.NET Can Do Without Building the Solution
 
 LegacyLens.NET is designed to inspect source files directly.
@@ -83,8 +90,8 @@ Even if the solution does not build, it can still discover useful information fr
 - WCF service debug settings from `<serviceDebug>`
 - WCF service throttling settings from `<serviceThrottling>`
 - WCF endpoint `webHttp` behaviour indicators
-- WCF `[ServiceContract]` interfaces
-- WCF `[OperationContract]` methods scoped to their containing service contract interface
+- WCF `[ServiceContract]` and `[ServiceContractAttribute]` interfaces from indexed project-associated C# source files during normal CLI scans
+- WCF `[OperationContract]` and `[OperationContractAttribute]` methods scoped to their containing service contract interface
 - project references
 - assembly references
 - package references

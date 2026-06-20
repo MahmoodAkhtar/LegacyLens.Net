@@ -284,7 +284,7 @@ Current analysis work includes:
 
 ### Analyzer Input Guidance
 
-Analyzers should consume already-discovered facts rather than rediscovering common input. In particular, analyzers that inspect C# source files, EDMX files, DBML files, T4 files, or migration folders should consume `ScanFileInventory` supplied by `ScanCommand`/`ScanContext`. This keeps file enumeration and exclusion behaviour centralised and avoids repeated IO.
+Analyzers and scanners that inspect project-associated source/model files should consume already-discovered facts rather than rediscovering common input. In particular, source/model readers that inspect C# source files, EDMX files, DBML files, T4 files, or migration folders should consume `ScanFileInventory` supplied by `ScanCommand`/`ScanContext` where that inventory represents the intended scan scope. This keeps file enumeration and exclusion behaviour centralised and avoids repeated IO.
 
 Tests should follow the same boundary as production code. If a refactor centralises input construction, tests should create that input explicitly rather than forcing analyzer overloads whose only purpose is to preserve an older test call shape.
 
@@ -518,9 +518,9 @@ Likely core types:
 | `ScanFile`                 | Represents a project-associated file with project metadata, full path, relative path, extension, and content.     |
 | `SafeFileSystem`           | Internal helper for safe enumeration, safe text reads, and central generated-output/build-output exclusion rules. |
 
-`ScanCommand` should build `ScanFileInventory` once after project discovery and place it on `ScanContext`. Artifact runners and analyzers should consume that prepared inventory instead of rebuilding file discovery themselves.
+`ScanCommand` should build `ScanFileInventory` once after project discovery and place it on `ScanContext`. Artifact runners, analyzers, and source scanners that participate in the normal CLI scan should consume that prepared inventory instead of rebuilding file discovery themselves.
 
-Analyzer methods that require source/model files should prefer inventory-based inputs. Avoid adding convenience overloads that rebuild `ScanFileInventory` internally merely to satisfy older tests; tests should be updated to build or pass the inventory explicitly when the refactored design requires it.
+Analyzer or scanner methods that require source/model files should prefer inventory-based inputs for the normal CLI path. Avoid adding convenience overloads that rebuild `ScanFileInventory` internally merely to satisfy older tests; tests should be updated to build or pass the inventory explicitly when the refactored design requires it. Compatibility overloads such as `WcfServiceContractScanner.Scan(string rootPath)` may remain when they preserve an existing public core API, but they should delegate to common parsing logic rather than duplicating discovery behaviour.
 
 ### LegacyAspNet
 
@@ -610,7 +610,12 @@ Current WCF work includes:
 * detecting service debug settings such as `includeExceptionDetailInFaults`
 * detecting service throttling settings such as `maxConcurrentCalls`, `maxConcurrentSessions`, and `maxConcurrentInstances`
 * detecting endpoint `webHttp` behaviour indicators
-* scanning C# source files for WCF service contracts
+* scanning project-associated C# source files for WCF service contracts during normal CLI execution by consuming the shared `ScanFileInventory`
+* preserving the `WcfServiceContractScanner` type name because it still collects raw WCF service-contract evidence rather than producing higher-level analysis
+* preserving the existing `Scan(string rootPath)` entry point where useful for compatibility and tests, while routing normal CLI scanning through an inventory-based overload such as `Scan(ScanFileInventory fileInventory)` or `Scan(IReadOnlyCollection<ScanFile> csharpFiles)`
+* avoiding a duplicate recursive `Directory.GetFiles(rootPath, "*.cs", SearchOption.AllDirectories)` walk during normal CLI scans
+* using `ScanFile.Content` when available so indexed source files are not re-read from disk
+* applying a cheap content pre-filter so files without `ServiceContract` or `ServiceContractAttribute` are skipped before heavier contract/interface matching
 * detecting interfaces marked with `[ServiceContract]`, `[ServiceContract(...)]`, or `[ServiceContractAttribute]`
 * detecting operations marked with `[OperationContract]`, `[OperationContract(...)]`, or `[OperationContractAttribute]`
 * scoping discovered operations to their containing service contract interface

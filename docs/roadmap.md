@@ -126,6 +126,18 @@ Status: Implemented
 
 Status: Implemented with conditional quality gates
 
+
+MVP performance refactor scope:
+
+- Keep `WcfServiceContractScanner` as the WCF source-contract evidence collector.
+- Add an inventory-based scan path, such as `Scan(ScanFileInventory fileInventory)` or `Scan(IReadOnlyCollection<ScanFile> csharpFiles)`, so normal CLI scanning consumes the shared project-aware C# file inventory built by `ScanCommand`.
+- Preserve the existing root-path scan API where useful for compatibility and tests, but route parsing through common implementation logic.
+- Avoid calling `Directory.GetFiles(rootPath, "*.cs", SearchOption.AllDirectories)` from the normal CLI service-contract path.
+- Avoid re-reading indexed files when `ScanFile.Content` already contains source text.
+- Add a cheap content pre-filter for files that do not contain `ServiceContract` or `ServiceContractAttribute` before applying heavier interface and operation matching.
+- Continue detecting service contracts even when no WCF endpoints or behaviours are found.
+- Treat build-output and generated-output exclusions as a responsibility of `ScanFileInventoryBuilder`, not `WcfServiceContractScanner`.
+
 Implemented:
 
 - Detect WCF configuration in `app.config` and `web.config`

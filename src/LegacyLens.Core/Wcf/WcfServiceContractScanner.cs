@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using LegacyLens.Core.Files;
 
 namespace LegacyLens.Core.Wcf;
 
@@ -24,15 +25,52 @@ public sealed class WcfServiceContractScanner
             throw new DirectoryNotFoundException($"Root path does not exist: {rootPath}");
         }
 
-        var sourceFiles = Directory.GetFiles(rootPath, "*.cs", SearchOption.AllDirectories);
+        var sourceFiles = Directory
+            .GetFiles(rootPath, "*.cs", SearchOption.AllDirectories)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .Select(path => new SourceFileRecord(
+                path,
+                ProjectName: null,
+                File.ReadAllText(path)))
+            .ToArray();
 
+        return ScanSourceFiles(sourceFiles);
+    }
+
+    public IReadOnlyList<WcfServiceContract> Scan(ScanFileInventory fileInventory)
+    {
+        ArgumentNullException.ThrowIfNull(fileInventory);
+
+        return Scan(fileInventory.CSharpFiles);
+    }
+
+    public IReadOnlyList<WcfServiceContract> Scan(IReadOnlyCollection<ScanFile> csharpFiles)
+    {
+        ArgumentNullException.ThrowIfNull(csharpFiles);
+
+        var sourceFiles = csharpFiles
+            .OrderBy(file => file.FullPath, StringComparer.OrdinalIgnoreCase)
+            .Select(file => new SourceFileRecord(
+                file.FullPath,
+                file.ProjectName,
+                file.Content ?? string.Empty))
+            .ToArray();
+
+        return ScanSourceFiles(sourceFiles);
+    }
+
+    private static IReadOnlyList<WcfServiceContract> ScanSourceFiles(IEnumerable<SourceFileRecord> sourceFiles)
+    {
         var contracts = new List<WcfServiceContract>();
 
-        foreach (var sourceFile in sourceFiles.OrderBy(x => x))
+        foreach (var sourceFile in sourceFiles)
         {
-            var content = File.ReadAllText(sourceFile);
+            if (!ShouldInspectSource(sourceFile.Content))
+            {
+                continue;
+            }
 
-            var interfaceMatches = InterfaceRegex.Matches(content);
+            var interfaceMatches = InterfaceRegex.Matches(sourceFile.Content);
 
             foreach (Match interfaceMatch in interfaceMatches)
             {
@@ -44,21 +82,21 @@ public sealed class WcfServiceContractScanner
                 }
 
                 var contractName = interfaceMatch.Groups["name"].Value;
-                var openingBraceIndex = content.IndexOf('{', interfaceMatch.Index + interfaceMatch.Length - 1);
+                var openingBraceIndex = sourceFile.Content.IndexOf('{', interfaceMatch.Index + interfaceMatch.Length - 1);
 
                 if (openingBraceIndex < 0)
                 {
                     continue;
                 }
 
-                var closingBraceIndex = FindMatchingClosingBrace(content, openingBraceIndex);
+                var closingBraceIndex = FindMatchingClosingBrace(sourceFile.Content, openingBraceIndex);
 
                 if (closingBraceIndex < 0)
                 {
                     continue;
                 }
 
-                var interfaceBody = content.Substring(
+                var interfaceBody = sourceFile.Content.Substring(
                     openingBraceIndex + 1,
                     closingBraceIndex - openingBraceIndex - 1);
 
@@ -67,15 +105,27 @@ public sealed class WcfServiceContractScanner
                 contracts.Add(new WcfServiceContract
                 {
                     Name = contractName,
-                    SourceFilePath = sourceFile,
+                    SourceFilePath = sourceFile.FullPath,
                     Operations = operations
                 });
             }
         }
 
         return contracts
-            .OrderBy(x => x.Name)
+            .OrderBy(contract => contract.SourceFilePath, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(contract => contract.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static bool ShouldInspectSource(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return false;
+        }
+
+        return content.Contains("ServiceContract", StringComparison.Ordinal) ||
+               content.Contains("ServiceContractAttribute", StringComparison.Ordinal);
     }
 
     private static List<string> FindOperations(string interfaceBody)
@@ -86,7 +136,7 @@ public sealed class WcfServiceContractScanner
             .Select(x => x.Groups["name"].Value)
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(x => x)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
 
@@ -205,4 +255,9 @@ public sealed class WcfServiceContractScanner
 
         return -1;
     }
+
+    private sealed record SourceFileRecord(
+        string FullPath,
+        string? ProjectName,
+        string Content);
 }

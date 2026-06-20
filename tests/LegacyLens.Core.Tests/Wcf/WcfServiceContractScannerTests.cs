@@ -1,4 +1,5 @@
-﻿using LegacyLens.Core.Wcf;
+using LegacyLens.Core.Files;
+using LegacyLens.Core.Wcf;
 
 namespace LegacyLens.Core.Tests.Wcf;
 
@@ -271,6 +272,259 @@ public sealed class WcfServiceContractScannerTests : IDisposable
         Assert.Throws<DirectoryNotFoundException>(() => scanner.Scan(missingPath));
     }
 
+    [Fact]
+    public void ScanInventory_ReturnsServiceContract_WhenScanFileContainsServiceContractAttribute()
+    {
+        var scanner = new WcfServiceContractScanner();
+        var inventory = CreateInventory(
+            CreateScanFile(
+                "CustomerContracts.cs",
+                """
+                using System.ServiceModel;
+
+                [ServiceContract]
+                public interface ICustomerService
+                {
+                    [OperationContract]
+                    CustomerDto GetCustomer(int id);
+                }
+                """));
+
+        var contracts = scanner.Scan(inventory);
+
+        var contract = Assert.Single(contracts);
+        Assert.Equal("ICustomerService", contract.Name);
+        Assert.EndsWith("CustomerContracts.cs", contract.SourceFilePath);
+        Assert.Equal(["GetCustomer"], contract.Operations);
+    }
+
+    [Fact]
+    public void ScanInventory_ReturnsServiceContract_WhenScanFileContainsServiceContractAttributeSuffix()
+    {
+        var scanner = new WcfServiceContractScanner();
+        var inventory = CreateInventory(
+            CreateScanFile(
+                "CustomerContracts.cs",
+                """
+                using System.ServiceModel;
+
+                [ServiceContractAttribute]
+                public interface ICustomerService
+                {
+                }
+                """));
+
+        var contracts = scanner.Scan(inventory);
+
+        var contract = Assert.Single(contracts);
+        Assert.Equal("ICustomerService", contract.Name);
+    }
+
+    [Fact]
+    public void ScanInventory_ReturnsOperation_WhenScanFileContainsOperationContractAttribute()
+    {
+        var scanner = new WcfServiceContractScanner();
+        var inventory = CreateInventory(
+            CreateScanFile(
+                "CustomerContracts.cs",
+                """
+                using System.ServiceModel;
+
+                [ServiceContract]
+                public interface ICustomerService
+                {
+                    [OperationContract]
+                    CustomerDto GetCustomer(int id);
+                }
+                """));
+
+        var contracts = scanner.Scan(inventory);
+
+        var contract = Assert.Single(contracts);
+        Assert.Equal(["GetCustomer"], contract.Operations);
+    }
+
+    [Fact]
+    public void ScanInventory_ReturnsOperation_WhenScanFileContainsOperationContractAttributeSuffix()
+    {
+        var scanner = new WcfServiceContractScanner();
+        var inventory = CreateInventory(
+            CreateScanFile(
+                "CustomerContracts.cs",
+                """
+                using System.ServiceModel;
+
+                [ServiceContract]
+                public interface ICustomerService
+                {
+                    [OperationContractAttribute]
+                    CustomerDto GetCustomer(int id);
+                }
+                """));
+
+        var contracts = scanner.Scan(inventory);
+
+        var contract = Assert.Single(contracts);
+        Assert.Equal(["GetCustomer"], contract.Operations);
+    }
+
+    [Fact]
+    public void ScanInventory_ReturnsNoContracts_WhenNoServiceContractTextExists()
+    {
+        var scanner = new WcfServiceContractScanner();
+        var inventory = CreateInventory(
+            CreateScanFile(
+                "CustomerContracts.cs",
+                """
+                public interface ICustomerService
+                {
+                    CustomerDto GetCustomer(int id);
+                }
+                """));
+
+        var contracts = scanner.Scan(inventory);
+
+        Assert.Empty(contracts);
+    }
+
+    [Fact]
+    public void ScanInventory_HandlesMultipleContractsInSameFile()
+    {
+        var scanner = new WcfServiceContractScanner();
+        var inventory = CreateInventory(
+            CreateScanFile(
+                "Contracts.cs",
+                """
+                using System.ServiceModel;
+
+                [ServiceContract]
+                public interface ICustomerService
+                {
+                    [OperationContract]
+                    CustomerDto GetCustomer(int id);
+                }
+
+                [ServiceContract]
+                public interface IOrderService
+                {
+                    [OperationContract]
+                    OrderDto GetOrder(int id);
+                }
+                """));
+
+        var contracts = scanner.Scan(inventory);
+
+        Assert.Equal(2, contracts.Count);
+        Assert.Equal(["GetCustomer"], contracts.Single(contract => contract.Name == "ICustomerService").Operations);
+        Assert.Equal(["GetOrder"], contracts.Single(contract => contract.Name == "IOrderService").Operations);
+    }
+
+    [Fact]
+    public void ScanInventory_DoesNotReturnOperationsOutsideServiceContractInterface()
+    {
+        var scanner = new WcfServiceContractScanner();
+        var inventory = CreateInventory(
+            CreateScanFile(
+                "CustomerContracts.cs",
+                """
+                using System.ServiceModel;
+
+                public interface INotAServiceContract
+                {
+                    [OperationContract]
+                    CustomerDto ShouldNotBeReturned(int id);
+                }
+
+                [ServiceContract]
+                public interface ICustomerService
+                {
+                    [OperationContract]
+                    CustomerDto GetCustomer(int id);
+                }
+                """));
+
+        var contracts = scanner.Scan(inventory);
+
+        var contract = Assert.Single(contracts);
+        Assert.Equal(["GetCustomer"], contract.Operations);
+    }
+
+    [Fact]
+    public void ScanInventory_ReturnsEmptyResults_WhenInventoryIsEmpty()
+    {
+        var scanner = new WcfServiceContractScanner();
+
+        var contracts = scanner.Scan(ScanFileInventory.Empty);
+
+        Assert.Empty(contracts);
+    }
+
+    [Fact]
+    public void ScanInventory_ThrowsArgumentNullException_WhenInventoryIsNull()
+    {
+        var scanner = new WcfServiceContractScanner();
+
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            scanner.Scan((ScanFileInventory)null!));
+
+        Assert.Equal("fileInventory", exception.ParamName);
+    }
+
+    [Fact]
+    public void ScanCSharpFiles_ThrowsArgumentNullException_WhenInputIsNull()
+    {
+        var scanner = new WcfServiceContractScanner();
+
+        var exception = Assert.Throws<ArgumentNullException>(() =>
+            scanner.Scan((IReadOnlyCollection<ScanFile>)null!));
+
+        Assert.Equal("csharpFiles", exception.ParamName);
+    }
+
+    [Fact]
+    public void ScanCSharpFiles_ReturnsEmptyResults_WhenManyIndexedFilesHaveNoServiceContractText()
+    {
+        var files = Enumerable.Range(1, 100)
+            .Select(index => CreateScanFile(
+                $"Source{index}.cs",
+                $"public sealed class Source{index} {{ }}"))
+            .ToArray();
+
+        var scanner = new WcfServiceContractScanner();
+
+        var contracts = scanner.Scan(files);
+
+        Assert.Empty(contracts);
+    }
+
+    [Fact]
+    public void ScanCSharpFiles_UsesScanFileContentWithoutRequiringFileToExistOnDisk()
+    {
+        var missingSourcePath = Path.Combine(_rootPath, "DoesNotExist.cs");
+        var scanner = new WcfServiceContractScanner();
+
+        var contracts = scanner.Scan(new[]
+        {
+            CreateScanFile(
+                missingSourcePath,
+                """
+                using System.ServiceModel;
+
+                [ServiceContract]
+                public interface IInventoryBackedService
+                {
+                    [OperationContract]
+                    void Ping();
+                }
+                """)
+        });
+
+        var contract = Assert.Single(contracts);
+        Assert.Equal("IInventoryBackedService", contract.Name);
+        Assert.Equal(missingSourcePath, contract.SourceFilePath);
+        Assert.Equal(["Ping"], contract.Operations);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_rootPath))
@@ -284,5 +538,33 @@ public sealed class WcfServiceContractScannerTests : IDisposable
         var filePath = Path.Combine(_rootPath, fileName);
 
         File.WriteAllText(filePath, content);
+    }
+
+    private static ScanFileInventory CreateInventory(params ScanFile[] csharpFiles)
+    {
+        return new ScanFileInventory(
+            csharpFiles,
+            Array.Empty<ScanFile>(),
+            Array.Empty<ScanFile>(),
+            Array.Empty<ScanFile>(),
+            Array.Empty<string>());
+    }
+
+    private ScanFile CreateScanFile(string relativePathOrFullPath, string content)
+    {
+        var fullPath = Path.IsPathRooted(relativePathOrFullPath)
+            ? relativePathOrFullPath
+            : Path.Combine(_rootPath, relativePathOrFullPath);
+
+        var projectDirectory = _rootPath;
+
+        return new ScanFile(
+            "SampleLegacyApp.Contracts",
+            Path.Combine(projectDirectory, "SampleLegacyApp.Contracts.csproj"),
+            projectDirectory,
+            fullPath,
+            Path.GetFileName(fullPath),
+            ".cs",
+            content);
     }
 }

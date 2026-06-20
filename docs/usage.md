@@ -144,6 +144,13 @@ For example, Spring.NET XML registration evidence in `interface-inventory.md` sh
 
 This formatting must not change discovery behaviour, analyzer models, masking rules, artifact selection, or CLI options. It only affects how generated Markdown table cells are rendered.
 
+
+### WCF Service-Contract Scan Scope
+
+During normal CLI scanning, WCF service-contract discovery should use the shared project-aware file inventory that is built after project discovery. This keeps the public command contract unchanged, but avoids a second independent recursive scan of every `*.cs` file under the full scan root during the `Scanning WCF service contracts` phase.
+
+The scanner should still detect `[ServiceContract]`, `[ServiceContractAttribute]`, `[OperationContract]`, and `[OperationContractAttribute]` in indexed C# source files, and it should not depend on WCF endpoints or WCF behaviours being discovered first. Source-level service contracts can exist even when configuration endpoints are absent. The inventory-backed normal scan intentionally focuses on C# files associated with discovered project directories and follows the shared file-inventory exclusions for build output and generated output folders.
+
 ### Artifact Selection
 
 The main `discovery-report.md` is always generated. The optional `--artifacts <value>` option controls which additional artifact reports are generated from the same scan.

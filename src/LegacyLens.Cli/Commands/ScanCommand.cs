@@ -1,4 +1,3 @@
-
 using LegacyLens.Cli.Commands.Runners;
 using LegacyLens.Cli.Progress;
 using LegacyLens.Core.Analysis;
@@ -69,7 +68,7 @@ public sealed class ScanCommand
 
         _progressReporter.PhaseStarted("Scanning WCF service contracts");
         var wcfServiceContractScanner = new WcfServiceContractScanner();
-        var wcfServiceContracts = wcfServiceContractScanner.Scan(scanPath);
+        var wcfServiceContracts = wcfServiceContractScanner.Scan(fileInventory);
         _progressReporter.PhaseCompleted($"WCF service contracts discovered: {wcfServiceContracts.Count}");
 
         _progressReporter.PhaseStarted("Scanning configuration files");
