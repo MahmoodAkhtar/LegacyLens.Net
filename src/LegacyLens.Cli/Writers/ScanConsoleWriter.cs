@@ -44,7 +44,7 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  -h, --help             Show help.");
         Console.WriteLine("  --version              Show version.");
         Console.WriteLine("  --artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.");
-        Console.WriteLine("                           Supported artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, class-dependency-scope, interface-inventory, solution-topology, all.");
+        Console.WriteLine("                           Supported artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, class-dependency-scope, interface-inventory, solution-topology, code-complexity, all.");
         Console.WriteLine("  --class-dependency-type <fully-qualified-type-name>");
         Console.WriteLine("                           Fully qualified type name for the parameterised class-dependency-scope artifact.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional target-framework context for upgrade report wording only; valid with upgrade-readiness, upgrade-blockers, or all.");
@@ -122,6 +122,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.SolutionTopologyOutputPath))
         {
             Console.WriteLine($"Solution topology report generated: {result.SolutionTopologyOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.CodeComplexityOutputPath))
+        {
+            Console.WriteLine($"Code complexity report generated: {result.CodeComplexityOutputPath}");
         }
     }
 
@@ -230,6 +235,13 @@ public sealed class ScanConsoleWriter
             Console.WriteLine("Solution topology report generated:");
             Console.WriteLine(result.SolutionTopologyOutputPath);
         }
+
+        if (!string.IsNullOrWhiteSpace(result.CodeComplexityOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Code complexity report generated:");
+            Console.WriteLine(result.CodeComplexityOutputPath);
+        }
     }
 
     private static void WriteVerbose(ScanResult result)
@@ -295,6 +307,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.SolutionTopologyOutputPath))
         {
             Console.WriteLine($"Solution topology report generated: {result.SolutionTopologyOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.CodeComplexityOutputPath))
+        {
+            Console.WriteLine($"Code complexity report generated: {result.CodeComplexityOutputPath}");
         }
     }
 

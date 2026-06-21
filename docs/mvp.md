@@ -140,6 +140,7 @@ Current MVP functionality includes implemented capabilities and newly required M
 - optional `--artifacts class-dependency-scope` command support for producing a timestamped scoped class dependency artifact when `--class-dependency-type <fully-qualified-type-name>` is supplied
 - optional `--artifacts interface-inventory` command support for producing the interface-inventory artifact
 - optional `--artifacts solution-topology` command support for producing the solution-topology artifact
+- optional `--artifacts code-complexity` command support for producing the code-complexity artifact
 - optional `--artifacts <name1,name2>` command support for generating a selected comma-separated subset of optional artifacts
 - optional `--artifacts all` command support for generating every supported optional artifact
 - case-insensitive artifact name matching
@@ -153,6 +154,14 @@ Current MVP functionality includes implemented capabilities and newly required M
 - validation that class-dependency-scope requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected
 - validation that plain `--artifacts all` does not require a class dependency type and does not generate scoped reports unless a type is supplied
 - validation that `--class-dependency-type` is rejected when the selected artifacts do not include class-dependency-scope or all
+- static code complexity analysis for identifying C# refactoring and review hotspots using no-build syntax-level cyclomatic complexity estimates
+- code-complexity report generation as `code-complexity.md`
+- code-complexity analysis over shared `ScanFileInventory.CSharpFiles` without a separate recursive filesystem walk
+- code-complexity member-level reporting for methods, constructors, local functions, property accessors, indexer accessors, operator overloads, conversion operators, and top-level statements where practical
+- code-complexity aggregation by type, namespace, project, and scan root
+- code-complexity severity banding using simple review heuristics such as Low, Moderate, High, and Very High
+- code-complexity generated-code indicators where cheaply detectable, without silently hiding generated files unless a shared exclusion convention already applies
+- code-complexity notes and limitations explaining static no-build syntax estimation and avoiding claims of exact Microsoft metrics, runtime risk, defect probability, testability, maintainability, correctness, or safe automatic refactoring
 - static class dependency analysis for identifying source-level type relationships and coupling concerns
 - class-dependencies report generation as `class-dependencies.md`
 - class-dependencies discovery of source-defined types such as classes, interfaces, records, structs, and enums where useful

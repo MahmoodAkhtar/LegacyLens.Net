@@ -140,6 +140,7 @@ public sealed class ScanCommand
         var scopedClassDependencyResult = FindArtifactResult(artifactResults, "class-dependency-scope");
         var interfaceInventoryResult = FindArtifactResult(artifactResults, "interface-inventory");
         var solutionTopologyResult = FindArtifactResult(artifactResults, "solution-topology");
+        var codeComplexityResult = FindArtifactResult(artifactResults, "code-complexity");
 
         return new ScanResult
         {
@@ -183,7 +184,10 @@ public sealed class ScanCommand
             InterfaceInventoryReport = interfaceInventoryResult?.Report as InterfaceInventoryReport,
 
             SolutionTopologyOutputPath = solutionTopologyResult?.OutputPath,
-            SolutionTopologyReport = solutionTopologyResult?.Report as SolutionTopologyReport
+            SolutionTopologyReport = solutionTopologyResult?.Report as SolutionTopologyReport,
+
+            CodeComplexityOutputPath = codeComplexityResult?.OutputPath,
+            CodeComplexityReport = codeComplexityResult?.Report as CodeComplexityReport
         };
     }
 
@@ -198,7 +202,8 @@ public sealed class ScanCommand
         new ClassDependenciesArtifactRunner(),
         new ScopedClassDependencyArtifactRunner(),
         new InterfaceInventoryArtifactRunner(),
-        new SolutionTopologyArtifactRunner()
+        new SolutionTopologyArtifactRunner(),
+        new CodeComplexityArtifactRunner()
     ];
 
 

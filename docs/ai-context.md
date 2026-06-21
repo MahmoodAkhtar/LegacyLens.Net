@@ -6,7 +6,7 @@ This file is intended to be used as concise context for AI-assisted development 
 
 LegacyLens.NET is a standalone static discovery CLI for unfamiliar, legacy, and modern .NET codebases.
 
-It scans source and configuration files to produce Markdown reports that help a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, data access inventory signals, EDMX analysis signals, class dependency analysis signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
+It scans source and configuration files to produce Markdown reports that help a developer understand structure, dependencies, package compatibility review signals, upgrade-readiness signals, upgrade-blocker decision signals, possible external dependency signals, data access inventory signals, EDMX analysis signals, class dependency analysis signals, code complexity review signals, legacy technology indicators, configuration concerns, and prioritised modernisation review areas.
 
 ## Usage model
 
@@ -51,7 +51,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, configuration API usage, source-code configuration key usage, and cautious reconciliation against visible configured entries, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, a parameterised timestamped `class-dependency-scope.<type>.<timestamp>.md` artifact for focused per-type dependency review, a separate `interface-inventory.md` artifact for source-level interface, implementation, consumer, registration, and extension-point analysis, and a separate `solution-topology.md` artifact for solution/project relationship orientation.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, configuration API usage, source-code configuration key usage, and cautious reconciliation against visible configured entries, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, a parameterised timestamped `class-dependency-scope.<type>.<timestamp>.md` artifact for focused per-type dependency review, a separate `interface-inventory.md` artifact for source-level interface, implementation, consumer, registration, and extension-point analysis, a separate `solution-topology.md` artifact for solution/project relationship orientation, and a separate `code-complexity.md` artifact for static no-build cyclomatic complexity estimates and refactoring hotspot review.
 
 ## Current implemented capability summary
 
@@ -74,6 +74,7 @@ LegacyLens.NET currently discovers:
 - EDMX analysis inputs such as `.edmx` files, CSDL conceptual entities/entity sets/keys/navigation properties/complex types/function imports, SSDL storage entity sets/tables/views/columns/functions/defining queries, MSL mappings/scalar properties/function import mappings/modification function mappings/query views, designer metadata, and companion generated files where discoverable
 - class dependency analysis inputs such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, generic type usage, coupling hotspots, hardcoded concrete dependencies, and static dependency concerns where discoverable
 - scoped class dependency analysis output for one requested fully qualified type, including direct outbound dependencies, direct inbound dependants, related concerns, and a compact Mermaid diagram where source-level evidence allows it
+- code complexity analysis inputs for `code-complexity.md`, using Roslyn syntax parsing over indexed project-associated C# files to estimate cyclomatic complexity at member level and aggregate it by type, namespace, project, and scan root, including likely generated-code indicators where cheaply detectable
 - interface inventory analysis inputs such as interface definitions, implementations, consumers, generic and collection-based interface usage, service-locator usage, Microsoft DI registrations, legacy IoC registration patterns, and Spring.NET/Castle Windsor/Unity-style XML or configuration-driven wiring where discoverable, with Spring.NET XML comments, descriptions, root container text, and arbitrary descendant text ignored as registration evidence
 
 
@@ -102,13 +103,13 @@ Examples:
 
 ```bash
 legacylens scan <path> --artifacts solution-topology
-legacylens scan <path> --artifacts solution-topology,class-dependencies,interface-inventory,data-access
+legacylens scan <path> --artifacts solution-topology,code-complexity,class-dependencies,interface-inventory,data-access
 legacylens scan <path> --artifacts all
 ```
 
 The normal `discovery-report.md` is always generated. Artifact names are case-insensitive. Comma-separated values may contain spaces around commas. Duplicate artifact names should be de-duplicated so reports are not generated twice. Unknown artifact names should produce a clear validation error listing the supported values. `all` must not be combined with other artifact names.
 
-Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, `interface-inventory`, and `solution-topology`.
+Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, `interface-inventory`, `solution-topology`, and `code-complexity`.
 
 Add `class-dependency-scope` to the supported artifact names as a parameterised artifact. It requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected, is valid with `--artifacts all` only as an additional scoped output when the type option is supplied, and must not make plain `--artifacts all` require a type name.
 
@@ -338,3 +339,21 @@ The artifact should analyse C# source files and visible configuration/XML files 
 Registration evidence should include high-value static Microsoft DI patterns such as `AddSingleton`, `AddScoped`, `AddTransient`, and `TryAdd*`; legacy/third-party IoC patterns such as Castle Windsor, Autofac, Ninject, Unity, StructureMap, Simple Injector, LightInject, Lamar, and Common Service Locator where syntactically visible; and XML/configuration-driven evidence from Spring.NET, Castle Windsor XML, Unity XML, Enterprise Library/ObjectBuilder-style configuration, and custom object factory sections where feasible. Factory, reflection, assembly scanning, XML, alias, parent/child, profile-based, and service-locator patterns should be marked as requiring review. For Spring.NET, do not use XML comments, `<description>` text, root `<objects>` text, or arbitrary descendant text as matching input or evidence. Prefer meaningful object definitions, object `type`, `constructor-arg`, `property`, `factory-object`, `factory-method`, `parent`, `abstract`, alias-style wiring, and similar executable configuration. Simplify assembly-qualified XML type values from the type portion before the comma, so `SampleLegacyApp.Services.ICustomerService, SampleLegacyApp.Services` becomes `ICustomerService` and `SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services` becomes `CustomerService`.
 
 The capability must not claim runtime completeness. It must not claim that an interface is definitely unused, definitely active at runtime, definitely registered, or definitely safe to implement. Use cautious wording such as `Static source evidence`, `Static configuration evidence`, `No static implementation found`, `No static consumer found`, `Registration evidence found`, `Dynamic wiring may exist`, `Configuration-driven wiring may exist`, `Requires review`, `Possible extension point`, `Likely role`, `Static analysis finding`, and `No static source usage detected`. XML/configuration-driven Spring.NET evidence remains static review evidence only and should stay marked as requiring review.
+
+## MVP code complexity artifact addition
+
+`code-complexity` is MVP scope as an optional static report artifact for identifying refactoring and review hotspots. Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts code-complexity
+```
+
+The generated file should be:
+
+```text
+code-complexity.md
+```
+
+The analyzer should consume `ScanContext.FileInventory` / `ScanFileInventory.CSharpFiles` and must not perform a separate recursive filesystem scan. It should use Roslyn syntax parsing without requiring solution build, project load, semantic models, package restore, compilation, or runtime execution. Complexity should start at `1` per supported member and increment for syntax-level decision points such as `if`, `else if`, loops, switch sections, switch expression arms, `catch`, ternary conditionals, logical `&&` and `||`, and pattern `when` clauses where discoverable.
+
+The report should include member details plus type, namespace, project, and scan-root summaries. Suggested severity bands are `Low` 1-5, `Moderate` 6-10, `High` 11-20, and `Very High` 21+. The wording must remain cautious: findings are static discovery signals to help prioritise review, tests, simplification, and refactoring. They must not be described as exact Microsoft or Visual Studio code metrics, runtime risk, defect probability, test coverage, testability proof, complete maintainability assessment, or safe automatic refactoring advice.

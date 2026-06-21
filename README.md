@@ -29,6 +29,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope on-demand class-dependency-scope artifact that produces type-specific timestamped scoped reports such as `class-dependency-scope.SampleLegacyApp.Services.CustomerService.20260620-153045.md` for a requested fully qualified type
 - an MVP-scope interface-inventory artifact that produces `interface-inventory.md` with static, evidence-backed interface definitions, implementations, consumers, registration evidence, likely roles, possible extension points, and review-worthy dynamic or configuration-driven wiring
 - an MVP-scope solution-topology artifact that produces `solution-topology.md` with static, evidence-backed solution, project, dependency, and ownership-boundary orientation information
+- an MVP-scope code-complexity artifact that produces `code-complexity.md` with static, no-build cyclomatic complexity estimates at member, type, namespace, project, and scan-root level to highlight refactoring and review hotspots
 - flexible artifact selection from a single scan command, including one artifact, a comma-separated subset of artifacts, or every supported artifact using `--artifacts all`
 - phase-based visual progress feedback during scans, including a real animated console spinner for active phases, useful completed counts, elapsed time, selected artifact generation progress, and final output paths
 - shared Markdown-safe table-cell formatting across generated reports so evidence, XML/configuration snippets, source-code snippets, paths, and other discovered values remain visible and do not break Markdown tables
@@ -77,7 +78,7 @@ legacylens scan <path> --artifacts solution-topology
 Generate a selected subset of artifacts:
 
 ```bash
-legacylens scan <path> --artifacts solution-topology,class-dependencies,interface-inventory,data-access
+legacylens scan <path> --artifacts solution-topology,code-complexity,class-dependencies,interface-inventory,data-access
 ```
 
 Generate every supported optional artifact:
@@ -174,6 +175,14 @@ legacylens scan <path> --output-dir ./output --artifacts solution-topology
 ```
 
 This report should help a developer understand solution membership, project relationships, dependency direction, entry points, configuration hotspots, and likely ownership or review boundaries using static evidence only.
+
+The MVP scope now also includes an optional code-complexity artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts code-complexity
+```
+
+This report should estimate cyclomatic complexity from C# syntax without building the solution. It should report complexity at method/member, type, namespace, project, and scan-root level; highlight high and very-high complexity members and types; flag likely generated files where cheaply detectable; and clearly state that the values are deterministic static review signals, not official compiler, Visual Studio, runtime-risk, testability, defect-probability, or maintainability metrics.
 
 ### Markdown report safety
 

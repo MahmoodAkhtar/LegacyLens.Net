@@ -60,6 +60,7 @@ public sealed class CliParserTests
         Assert.True(result.Options.ShouldWriteArtifact(ScanOptions.DataAccessArtifact));
         Assert.True(result.Options.ShouldWriteArtifact(ScanOptions.UpgradeReadinessArtifact));
         Assert.True(result.Options.ShouldWriteArtifact(ScanOptions.InterfaceInventoryArtifact));
+        Assert.True(result.Options.ShouldWriteArtifact(ScanOptions.CodeComplexityArtifact));
     }
 
     [Fact]
@@ -80,6 +81,7 @@ public sealed class CliParserTests
         Assert.Contains("Unknown artifact name(s): unknown-artifact", result.Message);
         Assert.Contains(ScanOptions.UpgradeReadinessArtifact, result.Message);
         Assert.Contains(ScanOptions.InterfaceInventoryArtifact, result.Message);
+        Assert.Contains(ScanOptions.CodeComplexityArtifact, result.Message);
         Assert.Contains(ScanOptions.AllArtifactsSelection, result.Message);
     }
 

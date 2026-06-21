@@ -66,6 +66,7 @@ LegacyLens.Cli/
 ├── Commands/
 │   ├── Runners/
 │   │   ├── ClassDependenciesArtifactRunner.cs
+│   │   ├── CodeComplexityArtifactRunner.cs
 │   │   ├── ScopedClassDependencyArtifactRunner.cs
 │   │   ├── InterfaceInventoryArtifactRunner.cs
 │   │   ├── ConfigurationInventoryArtifactRunner.cs
@@ -97,7 +98,7 @@ The `Commands` namespace contains the command model and scan orchestration types
 | `ScanContext`                | Passive CLI data carrier created by `ScanCommand` after shared discovery and modernisation analysis have completed. It groups the scan path, main output path, options, discovered facts, modernisation hints, prioritised review areas, and the shared `ScanFileInventory` for report writing and optional artifact runners. |
 | `ScanOptions`                | Represents validated scan options from the CLI parser, including output selection, console mode, parsed artifact selection, optional scoped class dependency type context, and optional upgrade report wording context.                                                                                                                                                                     |
 | `ScanResult`                 | Carries discovered facts, analysis results, output paths, and optional artifact reports back to the console writer.                                                                                                                                                                                                           |
-| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, `class-dependencies.md`, timestamped `class-dependency-scope.<type>.<timestamp>.md` reports, `interface-inventory.md`, and `solution-topology.md`.                                                                      |
+| `ArtifactOutputPathResolver` | Centralises optional artifact output-path resolution for generated artifact files such as `upgrade-readiness-report.md`, `upgrade-blockers.md`, `external-dependencies.md`, `configuration-inventory.md`, `data-access-inventory.md`, `edmx-analysis.md`, `class-dependencies.md`, timestamped `class-dependency-scope.<type>.<timestamp>.md` reports, `interface-inventory.md`, `solution-topology.md`, and `code-complexity.md`.                                                                      |
 
 
 ### Artifact Selection Model
@@ -139,6 +140,7 @@ The `Commands.Runners` namespace contains focused optional artifact-generation r
 | `ScopedClassDependencyArtifactRunner` | Produces timestamped `class-dependency-scope.<type>.<yyyyMMdd-HHmmss>.md` files when `--artifacts class-dependency-scope --class-dependency-type <fully-qualified-type-name>` is selected, or when `all` is selected with a type name. |
 | `InterfaceInventoryArtifactRunner`    | Produces `interface-inventory.md` when `--artifacts interface-inventory` is selected.           |
 | `SolutionTopologyArtifactRunner`     | Produces `solution-topology.md` when `--artifacts solution-topology` is selected.               |
+| `CodeComplexityArtifactRunner`       | Produces `code-complexity.md` when `--artifacts code-complexity` is selected. It should consume the shared `ScanContext.FileInventory`, call a core code-complexity analyzer, and write the Markdown report through the reporting project. |
 
 Artifact runner implementation rules:
 
@@ -146,11 +148,19 @@ Artifact runner implementation rules:
 * Runner `ShouldRun` methods should use the parsed artifact selection, for example `context.Options.ShouldWriteArtifact(ArtifactName)`, so single, multiple, and `all` selections behave consistently.
 * Add a new runner when a new optional artifact is introduced.
 * Keep shared scan data on `ScanContext`; do not rediscover common solution/project/configuration facts inside runners.
-* Use `ScanContext.FileInventory` for artifact analyzers that need project-associated source/model files, such as class dependency, interface inventory, data-access, and EDMX analysis.
+* Use `ScanContext.FileInventory` for artifact analyzers that need project-associated source/model files, such as class dependency, interface inventory, code complexity, data-access, and EDMX analysis.
 * Keep artifact-specific analyzer and Markdown writer calls inside the relevant runner.
 * Use `ArtifactOutputPathResolver` for optional artifact output paths.
 * For parameterised scoped class dependency output, build a safe filename from the requested fully qualified type name plus a local sortable `yyyyMMdd-HHmmss` timestamp before passing it to `ArtifactOutputPathResolver`, so repeated refactoring runs preserve historical reports.
 * Use `Commands/Runners/` rather than `Commands/Artifacts/`, because `artifacts/` is a gitignored generated-output folder name.
+
+#### Code Complexity Artifact Architecture
+
+`code-complexity` should follow the existing optional artifact runner pattern. Add `CodeComplexityArtifactRunner` under `LegacyLens.Cli/Commands/Runners/` with `ArtifactName => "code-complexity"`, `ShouldRun` based on `context.Options.ShouldWriteArtifact(ArtifactName)`, and output path resolution through `ArtifactOutputPathResolver` using the file name `code-complexity.md`. The runner should consume `context.FileInventory`, call a core analyzer, write the Markdown report, and return a `ScanArtifactResult`. Do not add repeated artifact-specific `if` blocks directly inside `ScanCommand`, and do not put console output in `LegacyLens.Core`.
+
+Add the analyzer model in `LegacyLens.Core.Analysis`, for example `CodeComplexityAnalyzer`, `CodeComplexityReport`, `CodeComplexityMember`, type/namespace/project/scan summaries, and `CodeComplexitySeverity`. The analyzer should parse `ScanFileInventory.CSharpFiles` with Roslyn syntax APIs and should not perform a new recursive filesystem scan, require compilation, load projects, restore packages, create a semantic model, or execute code. It should tolerate partial or broken C# source where Roslyn can still produce a syntax tree.
+
+Add `CodeComplexityMarkdownReportWriter` in `LegacyLens.Reporting.Markdown`. The writer should use shared Markdown-safe table-cell formatting for all table values and should include cautious notes explaining that the values are static syntax estimates and review heuristics, not official compiler/build metrics or proof of runtime risk, testability, maintainability, correctness, defect probability, or safe automatic refactoring.
 
 Optional artifact path resolution should use this precedence:
 
@@ -212,6 +222,7 @@ Responsible for turning discovered facts into basic review and modernisation hin
 
 Current analysis work includes:
 
+* estimating C# cyclomatic complexity from syntax for the optional `code-complexity.md` artifact and aggregating it by member, type, namespace, project, and scan root
 * modelling modernisation hints
 * modelling modernisation hint evidence, source path, and confidence metadata
 * classifying hints by severity: `Info`, `Warning`, and `Risk`

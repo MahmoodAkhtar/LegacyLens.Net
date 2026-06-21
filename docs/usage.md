@@ -55,7 +55,7 @@ legacylens scan C:\Repos\LegacyApp --format markdown
 legacylens scan C:\Repos\LegacyApp --quiet
 legacylens scan C:\Repos\LegacyApp --verbose
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology
-legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology,class-dependencies,interface-inventory,data-access
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology,code-complexity,class-dependencies,interface-inventory,data-access
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all --upgrade-target net8.0
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts upgrade-readiness --upgrade-target net8.0
@@ -71,6 +71,7 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-dep
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all --class-dependency-type SampleLegacyApp.Services.CustomerService
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts interface-inventory
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts code-complexity
 legacylens --help
 legacylens --version
 ```
@@ -164,7 +165,7 @@ The `class-dependency-scope` artifact is parameterised. It is selected through `
 `--artifacts` accepts:
 
 - one artifact name, for example `solution-topology`
-- a comma-separated list of artifact names, for example `solution-topology,class-dependencies,data-access`
+- a comma-separated list of artifact names, for example `solution-topology,code-complexity,class-dependencies,data-access`
 - the special value `all`, which generates every supported optional artifact
 
 Supported artifact names are:
@@ -179,13 +180,14 @@ Supported artifact names are:
 - `class-dependency-scope`
 - `interface-inventory`
 - `solution-topology`
+- `code-complexity`
 - `all`
 
 Artifact matching is case-insensitive. Comma-separated values may include spaces around commas, so both of these are valid:
 
 ```bash
-legacylens scan <path> --artifacts solution-topology,class-dependencies
-legacylens scan <path> --artifacts solution-topology, class-dependencies, interface-inventory, data-access
+legacylens scan <path> --artifacts solution-topology,code-complexity,class-dependencies
+legacylens scan <path> --artifacts solution-topology, code-complexity, class-dependencies, interface-inventory, data-access
 ```
 
 Duplicate artifact names are ignored so the same report is not generated twice.
@@ -374,6 +376,29 @@ legacylens scan <path> --output-dir ./output --artifacts solution-topology
 The report should remain static and evidence-backed. It should help a .NET developer understand solution membership, project relationships, dependency direction, entry points, configuration hotspots, and likely ownership or review boundaries before onboarding, refactoring, or upgrade planning.
 
 The report should not claim to build the solution, restore NuGet packages, execute code, infer runtime call graphs, or prove architectural intent.
+
+### Code Complexity Artifact
+
+The MVP scope now includes an optional `code-complexity` artifact that should produce:
+
+```text
+<output-dir>/code-complexity.md
+```
+
+Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts code-complexity
+```
+
+It can also be selected as part of a comma-separated artifact list or by using `--artifacts all`:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts solution-topology,code-complexity,class-dependencies
+legacylens scan <path> --output-dir ./output --artifacts all
+```
+
+The report should estimate cyclomatic complexity from indexed C# source syntax without requiring the solution to build, restore packages, load projects, or create a semantic model. It should report member-level complexity and aggregate by type, namespace, project, and scan root. The report should use cautious wording: complexity values are static discovery signals intended to help prioritise review, testing, simplification, and refactoring work. They are not exact Microsoft, Visual Studio, compiler, runtime-risk, defect-probability, testability, maintainability, or safe-refactoring metrics.
 
 ### Class Dependencies Artifact
 

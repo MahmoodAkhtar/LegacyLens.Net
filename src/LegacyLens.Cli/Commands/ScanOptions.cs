@@ -13,6 +13,7 @@ public sealed class ScanOptions
     public const string ClassDependencyScopeArtifact = "class-dependency-scope";
     public const string InterfaceInventoryArtifact = "interface-inventory";
     public const string SolutionTopologyArtifact = "solution-topology";
+    public const string CodeComplexityArtifact = "code-complexity";
 
     public static readonly IReadOnlyList<string> SupportedArtifactNames =
     [
@@ -25,7 +26,8 @@ public sealed class ScanOptions
         ClassDependenciesArtifact,
         ClassDependencyScopeArtifact,
         InterfaceInventoryArtifact,
-        SolutionTopologyArtifact
+        SolutionTopologyArtifact,
+        CodeComplexityArtifact
     ];
 
     private readonly IReadOnlyList<string> _selectedArtifacts = Array.Empty<string>();
@@ -76,6 +78,8 @@ public sealed class ScanOptions
     public bool ShouldWriteInterfaceInventory => ShouldWriteArtifact(InterfaceInventoryArtifact);
 
     public bool ShouldWriteSolutionTopology => ShouldWriteArtifact(SolutionTopologyArtifact);
+
+    public bool ShouldWriteCodeComplexity => ShouldWriteArtifact(CodeComplexityArtifact);
 
     public bool ShouldWriteArtifact(string artifactName)
     {

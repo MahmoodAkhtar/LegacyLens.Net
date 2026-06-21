@@ -23,7 +23,8 @@ public sealed class ScanArtifactRunnerTests
             { new EdmxAnalysisArtifactRunner(), ScanOptions.EdmxAnalysisArtifact },
             { new ClassDependenciesArtifactRunner(), ScanOptions.ClassDependenciesArtifact },
             { new InterfaceInventoryArtifactRunner(), ScanOptions.InterfaceInventoryArtifact },
-            { new SolutionTopologyArtifactRunner(), ScanOptions.SolutionTopologyArtifact }
+            { new SolutionTopologyArtifactRunner(), ScanOptions.SolutionTopologyArtifact },
+            { new CodeComplexityArtifactRunner(), ScanOptions.CodeComplexityArtifact }
         };
 
     [Theory]
