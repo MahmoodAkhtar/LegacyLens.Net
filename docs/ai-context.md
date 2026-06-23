@@ -134,9 +134,9 @@ legacylens scan <path> --artifacts all
 
 The normal `discovery-report.md` is always generated. Artifact names are case-insensitive. Comma-separated values may contain spaces around commas. Duplicate artifact names should be de-duplicated so reports are not generated twice. Unknown artifact names should produce a clear validation error listing the supported values. `all` must not be combined with other artifact names.
 
-Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, `class-dependency-scope`, `class-refactoring-opportunities`, `interface-inventory`, `solution-topology`, and `code-complexity`.
+Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, `interface-inventory`, `solution-topology`, and `code-complexity`.
 
-`class-dependency-scope` is a parameterised artifact. It requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected, is valid with `--artifacts all` only as an additional scoped output when the type option is supplied, and must not make plain `--artifacts all` require a type name. `class-refactoring-opportunities` follows the same parameterised pattern with `--class-refactoring-type <fully-qualified-type-name>` and must not make plain `--artifacts all` require a type name.
+Add `class-dependency-scope` to the supported artifact names as a parameterised artifact. It requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected, is valid with `--artifacts all` only as an additional scoped output when the type option is supplied, and must not make plain `--artifacts all` require a type name.
 
 `--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it should be rejected when none of the selected artifacts are upgrade-related. It must not change discovery scope, enable extra analysis, or imply compatibility checking.
 
@@ -342,7 +342,7 @@ Include `README.md` only when the task is specifically about public documentatio
 
 - `README.md` is the public front door.
 - `docs/usage.md` contains command usage.
-- `docs/report-output.md` contains console, discovery report, upgrade-readiness report, upgrade-blockers report, external-dependencies report, and data-access inventory examples.
+- `docs/report-output.md` contains console output examples, the main discovery report output shape, and generated report-shape examples for the optional artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, class-dependency-scope, class-refactoring-opportunities, interface-inventory, solution-topology, and code-complexity.
 - `docs/discovery-capabilities.md` contains detailed scanner capability information.
 - `docs/architecture.md` contains repository and project structure.
 - `docs/mvp.md` defines MVP scope and exit criteria.

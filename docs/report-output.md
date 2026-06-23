@@ -257,6 +257,9 @@ C:\Path\To\LegacyApp\output\code-complexity.md
 Class dependencies report generated:
 C:\Path\To\LegacyApp\output\class-dependencies.md
 
+Class refactoring opportunities report generated:
+C:\Path\To\LegacyApp\output\class-refactoring-opportunities.SampleLegacyApp.Services.CustomerService.20260620-153045.md
+
 Interface inventory report generated:
 C:\Path\To\LegacyApp\output\interface-inventory.md
 
@@ -295,7 +298,7 @@ A full evidence-pack run with a class refactoring opportunities type such as:
 legacylens scan <path> --artifacts all --class-refactoring-type SampleLegacyApp.Services.CustomerService
 ```
 
-should show every generated optional artifact path, in addition to the main report path:
+should show every supported optional artifact path, in addition to the main report path:
 
 ```text
 Markdown report generated:
@@ -1662,4 +1665,310 @@ Depends on:
 The Mermaid diagram should be focused rather than exhaustive. For large codebases, the table inventory should remain the complete evidence-backed source of detail, while the diagram should prioritise high-coupling types, hardcoded concrete dependencies, static dependency hotspots, and highest-severity concerns.
 
 Suggested wording should stay cautious: `source-level dependency`, `possible coupling concern`, `suggested review`, `evidence`, and `static analysis finding`.
+
+---
+
+## Solution Topology Report Output
+
+The MVP scope includes a separate solution-topology Markdown artifact:
+
+```text
+output/solution-topology.md
+```
+
+The solution-topology report should help a developer quickly understand the structure of an unfamiliar .NET codebase before deeper analysis, refactoring, or upgrade planning. It should use static solution, project, reference, package, configuration, WCF, legacy ASP.NET, and file-inventory evidence only. It should not build the solution, infer runtime ownership, prove deployment boundaries, or claim that suggested boundaries are authoritative.
+
+Representative structure:
+
+````markdown
+# Solution Topology Report
+
+## Summary
+
+- Solutions discovered: 1
+- Projects discovered: 4
+- Project references discovered: 4
+- Package references discovered: 5
+- Assembly references discovered: 2
+- Configuration files discovered: 1
+- Legacy ASP.NET artifacts discovered: 50
+- WCF endpoints discovered: 3
+- Review notes discovered: 6
+
+## Solution Overview
+
+| Solution | Projects | Source Path |
+|---|---:|---|
+| `SampleLegacyApp` | 4 | `samples/SampleLegacyApp/SampleLegacyApp.sln` |
+
+## Project Topology
+
+| Project | Target Framework | Project References | Package References | Assembly References | Likely Role | Notes |
+|---|---|---:|---:|---:|---|---|
+| `SampleLegacyApp.Web` | `net48` | 2 | 2 | 0 | Web/API host | Legacy ASP.NET and configuration evidence found. |
+| `SampleLegacyApp.Services` | `net48` | 2 | 0 | 1 | Application service layer | Depends on contracts and data projects. |
+| `SampleLegacyApp.Data` | `net48` | 0 | 3 | 0 | Data access layer | EF6/EDMX/data-access signals may require review. |
+| `SampleLegacyApp.Contracts` | `net48` | 0 | 0 | 0 | Shared contracts | WCF service-contract evidence found. |
+
+## Dependency Diagram
+
+```mermaid
+graph TD
+    SampleLegacyApp_Web --> SampleLegacyApp_Services
+    SampleLegacyApp_Web --> SampleLegacyApp_Contracts
+    SampleLegacyApp_Services --> SampleLegacyApp_Contracts
+    SampleLegacyApp_Services --> SampleLegacyApp_Data
+```
+
+## Likely Layers and Ownership Boundaries
+
+| Boundary | Projects | Evidence | Review Notes |
+|---|---|---|---|
+| Web/API host | `SampleLegacyApp.Web` | MVC/Web API startup, routes, configuration files | Review request pipeline and hosting migration separately from domain/data code. |
+| Services | `SampleLegacyApp.Services` | Service classes and WCF endpoint/service references | Review seams before refactoring service classes. |
+| Data access | `SampleLegacyApp.Data` | Repository, EF6, EDMX, connection-string evidence | Review persistence dependencies before upgrade or extraction work. |
+| Contracts | `SampleLegacyApp.Contracts` | DTOs and service contracts | Review shared API compatibility before changing public contract shapes. |
+
+## Central and Leaf Projects
+
+| Project | Classification | Evidence | Suggested Review |
+|---|---|---|---|
+| `SampleLegacyApp.Contracts` | Possible central/shared project | Referenced by multiple projects | Changes may ripple widely; add characterization or compatibility checks first. |
+| `SampleLegacyApp.Data` | Possible leaf/infrastructure project | No project references found; consumed by services | Review direct database or ORM dependencies before service refactoring. |
+
+## Review Notes
+
+| Area | Finding | Evidence | Suggested Next Step |
+|---|---|---|---|
+| Legacy ASP.NET host | Web project contains legacy ASP.NET signals | MVC/Web API startup and routing evidence | Review routing and request pipeline before ASP.NET Core migration. |
+| WCF boundary | WCF endpoint and contract signals found | `system.serviceModel` and `[ServiceContract]` evidence | Review contracts and hosting model before choosing a migration path. |
+| Data access boundary | Data project contains persistence signals | EF6/EDMX/repository evidence | Review data-access migration independently from web-host migration. |
+
+## Notes and Limitations
+
+This report is a static topology view. It does not prove runtime layering, deployment boundaries, ownership, startup order, dependency injection behaviour, reflection usage, dynamic loading, or runtime call graphs. Suggested boundaries are orientation hints that require developer confirmation.
+````
+
+Suggested wording should stay cautious: `likely role`, `possible boundary`, `suggested review`, `static evidence`, `may indicate`, and `requires developer confirmation`.
+
+---
+
+## Scoped Class Dependency Report Output
+
+The MVP scope includes a parameterised, timestamped scoped class dependency Markdown artifact:
+
+```text
+output/class-dependency-scope.<safe-fully-qualified-type-name>.<yyyyMMdd-HHmmss>.md
+```
+
+The scoped class dependency report should help a developer inspect one requested fully qualified type and its immediate source-level dependency context. It should reuse the no-build class dependency analysis and shared file inventory, resolve the requested fully qualified type case-insensitively, and avoid silently falling back to short-name matching.
+
+Representative structure:
+
+````markdown
+# Scoped Class Dependency Report
+
+## Summary
+
+- Requested type: `SampleLegacyApp.Services.CustomerService`
+- Match status: Found
+- Generated local: `2026-06-20 15:30:45 +01:00`
+- Generated UTC: `2026-06-20 14:30:45Z`
+- Outbound dependencies discovered: 4
+- Inbound dependants discovered: 2
+- Related concerns discovered: 2
+
+## Root Type
+
+| Type | Project | Source Path | Line | Kind |
+|---|---|---|---:|---|
+| `SampleLegacyApp.Services.CustomerService` | SampleLegacyApp.Services | `SampleLegacyApp.Services/CustomerService.cs` | 10 | Class |
+
+## Direct Outbound Dependencies
+
+These are source-level types that the requested root type appears to depend on directly.
+
+| Target Type | Dependency Kind | Project | Line | Evidence | Review Notes |
+|---|---|---|---:|---|---|
+| `SampleLegacyApp.Data.CustomerRepository` | field, hardcoded new | SampleLegacyApp.Services | 12 | `private readonly CustomerRepository _repository = new();` | Concrete construction may make isolated testing harder. |
+| `SampleLegacyApp.Contracts.ICustomerService` | interface implementation | SampleLegacyApp.Services | 10 | `public class CustomerService : ICustomerService` | Existing interface seam may be useful for callers. |
+
+## Direct Inbound Dependants
+
+These are source-level types that appear to depend directly on the requested root type.
+
+| Source Type | Dependency Kind | Project | Line | Evidence | Review Notes |
+|---|---|---|---:|---|---|
+| `SampleLegacyApp.Web.Program` | DI registration | SampleLegacyApp.Web | 4 | `AddSingleton<ICustomerService, CustomerService>()` | Registration evidence requires runtime confirmation. |
+
+## Related Concerns
+
+| Severity | Concern | Evidence | Suggested Review |
+|---|---|---|---|
+| High | Hardcoded concrete dependency | `new CustomerRepository()` | Consider whether a seam is needed before characterization tests. |
+| Medium | Service-contract coupling | `ICustomerContract` implementation | Review public contract compatibility before changing method signatures. |
+
+## Focused Dependency Diagram
+
+```mermaid
+graph TD
+    Program -->|DI registration| CustomerService
+    CustomerService -->|implements| ICustomerService
+    CustomerService -->|implements| ICustomerContract
+    CustomerService -->|field, hardcoded new| CustomerRepository
+    CustomerService -->|return type| CustomerDto
+```
+
+## No Match Output
+
+If the requested fully qualified type cannot be found, the report should still be generated and clearly state that no matching source-defined type was found. It may include nearby fully qualified type names only when they are evidence-backed and should not perform unsafe short-name matching.
+
+## Ambiguity Output
+
+If duplicate full-name matches are found, the report should include an ambiguity section listing each matching project/source path and should avoid choosing one silently.
+
+## Notes and Limitations
+
+This report is based on static source-level evidence. It does not prove runtime dependency injection, reflection usage, dynamic loading, transitive dependencies, generated-code behaviour, runtime call graphs, or whether a dependency is used in production.
+````
+
+Suggested wording should stay cautious: `direct source-level dependency`, `direct inbound dependant`, `static evidence`, `related concern`, `requires review`, and `does not prove runtime behaviour`.
+
+---
+
+## Class Refactoring Opportunities Report Output
+
+The MVP scope includes a parameterised, timestamped class-refactoring-opportunities Markdown artifact:
+
+```text
+output/class-refactoring-opportunities.<safe-fully-qualified-type-name>.<yyyyMMdd-HHmmss>.md
+```
+
+The class-refactoring-opportunities report should help a developer plan a safer first approach to changing one requested class. It should not refactor code, rewrite code, generate patches, or claim that a refactoring is safe. It should combine reusable static evidence from class dependencies, scoped class dependencies, code complexity, interface inventory, configuration inventory, external dependency inventory, and data-access analysis where practical, then add only limited artifact-specific C# inspection through the shared `ScanContext.FileInventory.CSharpFiles` input.
+
+Representative structure:
+
+````markdown
+# Class Refactoring Opportunities Report
+
+## Summary
+
+- Requested type: `SampleLegacyApp.Services.CustomerService`
+- Match status: Found
+- Generated local: `2026-06-20 15:30:45 +01:00`
+- Generated UTC: `2026-06-20 14:30:45Z`
+- Testing path classification: Dependency breaking likely needed first
+- Strong recommendations: 2
+- Moderate recommendations: 3
+- Characterization test targets: 1
+- Testability barriers discovered: 2
+- Existing seams discovered: 1
+- Missing or weak seams discovered: 1
+
+## Class Fingerprint
+
+| Field | Value |
+|---|---|
+| Type | `SampleLegacyApp.Services.CustomerService` |
+| Project | `SampleLegacyApp.Services` |
+| Source Path | `SampleLegacyApp.Services/CustomerService.cs` |
+| Implements | `ICustomerService`, `ICustomerContract` |
+| Public methods | 1 |
+| Constructor parameters | 0 |
+| Fields | 1 |
+| Outbound dependencies | 4 |
+| Inbound dependants | 2 |
+| Highest member complexity | 1 |
+
+## Analysis Scope
+
+| Evidence Source | Used | Notes |
+|---|---|---|
+| Class dependency analysis | Yes | Source-level relationships, hardcoded construction, static access, and coupling concerns. |
+| Scoped class dependency analysis | Yes | Direct inbound and outbound dependency context for the requested type. |
+| Code complexity analysis | Yes | Member-level complexity and hotspot classification where available. |
+| Interface inventory | Yes | Existing interface seams and possible extension points where available. |
+| Configuration inventory | Yes | Configuration coupling and static configuration access where available. |
+| External dependencies | Yes | Possible runtime infrastructure concerns where available. |
+| Data access inventory | Yes | Repository, ORM, raw SQL, and database-access signals where available. |
+
+## Suggested Approach
+
+| Order | Step | Risk | Value | Why This Comes First | Evidence |
+|---:|---|---|---|---|---|
+| 1 | Add characterization tests around `GetCustomer(int id)` at the nearest practical seam. | Low | High | Captures current mapping behaviour before changing dependency structure. | Public method with observable return value. |
+| 2 | Decide whether to introduce a seam for `CustomerRepository` before deeper tests. | Medium | High | Hardcoded construction prevents direct substitution of repository behaviour. | `new CustomerRepository()` |
+| 3 | Prefer small dependency-breaking changes before design refactoring. | Medium | Medium | Existing behaviour is not yet protected by focused tests. | Hardcoded concrete dependency and inbound web registration evidence. |
+
+## Testing Path Classification
+
+`Dependency breaking likely needed first`
+
+Evidence:
+
+| Signal | Strength | Confidence | Evidence | Interpretation |
+|---|---|---|---|---|
+| Hardcoded object creation | Strong | High | `private readonly CustomerRepository _repository = new();` | The class may be difficult to test in isolation until a seam is introduced. |
+| Observable return value | Moderate | High | `CustomerDto GetCustomer(int id)` | A characterization test may be possible if repository behaviour is stable or can be controlled indirectly. |
+
+## First Characterization Test Targets
+
+| Target | Why It Is a Good First Target | Suggested Assertion Focus | Evidence |
+|---|---|---|---|
+| `GetCustomer(int id)` | Public method with return value and simple mapping behaviour. | Preserve current `Id` and `Name` mapping from repository record to DTO. | `return new CustomerDto { Id = customer.Id, Name = customer.Name }` |
+
+## Existing Seams
+
+| Seam | Kind | Evidence | How It May Help | Caveat |
+|---|---|---|---|---|
+| `ICustomerService` | Interface seam for callers | `public class CustomerService : ICustomerService` | Callers can depend on the abstraction. | Does not help replace `CustomerRepository` inside the class. |
+
+## Missing or Weak Seams
+
+| Dependency | Barrier | Evidence | Possible Technique |
+|---|---|---|---|
+| `CustomerRepository` | Constructed internally | `new CustomerRepository()` | Parameterize Constructor, Extract Interface, or Extract and Override Factory Method. |
+
+## Testability Barriers
+
+| Barrier | Strength | Evidence | Why It Matters |
+|---|---|---|---|
+| Hardcoded concrete dependency | Strong | `private readonly CustomerRepository _repository = new();` | Tests cannot directly substitute repository behaviour without changing the class or using a broader test boundary. |
+| Possible data-access coupling | Moderate | Repository dependency | Repository behaviour may involve persistence in real code and should be controlled before refactoring service logic. |
+
+## Technique Recommendations
+
+| Technique | Strength | Why Suggested | Evidence | First Safe Use |
+|---|---|---|---|---|
+| Characterization Tests | Strong | Capture existing public behaviour before changing dependencies or design. | Public method returns `CustomerDto`. | Test `GetCustomer(int id)` behaviour through the current public API. |
+| Parameterize Constructor | Moderate | Make the repository dependency replaceable. | Internal `new CustomerRepository()`. | Add an overload or constructor injection after behaviour is captured. |
+| Extract Interface | Moderate | Create an object seam around repository behaviour if none exists. | Concrete repository dependency. | Introduce an interface only when tests or callers need substitution. |
+| Extract and Override Factory Method | Weak | Tactical option if constructor injection is too invasive. | Internal object creation. | Use as a temporary seam, not as the preferred final design. |
+
+## Effect Sketch
+
+```mermaid
+graph TD
+    Program -->|DI registration / inbound| CustomerService
+    CustomerService -->|implements existing seam| ICustomerService
+    CustomerService -->|implements service contract| ICustomerContract
+    CustomerService -->|hardcoded dependency| CustomerRepository
+    CustomerRepository -->|returns| CustomerRecord
+    CustomerService -->|returns| CustomerDto
+```
+
+## No Strong Recommendation Output
+
+When the analyzer does not find enough evidence for useful recommendations, the report should say `Not enough evidence for a strong recommendation` and list what was inspected rather than producing generic technique advice.
+
+## No Match and Ambiguity Output
+
+If the requested fully qualified type is not found, the report should still be generated and clearly show a no-match section. If duplicate full-name matches are found, the report should list all matching source paths and avoid choosing one silently.
+
+## Notes and Limitations
+
+This report is based on static evidence only. It does not build the solution, run tests, execute the application, restore packages, create semantic models requiring compilation, connect to databases, call HTTP APIs, validate credentials, resolve runtime dependency injection, prove runtime usage, prove a dependency is unused, prove a refactoring is safe, or automatically refactor code. Recommendations are suggested review paths that require developer confirmation.
+````
+
+Suggested wording should stay cautious and evidence-backed: `possible`, `suggested review`, `static signal`, `evidence found`, `may indicate`, `requires developer confirmation`, `suggested first step`, `not enough evidence`, and `no strong recommendation`. The report should be discriminating: it should not apply every Working Effectively with Legacy Code technique to every class.
 
