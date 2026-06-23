@@ -1,0 +1,1637 @@
+# Report Output
+
+This document describes the console output and generated Markdown report produced by LegacyLens.NET.
+
+## Sample Console Output
+
+The normal `legacylens scan <path>` output is intentionally concise, but it should provide phase-based visual progress while the scan is running. In an interactive console, the current phase should use a real animated `| / - \` spinner that updates the same line until the phase completes. This progress output is console UX only; it does not change generated Markdown report content or discovery semantics.
+
+Example default console output. The active phase line is shown as a representative snapshot; in an interactive console that line should rotate through `| / - \` until the phase completes:
+
+```text
+LegacyLens.NET
+
+Scan path: C:\Path\To\LegacyApp
+Report: C:\Path\To\LegacyApp\output\discovery-report.md
+
+Scanning...
+
+| Discovering projects...
+✓ Projects discovered: 4
+/ Building file inventory...
+✓ Source/config/model files indexed: 128
+- Discovering solutions...
+✓ Solutions discovered: 1
+\ Scanning WCF configuration...
+✓ WCF endpoints discovered: 3
+✓ WCF behaviours discovered: 2
+| Scanning WCF service contracts...
+✓ WCF service contracts discovered: 1
+/ Scanning configuration files...
+✓ Configuration files discovered: 1
+- Scanning legacy ASP.NET artifacts...
+✓ Legacy ASP.NET artifacts discovered: 50
+\ Analysing modernisation hints...
+✓ Modernisation hints discovered: 77
+| Writing discovery-report.md...
+✓ discovery-report.md generated
+
+Completed in 00:00:07
+
+Summary:
+- Solutions discovered: 1
+- Projects discovered: 4
+- Project references discovered: 4
+- Package references discovered: 5
+- Assembly references discovered: 2
+- WCF endpoints discovered: 3
+- WCF service contracts discovered: 1
+- WCF behaviours discovered: 2
+- Legacy ASP.NET artifacts discovered: 50
+- Configuration files discovered: 1
+- Modernisation hints discovered: 77
+
+Top review areas:
+1. WCF migration
+2. Legacy ASP.NET migration
+3. Target framework review
+
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
+```
+
+Do not use a percentage progress bar for MVP. The scan workload is discovered progressively as solutions, projects, source files, configuration files, EDMX files, and optional artifact work are found. A real `| / - \` spinner should be used only for the currently running phase in an interactive console, and completed phase messages with useful counts should remain the primary progress signal. The spinner must stop cleanly before each completed `✓ ...` message. Quiet mode should suppress progress and spinner output. Redirected or non-interactive output should avoid carriage-return animation and remain readable line-based text. Verbose mode should keep phase progress and add deeper diagnostic detail without interleaving or corrupting the active spinner line.
+
+The latest sample report confirms the current sample output shape: 1 solution, 4 projects, 4 project references, 5 package references, 2 assembly references, 3 WCF endpoints, 1 WCF service contract, 2 WCF behaviours, 50 legacy ASP.NET artifacts, and 1 configuration file. The modernisation review summary currently totals 77 modernisation hints across the prioritised review areas.
+
+For detailed discovery output, use:
+
+```bash
+legacylens scan <path> --verbose
+```
+
+The following verbose console output is a representative excerpt. Exact counts, paths, and findings may change as the sample application evolves. The `Modernisation hints discovered` section is intentionally short and does not attempt to duplicate every row from the generated report.
+
+```text
+Projects discovered:
+- SampleLegacyApp.Contracts
+  Target framework: net48
+- SampleLegacyApp.Data
+  Target framework: net48
+  Package reference: Dapper 2.1.35 (source: PackageReference)
+  Package reference: EntityFramework 6.4.4 (source: packages.config, package target framework: net48)
+  Package reference: Newtonsoft.Json 13.0.3 (source: packages.config, package target framework: net48)
+- SampleLegacyApp.Services
+  Target framework: net48
+  Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
+  Project reference: ..\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj
+  Assembly reference: System.ServiceModel
+- SampleLegacyApp.Web
+  Target framework: net48
+  Project reference: ..\SampleLegacyApp.Contracts\SampleLegacyApp.Contracts.csproj
+  Project reference: ..\SampleLegacyApp.Services\SampleLegacyApp.Services.csproj
+  Package reference: Newtonsoft.Json 13.0.3 (source: PackageReference)
+  Package reference: System.ServiceModel.Http unknown (source: PackageReference)
+
+WCF endpoints discovered:
+- SampleLegacyApp.Services.CustomerService
+  Address: mex
+  Binding: mexHttpBinding
+  Contract: IMetadataExchange
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+- SampleLegacyApp.Services.CustomerService
+  Address:
+  Binding: basicHttpBinding
+  Contract: SampleLegacyApp.Contracts.ICustomerContract
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+- SampleLegacyApp.Services.CustomerService
+  Address:
+  Binding: basicHttpBinding
+  Contract: SampleLegacyApp.Contracts.ICustomerService
+  Config file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+
+WCF service contracts discovered:
+- ICustomerContract
+  Source file: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Contracts\CustomerContracts.cs
+  Operation: GetCustomer
+
+WCF behaviours discovered:
+- ServiceBehaviour: CustomerServiceBehaviour
+  Service metadata: True
+  Service debug: True
+  Service throttling: True
+- EndpointBehaviour: JsonEndpointBehaviour
+  Web HTTP: True
+
+Configuration files discovered:
+- C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\SampleLegacyApp.Web\Web.config
+  App settings: 2
+  Connection strings: 1
+  Custom sections: 1
+
+Legacy ASP.NET artifacts discovered:
+- WebFormsPage: Default.aspx
+- AsmxWebService: CustomerService.asmx
+- HttpHandler: Download.ashx
+- GlobalAsax: Global.asax
+- MvcController: HomeController
+- WebApiController: CustomersApiController
+- WebApiConfig: WebApiConfig.cs
+- WebApiCorsRegistration: config.EnableCors
+- HttpModuleRegistration: IntegratedLegacyModule
+- HttpModuleRegistration: LegacyAuthModule
+- HttpHandlerRegistration: *.legacy
+- HttpHandlerRegistration: IntegratedLegacyHandler
+
+Modernisation hints discovered:
+- [Risk] Target Framework: SampleLegacyApp.Contracts targets net48
+- [Risk] Target Framework: SampleLegacyApp.Data targets net48
+- [Risk] Target Framework: SampleLegacyApp.Services targets net48
+- [Risk] Target Framework: SampleLegacyApp.Web targets net48
+- [Risk] WCF: 3 WCF endpoint(s) discovered
+- [Risk] WCF: 1 WCF service contract(s) discovered
+- [Warning] WCF Binding: basicHttpBinding endpoint discovered for SampleLegacyApp.Services.CustomerService contract SampleLegacyApp.Contracts.ICustomerContract
+- [Warning] WCF Reader Quotas: SampleLegacyApp.Services.CustomerService has explicit WCF reader quota settings
+- [Warning] WCF Transfer Mode: SampleLegacyApp.Services.CustomerService uses WCF transfer mode Streamed
+- [Risk] Legacy ASP.NET: Default.aspx is a WebForms page
+- [Risk] Legacy ASP.NET: CustomerService.asmx is an ASMX web service
+- [Warning] Legacy ASP.NET Web API Pipeline: config.EnableCors enables ASP.NET Web API CORS configuration
+- [Warning] Configuration: Web.config contains 1 custom configuration section(s)
+- [Info] Configuration: Web.config contains 1 connection string(s)
+- [Warning] Legacy ASP.NET Request Pipeline: LegacyAuthModule registers an ASP.NET HTTP module
+- [Warning] Legacy ASP.NET Request Pipeline: IntegratedLegacyHandler registers an ASP.NET HTTP handler
+- [Warning] Packages: SampleLegacyApp.Data references EntityFramework 6.4.4
+
+Modernisation review summary:
+- 1. WCF migration
+  Highest severity: Risk
+  Risks: 3
+  Warnings: 7
+  Info: 8
+  Summary: 3 risk, 7 warning, 8 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach.
+- 2. Legacy ASP.NET migration
+  Highest severity: Risk
+  Risks: 2
+  Warnings: 3
+  Info: 8
+  Summary: 2 risk, 3 warning, 8 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration.
+- 3. Target framework review
+  Highest severity: Risk
+  Risks: 4
+  Warnings: 0
+  Info: 0
+  Summary: 4 risk, 0 warning, 0 info hint(s). Review target frameworks to understand upgrade paths, .NET Framework dependencies, and modern .NET migration constraints.
+- 4. Startup and request pipeline review
+  Highest severity: Warning
+  Risks: 0
+  Warnings: 24
+  Info: 3
+  Summary: 0 risk, 24 warning, 3 info hint(s). Review application startup, dependency resolver setup, controller factories, global filters, action attributes, formatters, message handlers, CORS, model binding, value providers, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents.
+- 5. Configuration review
+  Highest severity: Warning
+  Risks: 0
+  Warnings: 1
+  Info: 1
+  Summary: 0 risk, 1 warning, 1 info hint(s). Review appSettings, connection strings, and custom configuration sections for runtime behaviour and external dependencies.
+- 6. Dependency review
+  Highest severity: Warning
+  Risks: 0
+  Warnings: 1
+  Info: 2
+  Summary: 0 risk, 1 warning, 2 info hint(s). Review package dependencies that may affect migration, replacement, compatibility, or framework upgrade planning.
+- 7. Routing review
+  Highest severity: Info
+  Risks: 0
+  Warnings: 0
+  Info: 10
+  Summary: 0 risk, 0 warning, 10 info hint(s). Review conventional routes, attribute routes, area routes, and Web API route registrations to preserve URL and client compatibility.
+
+Solutions discovered:
+- SampleLegacyApp
+  Projects: 4
+
+Markdown report generated: C:\Path\To\LegacyLens.Net\samples\SampleLegacyApp\output\discovery-report.md
+```
+
+---
+
+
+## Optional Artifact Selection Console Output
+
+The main `discovery-report.md` is always generated. When optional artifacts are selected, progress output should include selected artifact generation as a distinct phase, and the final console output should also show the generated artifact paths.
+
+A focused artifact run such as:
+
+```bash
+legacylens scan <path> --artifacts solution-topology
+```
+
+should generate the main report and the selected optional artifact:
+
+```text
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
+
+Solution topology report generated:
+C:\Path\To\LegacyApp\output\solution-topology.md
+```
+
+A selected subset such as:
+
+```bash
+legacylens scan <path> --artifacts solution-topology,code-complexity,class-dependencies,interface-inventory,data-access
+```
+
+should show each generated optional artifact once:
+
+```text
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
+
+Data access inventory generated:
+C:\Path\To\LegacyApp\output\data-access-inventory.md
+
+Code complexity report generated:
+C:\Path\To\LegacyApp\output\code-complexity.md
+
+Class dependencies report generated:
+C:\Path\To\LegacyApp\output\class-dependencies.md
+
+Interface inventory report generated:
+C:\Path\To\LegacyApp\output\interface-inventory.md
+
+Solution topology report generated:
+C:\Path\To\LegacyApp\output\solution-topology.md
+```
+
+A full evidence-pack run such as:
+
+```bash
+legacylens scan <path> --artifacts all
+```
+
+should show every supported optional artifact path, in addition to the main report path:
+
+```text
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
+
+Upgrade readiness report generated:
+C:\Path\To\LegacyApp\output\upgrade-readiness-report.md
+
+Upgrade blockers report generated:
+C:\Path\To\LegacyApp\output\upgrade-blockers.md
+
+External dependencies report generated:
+C:\Path\To\LegacyApp\output\external-dependencies.md
+
+Configuration inventory generated:
+C:\Path\To\LegacyApp\output\configuration-inventory.md
+
+Data access inventory generated:
+C:\Path\To\LegacyApp\output\data-access-inventory.md
+
+EDMX analysis report generated:
+C:\Path\To\LegacyApp\output\edmx-analysis.md
+
+Code complexity report generated:
+C:\Path\To\LegacyApp\output\code-complexity.md
+
+Class dependencies report generated:
+C:\Path\To\LegacyApp\output\class-dependencies.md
+
+Interface inventory report generated:
+C:\Path\To\LegacyApp\output\interface-inventory.md
+
+Solution topology report generated:
+C:\Path\To\LegacyApp\output\solution-topology.md
+```
+
+Quiet and verbose modes should follow the same artifact selection rules and should not print duplicate artifact paths when duplicate names are supplied. Quiet mode should suppress non-essential progress and spinner output. Verbose mode should include normal phase progress plus useful per-project, per-file, per-phase, or per-artifact diagnostics where that helps troubleshoot slow scans; verbose lines must be written cleanly even when a spinner phase is active.
+
+---
+
+
+## Markdown Table Cell Safety
+
+All generated Markdown reports and optional artifacts should keep table rows structurally valid and keep discovered evidence visible in rendered Markdown previews. Report writers should use shared Markdown-safe table-cell formatting rather than writing raw table-cell values directly.
+
+The formatting should protect values such as XML/configuration snippets, source-code snippets, paths, names, and evidence strings that contain Markdown-sensitive characters. In particular, values containing `<... />`, `|`, newlines, or backticks should not disappear, split a table row, or break inline-code formatting. Evidence cells should be treated as code-like by default and rendered as safe inline code where practical.
+
+Example evidence from `interface-inventory.md` should render visibly like this:
+
+| Interface | Evidence |
+|---|---|
+| `ICustomerService` | `<object id="customerServiceByInterface" type="SampleLegacyApp.Services.ICustomerService, SampleLegacyApp.Services" factory-object="customerService" factory-method="ToString" />` |
+
+This is a generated Markdown formatting rule only. The analyzer/discovery evidence should remain unchanged, and report writers should not remove or suppress XML evidence merely because it looks like an HTML/XML tag.
+
+Testing should cover XML-like evidence, pipe characters, newlines, backticks, Spring.NET registration evidence in `interface-inventory.md`, review findings that reuse XML evidence, and at least one additional artifact writer to prove the helper is shared.
+
+---
+
+## Upgrade Readiness Report Output
+
+The MVP scope now includes a separate upgrade-readiness Markdown artifact:
+
+```text
+output/upgrade-readiness-report.md
+```
+
+The upgrade-readiness report should be static and evidence-backed. It should help a developer decide what to review before attempting a migration, but it should not present a pass/fail compatibility result or claim that LegacyLens.NET built the solution, restored packages, resolved transitive dependencies, inspected NuGet package assets, or guaranteed compatibility with a target framework supplied as report wording context.
+
+Representative structure:
+
+```markdown
+# Upgrade Readiness Report
+
+## Summary
+
+This report is based on static source and configuration discovery. It highlights upgrade planning signals that may need review before migration. It does not prove compatibility with the target framework supplied as report wording context.
+
+## Target
+
+| Item | Value |
+|---|---|
+| Upgrade target wording context | net8.0 |
+| Analysis mode | Static / no-build |
+| Compatibility guarantee | No |
+
+## Current Project Targets
+
+| Project | Target Framework | Project File |
+|---|---|---|
+| SampleLegacyApp.Contracts | net48 | `...\SampleLegacyApp.Contracts.csproj` |
+| SampleLegacyApp.Data | net48 | `...\SampleLegacyApp.Data.csproj` |
+| SampleLegacyApp.Services | net48 | `...\SampleLegacyApp.Services.csproj` |
+| SampleLegacyApp.Web | net48 | `...\SampleLegacyApp.Web.csproj` |
+
+## Upgrade Readiness Overview
+
+| Area | Status | Evidence |
+|---|---|---|
+| Target frameworks | Requires review | .NET Framework projects detected |
+| Package management | Requires review | packages.config detected |
+| Legacy ASP.NET | Possible blocker | Web.config / Global.asax / legacy ASP.NET artifacts detected |
+| WCF | Requires review | System.ServiceModel / WCF endpoint evidence detected |
+| Data access | Requires review | EntityFramework package detected |
+| Direct assemblies | Requires review | direct assembly references detected |
+| Configuration | Requires review | Web.config detected |
+
+## Project Upgrade Candidates
+
+| Project | Current Target | Readiness | Reason |
+|---|---|---|---|
+| SampleLegacyApp.Contracts | net48 | Moderate review required | Class library, but targets .NET Framework and references System.ServiceModel. |
+| SampleLegacyApp.Web | net48 | Higher risk / review first | Legacy ASP.NET, Web.config, WCF, MVC/Web API, and startup/configuration evidence detected. |
+
+## Possible Upgrade Concerns
+
+| Concern | Evidence | Why It Matters |
+|---|---|---|
+| .NET Framework target framework | net48 projects detected | Requires review before moving to modern .NET. |
+| Legacy ASP.NET runtime | WebForms, ASMX, Global.asax, MVC/Web API artifacts | ASP.NET Core does not use the System.Web request pipeline. |
+| WCF usage | System.ServiceModel references and WCF endpoint configuration | WCF service boundaries, bindings, metadata, and clients need migration decisions. |
+
+## Package Upgrade Considerations
+
+| Project | Package | Version | Source Format | Possible Concern |
+|---|---|---|---|---|
+| SampleLegacyApp.Data | EntityFramework | 6.4.4 | packages.config | EF6 migration or isolation decision required. |
+| SampleLegacyApp.Web | System.ServiceModel.Http | 4.10.3 | PackageReference | WCF-related package requires review. |
+
+## Assembly Reference Considerations
+
+| Project | Assembly | Possible Concern |
+|---|---|---|
+| SampleLegacyApp.Services | System.ServiceModel | WCF migration decision required. |
+
+## Configuration and Runtime Considerations
+
+| Project/File | Finding | Possible Upgrade Concern |
+|---|---|---|
+| Web.config | appSettings, connection strings, custom sections, WCF, HTTP modules/handlers | Runtime configuration and request pipeline behaviour may need migration. |
+
+## Suggested Review Order
+
+1. Review projects with no legacy web/data/service dependencies.
+2. Review package management style.
+3. Review data access projects.
+4. Review WCF/service boundaries.
+5. Review web host/startup/configuration last.
+
+## Notes and Limitations
+
+- This report is based on static discovery only.
+- LegacyLens.NET did not build the solution.
+- LegacyLens.NET did not restore NuGet packages.
+- LegacyLens.NET did not resolve transitive dependencies.
+- Findings should be verified by the development team before migration decisions are made.
+```
+
+---
+
+## Upgrade Blockers Report Output
+
+The MVP scope now includes a separate upgrade-blockers Markdown artifact:
+
+```text
+output/upgrade-blockers.md
+```
+
+The upgrade-blockers report should be a static, evidence-backed blocker and decision report for .NET upgrade planning. It should help a developer identify visible technical blockers, migration decisions, and higher-risk areas that may complicate an upgrade, but it should not present a pass/fail compatibility result or claim that LegacyLens.NET built the solution, restored packages, resolved transitive dependencies, inspected NuGet package assets, proved that migration is impossible, or guaranteed compatibility with a target framework supplied as report wording context.
+
+Representative structure:
+
+```markdown
+# Upgrade Blockers
+
+## Summary
+
+This report is based on static source and configuration discovery. It highlights visible blockers and migration decisions that may need review before upgrade work begins. A blocker means “requires review”, not “cannot be upgraded”.
+
+## Target
+
+| Item | Value |
+|---|---|
+| Upgrade target wording context | net8.0 |
+| Analysis mode | Static / no-build |
+| Compatibility guarantee | No |
+
+## Blocker Overview
+
+| Priority | Blocker | Impact | Evidence Count |
+|---:|---|---|---:|
+| 1 | Legacy ASP.NET / System.Web | High | 4 |
+| 2 | WCF / ServiceModel | High | 3 |
+| 3 | EF6 / EDMX / Data Access | High | 2 |
+| 4 | Package Management | Medium | 5 |
+| 5 | Configuration / Runtime Coupling | Medium | 1 |
+
+## Upgrade Blockers and Decisions
+
+| Priority | Area | Blocker / Decision | Impact | Evidence |
+|---:|---|---|---|---|
+| 1 | Legacy ASP.NET / System.Web | Migration decision required for classic ASP.NET request pipeline usage. | High | System.Web, WebForms, ASMX, Global.asax, HTTP modules, or HTTP handlers detected. |
+| 2 | WCF / ServiceModel | Migration decision required for WCF service boundaries and bindings. | High | System.ServiceModel, WCF endpoints, behaviours, or service contracts detected. |
+| 3 | EF6 / EDMX / Data Access | Data access migration or isolation decision required. | High | EntityFramework package, EDMX, ObjectContext, or DbContext evidence detected. |
+
+## Blocker Details
+
+### Legacy ASP.NET / System.Web
+
+Why this matters:
+Modern ASP.NET Core uses a different hosting model and request pipeline. Legacy `System.Web`, WebForms, ASMX, ASHX, `Global.asax`, HTTP modules, and HTTP handlers may require redesign, replacement, or staged migration.
+
+Evidence:
+
+| Project | File / Reference | Finding |
+|---|---|---|
+| SampleLegacyApp.Web | System.Web | Possible blocker: classic ASP.NET pipeline reference requires review. |
+| SampleLegacyApp.Web | `Default.aspx` | Possible blocker: WebForms page may require replacement or redesign. |
+| SampleLegacyApp.Web | `CustomerService.asmx` | Possible blocker: ASMX service surface may require replacement or compatibility planning. |
+
+Decision required:
+
+- Can the existing web host remain temporarily on .NET Framework?
+- Should endpoints be migrated gradually to ASP.NET Core?
+- Are there WebForms, ASMX, ASHX, module, or handler artifacts that need replacement?
+
+### WCF / ServiceModel
+
+Why this matters:
+WCF service hosting, bindings, behaviours, security settings, and `system.serviceModel` configuration may not map directly to modern .NET hosting choices.
+
+Evidence:
+
+| Project | File / Reference | Finding |
+|---|---|---|
+| SampleLegacyApp.Services | System.ServiceModel | Migration decision required for WCF usage. |
+| SampleLegacyApp.Web | `Web.config` | WCF endpoint, binding, behaviour, or service model configuration detected. |
+
+Decision required:
+
+- Keep WCF temporarily?
+- Use CoreWCF?
+- Replace with ASP.NET Core Web API?
+- Replace with gRPC?
+- Replace with messaging?
+
+### EF6 / EDMX / Data Access
+
+Why this matters:
+EF6 and EF Core are different products. EDMX/ObjectContext-based models are not simple package upgrades to EF Core.
+
+Evidence:
+
+| Project | File / Reference | Finding |
+|---|---|---|
+| SampleLegacyApp.Data | EntityFramework 6.4.4 | Classic Entity Framework should be reviewed before EF Core or modern .NET migration. |
+
+Decision required:
+
+- Keep EF6 temporarily?
+- Move to EF Core?
+- Reverse-engineer the database?
+- Isolate the data access layer first?
+- Preserve stored procedure behaviour?
+
+### Package Management and Package Age
+
+Why this matters:
+`packages.config`, old package versions, and legacy package layouts may complicate restore, SDK-style project migration, and upgrade planning.
+
+Evidence:
+
+| Project | Package | Version | Source Format | Finding |
+|---|---|---|---|---|
+| SampleLegacyApp.Data | EntityFramework | 6.4.4 | packages.config | Package management and EF6 usage require review. |
+
+Decision required:
+
+- Migrate from `packages.config` to `PackageReference`?
+- Upgrade packages before target framework migration?
+- Leave risky packages until after behaviour is covered by tests?
+
+### Direct Assembly / Local DLL References
+
+Why this matters:
+Direct DLL references, vendor binaries, GAC-style references, and `HintPath` references may not have modern equivalents or may block clean SDK-style migration.
+
+Evidence:
+
+| Project | Assembly | Hint Path | Finding |
+|---|---|---|---|
+| SampleLegacyApp.Services | System.ServiceModel |  | Direct framework assembly reference requires review. |
+
+Decision required:
+
+- Is there a NuGet replacement?
+- Is the source available?
+- Is the DLL compatible with the destination runtime?
+- Is it still used at runtime?
+
+### Configuration and Runtime Coupling
+
+Why this matters:
+Heavy `App.config` / `Web.config` usage, custom sections, binding redirects, connection strings, and environment transforms often need careful migration to modern configuration patterns.
+
+Evidence:
+
+| File | Finding | Possible Concern |
+|---|---|---|
+| `Web.config` | appSettings, connection strings, custom sections, WCF, HTTP modules/handlers | Runtime configuration and request pipeline behaviour may need migration planning. |
+
+Decision required:
+
+- How will settings move to `appsettings.json`, environment variables, secret stores, or deployment variables?
+- Are config transforms still needed?
+- Are there custom config sections that need replacement?
+
+## Suggested Review Order
+
+1. Review high-impact web host blockers first.
+2. Review WCF/service boundaries.
+3. Review data access and EF/EDMX usage.
+4. Review package management and direct assembly references.
+5. Review configuration and runtime coupling.
+6. Confirm blocker findings with the development team before planning migration work.
+
+## Notes and Limitations
+
+- This report is based on static discovery only.
+- LegacyLens.NET did not build the solution.
+- LegacyLens.NET did not restore NuGet packages.
+- LegacyLens.NET did not resolve transitive dependencies.
+- LegacyLens.NET did not inspect NuGet package assets.
+- A blocker means “requires review”, not “cannot be upgraded”.
+- Findings should be verified before migration decisions are made.
+```
+
+---
+
+
+## External Dependencies Report Output
+
+The MVP scope now includes a separate external-dependencies Markdown artifact:
+
+```text
+output/external-dependencies.md
+```
+
+The external-dependencies report should be a static, evidence-backed inventory of possible external runtime and build-time dependencies used by the scanned codebase. It should help a developer identify systems, services, infrastructure, files, databases, queues, APIs, package feeds, vendor assemblies, or operational resources that may need confirmation before migration, testing, deployment, onboarding, or local development.
+
+It should not claim that LegacyLens.NET connected to any external system, validated credentials, verified URLs or servers, inspected production infrastructure, proved production usage, proved that a dependency is unused, or produced a complete dependency map. Sensitive values should be masked or redacted.
+
+Representative structure:
+
+```markdown
+# External Dependencies
+
+## Summary
+
+This report is based on static source and configuration discovery. It identifies possible external dependencies and the evidence found for them. A finding means “requires confirmation”, not “verified production dependency”.
+
+## Analysis Scope
+
+| Item | Value |
+|---|---|
+| Analysis mode | Static / no-build |
+| Runtime verification | No |
+| Secret values printed | No |
+| Completeness guarantee | No |
+
+## Dependency Overview
+
+| Category | Count | Examples |
+|---|---:|---|
+| Databases | 1 | MainDatabase |
+| HTTP services / URLs | 2 | PaymentApiBaseUrl, CustomerApiUrl |
+| WCF/service endpoints | 3 | basicHttpBinding endpoint |
+| File system / file shares | 1 | ExportPath |
+| Email / SMTP | 1 | smtp settings |
+| Caching | 1 | StackExchange.Redis |
+| Private package feeds | 1 | NuGet.config source |
+
+## Dependencies
+
+| Category | Name / Identifier | Source | Evidence | Requires Confirmation |
+|---|---|---|---|---|
+| Database | MainDatabase | Web.config | Connection string configured; password masked if present. | Yes |
+| HTTP / API | PaymentApiBaseUrl | Web.config | URL-like app setting value found. | Yes |
+| WCF / Service Endpoint | SampleLegacyApp.Services.CustomerService | Web.config | basicHttpBinding endpoint configured. | Yes |
+
+## Database Dependencies
+
+| Name | Source File | Provider | Evidence | Notes |
+|---|---|---|---|---|
+| MainDatabase | `...\Web.config` | System.Data.SqlClient | Connection string configured. | Credentials are not printed. |
+
+## HTTP / Service Dependencies
+
+| Name / Key | Source File | Value Type | Evidence | Notes |
+|---|---|---|---|---|
+| PaymentApiBaseUrl | `...\Web.config` | URL | `https://...` value detected and masked if needed. | Requires confirmation. |
+
+## WCF Dependencies
+
+| Service / Endpoint | Source File | Binding | Contract | Notes |
+|---|---|---|---|---|
+| SampleLegacyApp.Services.CustomerService | `...\Web.config` | basicHttpBinding | SampleLegacyApp.Contracts.ICustomerService | Configured service endpoint; runtime usage not verified. |
+
+## Messaging Dependencies
+
+| Technology | Source | Evidence | Notes |
+|---|---|---|---|
+| RabbitMQ | PackageReference | RabbitMQ.Client package found. | May indicate message broker dependency. |
+
+## File System Dependencies
+
+| Path Type | Source File | Evidence | Notes |
+|---|---|---|---|
+| UNC path | `...\Web.config` | `\\server\share` | Network share dependency may exist. |
+
+## Email Dependencies
+
+| Source | Evidence | Notes |
+|---|---|---|
+| Web.config | SMTP settings detected. | SMTP server and credentials require confirmation. |
+
+## Cache / Distributed State Dependencies
+
+| Technology | Source | Evidence | Notes |
+|---|---|---|---|
+| Redis | PackageReference | StackExchange.Redis package found. | Redis/cache dependency may exist. |
+
+## Build-Time / Package Feed Dependencies
+
+| Source | Evidence | Notes |
+|---|---|---|
+| NuGet.config | Non-nuget.org package source found. | Private feed availability and credentials require confirmation. |
+
+## Suggested Questions to Ask the Team
+
+- Which of these dependencies are still used in production?
+- Which databases are shared with other applications?
+- Are any service URLs environment-specific?
+- Are WCF endpoints internal only or consumed by third parties?
+- Are queues/topics/subscriptions created manually or by infrastructure automation?
+- Are file shares still required?
+- Where are secrets stored outside this repository?
+- Which dependencies are required for local development?
+- Which dependencies are required for CI builds?
+- Which dependencies are required for production deployment?
+
+## Notes and Limitations
+
+- This report is based on static discovery only.
+- LegacyLens.NET did not run the application.
+- LegacyLens.NET did not connect to any external system.
+- LegacyLens.NET did not validate credentials, URLs, database servers, queues, or file shares.
+- Values that look sensitive should be masked or redacted.
+- A dependency listed here means evidence was found, not that the dependency is confirmed active in production.
+```
+
+---
+
+
+## Configuration Inventory Report Output
+
+The MVP scope includes a separate configuration-inventory Markdown artifact:
+
+```text
+output/configuration-inventory.md
+```
+
+The configuration inventory report should be static, evidence-backed, and security-conscious. It should help a developer understand visible configuration files, configuration values, configuration sections, transforms, migration-relevant configuration concerns, and statically discoverable source-code configuration usage. It should map literal source-code usages such as `ConfigurationManager.AppSettings[...]`, `ConfigurationManager.AppSettings.Get(...)`, and `ConfigurationManager.ConnectionStrings[...]` back to visible configured keys where possible, classify dynamic key usage as requiring review, and reconcile source-used keys against visible configuration entries. It should not claim that LegacyLens.NET ran the application, applied transforms, validated credentials, contacted external systems, proved production usage, proved that a setting is used or unused, fully evaluated runtime configuration inheritance, resolved deployment-time substitutions, exposed secrets, or produced a complete runtime configuration map.
+
+The detailed findings should be optimised for a .NET developer trying to answer: "which file contains this setting, what value was found, and where is the key referenced in source code?" To make that easy to scan, the report should group detailed configuration findings by project and source file, then by configuration category inside each file. The detailed per-file tables should avoid repeating `Category` and `Source File` as row columns when those values are already shown by headings. Source-code usage and reconciliation should be reported in separate sections so configured values remain easy to scan.
+
+Value-column semantics:
+
+- Use `Value`, not `Masked Value`, in the generated Markdown tables.
+- The `Value` column means "the discovered value, with sensitive parts masked where needed".
+- Use `N/A` for structural findings that do not have a scalar value, such as `Web.config`, `system.serviceModel`, `bindingRedirect`, `appsettings.json`, or `NuGet.config` file-level findings.
+- Do not use `Unknown` for missing values unless the tool genuinely attempted to determine a value and could not.
+- Connection-string-like values should preserve useful non-secret parts while masking embedded credentials, for example `Server=legacy-sql;Database=SampleLegacyApp;User Id=***;Password=***;` or `amqp://***:***@rabbitmq-dev:5672/sample`.
+
+Representative structure:
+
+```markdown
+# Configuration Inventory
+
+## Summary
+
+This report is based on static source and configuration discovery. It identifies visible configuration files, settings, sections, transforms, and configuration API usage that may need review before upgrade, deployment, onboarding, or migration work begins. It also maps statically discoverable source-code configuration usage back to visible configured keys where possible. It does not prove runtime usage, production behaviour, or that keys without static usage are unused.
+
+## Analysis Scope
+
+| Item | Value |
+|---|---|
+| Analysis mode | Static / no-build |
+| Application run | No |
+| Config transforms applied | No |
+| External systems validated | No |
+| Secret values printed | No |
+| Runtime usage proven | No |
+| Completeness guarantee | No |
+
+## Configuration Overview
+
+| Category | Findings |
+|---|---:|
+| Configuration files | 4 |
+| App settings | 8 |
+| Connection strings | 2 |
+| Custom sections | 3 |
+| Environment transforms | 2 |
+| JSON settings | 12 |
+| WCF configuration | 1 |
+| ASP.NET / IIS configuration | 2 |
+| Binding redirects | 5 |
+
+## Source Code Configuration Usage
+
+This section maps statically discoverable source-code configuration access back to visible configured keys where possible. It does not prove runtime usage or prove that keys without static usage are unused.
+
+| Usage Type | Count |
+|---|---:|
+| App setting usages | 4 |
+| Connection string usages | 2 |
+| Matched visible keys | 3 |
+| Source-used keys without visible config entry | 1 |
+| Dynamic usages requiring review | 2 |
+| Configured keys with no static source usage detected | 5 |
+
+| Kind | Key | Resolution | Project | Source File | Line | Evidence | Requires Review |
+|---|---|---|---|---|---:|---|---|
+| App setting | ApiBaseUrl | Matched visible configuration entry | SampleLegacyApp.Web | `Services/ApiClient.cs` | 18 | `ConfigurationManager.AppSettings["ApiBaseUrl"]` | No |
+| Connection string | MainDatabase | Matched visible configuration entry | SampleLegacyApp.Data | `CustomerRepository.cs` | 11 | `ConfigurationManager.ConnectionStrings["MainDatabase"]` | No |
+| App setting | RabbitMQBus-DEV | No visible configuration entry found | SampleLegacyApp.Services | `Messaging/RabbitBus.cs` | 25 | `ConfigurationManager.AppSettings["RabbitMQBus-DEV"]` | Yes |
+| App setting | Dynamic / unknown | Dynamic key requires review | SampleLegacyApp.Web | `Config/ConfigReader.cs` | 31 | `ConfigurationManager.AppSettings[key]` | Yes |
+
+## Configuration Key Reconciliation
+
+| Category | Key | Config Source | Static Source Usage | Notes |
+|---|---|---|---|---|
+| App setting | ApiBaseUrl | `Web.config` | Found | Literal source usage matched. |
+| Connection string | MainDatabase | `Web.config` | Found | Literal source usage matched. |
+| App setting | FeatureXEnabled | `Web.config` | No static source usage detected | This does not prove the key is unused. It may be used dynamically, by reflection, by config binding, by external tooling, or at runtime outside statically detected patterns. |
+
+## Configuration Values by Source File
+
+### SampleLegacyApp.Web — Web.config
+
+#### App Settings
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| ApiBaseUrl | https://legacy-api.example.local | App setting configured. | Yes |
+| RabbitMQConnectionString | amqp://***:***@rabbitmq-dev:5672/sample | App setting configured. | Yes |
+| ClientSecret | *** | App setting configured. | Yes |
+
+#### Connection Strings
+
+| Name | Provider | Value | Evidence | Requires Review |
+|---|---|---|---|---|
+| MainDatabase | System.Data.SqlClient | Server=legacy-sql;Database=SampleLegacyApp;User Id=***;Password=***; | Connection string configured with provider System.Data.SqlClient. | Yes |
+
+#### Custom Sections
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| legacyCustomSettings | N/A | Custom configuration section declared. | Yes |
+| entityFramework | N/A | Custom configuration section declared with type System.Data.Entity.Internal.ConfigFile.EntityFrameworkSection, EntityFramework. | Yes |
+
+#### WCF Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| system.serviceModel | N/A | WCF system.serviceModel configuration section found. | Yes |
+
+#### ASP.NET / IIS Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| ASP.NET / IIS configuration | N/A | system.web or system.webServer configuration section found. | Yes |
+
+#### Authentication and Authorization Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| authentication / authorization | N/A | Authentication or authorization configuration section found. | Yes |
+
+#### Logging and Diagnostics Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| logging / diagnostics | N/A | Logging or diagnostics configuration section found. | Yes |
+
+#### Entity Framework Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| entityFramework | N/A | Entity Framework configuration section found. | Yes |
+
+#### SMTP and Mail Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| SMTP / mailSettings | N/A | SMTP or mailSettings configuration section found. | Yes |
+
+#### Binding Redirects
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| Newtonsoft.Json | N/A | Assembly binding redirect found. | Yes |
+
+### SampleLegacyApp.Web — Web.Release.config
+
+#### Environment Transforms
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| Web.Release.config | N/A | Environment-specific configuration transform file found. | Yes |
+
+### SampleLegacyApp.Web — appsettings.json
+
+#### JSON Settings
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| ConnectionStrings:RabbitMQ | amqp://***:***@rabbitmq-dev:5672/sample | JSON setting configured. | Yes |
+| RabbitMQ:HostName | rabbitmq-dev | JSON setting configured. | Yes |
+| RabbitMQ:Port | 5672 | JSON setting configured. | Yes |
+| RabbitMQ:UserName | *** | JSON setting configured. | Yes |
+| RabbitMQ:Password | *** | JSON setting configured. | Yes |
+| RabbitMQ:VirtualHost | sample | JSON setting configured. | Yes |
+| RabbitMQ:QueueName | sample.customer.events | JSON setting configured. | Yes |
+
+### SampleLegacyApp.Web — appsettings.Development.json
+
+#### JSON Settings
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| ConnectionStrings:RabbitMQ | amqp://***:***@localhost:5672/ | JSON setting configured. | Yes |
+| RabbitMQ:HostName | localhost | JSON setting configured. | Yes |
+| RabbitMQ:Password | *** | JSON setting configured. | Yes |
+
+### SampleLegacyApp.Web — Properties/Settings.settings
+
+#### Settings File
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| Settings.settings | N/A | .settings file found. | Yes |
+
+### SampleLegacyApp.Web — NuGet.config
+
+#### Build and Package Configuration
+
+| Name | Value | Evidence | Requires Review |
+|---|---|---|---|
+| NuGet.config | N/A | NuGet.config file found. | Yes |
+
+## Suggested Files to Review First
+
+| Source File | Findings | Requires Review | Categories |
+|---|---:|---:|---|
+| Web.config | 24 | 24 | App settings, connection strings, WCF, ASP.NET/IIS, EF, SMTP |
+| appsettings.json | 12 | 12 | JSON settings |
+| appsettings.Development.json | 12 | 12 | JSON settings |
+| Web.Release.config | 1 | 1 | Environment transform |
+
+## Migration Considerations
+
+- Review app settings for migration to `appsettings.json`, environment variables, options pattern, or secret store.
+- Review connection strings for provider compatibility, environment-specific replacement, and secret handling.
+- Review `Web.config` sections before ASP.NET Core migration.
+- Review `system.serviceModel` endpoints, bindings, behaviours, and security settings.
+- Review binding redirects because modern .NET handles assembly resolution differently.
+- Review transforms and deployment substitutions because this static analysis does not apply transforms.
+- Review custom sections because they may need options binding, custom providers, or explicit migration code.
+
+## Suggested Questions to Ask the Team
+
+- Which configuration files are used in local development?
+- Which configuration files are used in production?
+- Are config transforms applied by the build or deployment pipeline?
+- Where are secrets stored outside the repository?
+- Which settings are environment-specific?
+- Which settings are supplied by deployment tooling or hosting infrastructure?
+- Are any configuration values safe to remove, or do they need runtime verification first?
+
+## Notes and Limitations
+
+- This report is based on static repository evidence only.
+- LegacyLens.NET did not run the application.
+- LegacyLens.NET did not apply configuration transforms.
+- LegacyLens.NET did not validate credentials, connection strings, certificates, or tokens.
+- LegacyLens.NET did not connect to configured services or external systems.
+- LegacyLens.NET did not prove that a setting is used or unused at runtime.
+- `No static source usage detected` means no supported static access pattern was found; it does not mean the configured key is unused.
+- Sensitive values should remain masked or redacted before reports are shared.
+```
+
+## Data Access Inventory Report Output
+
+The MVP scope now includes a separate data-access Markdown artifact:
+
+```text
+output/data-access-inventory.md
+```
+
+The data-access inventory should be a static, evidence-backed report for understanding how the application appears to access databases and persistence infrastructure. It should help a developer identify visible data access technologies, patterns, files, and migration concerns, but it should not claim that LegacyLens.NET connected to databases, validated credentials or connection strings, executed SQL, inspected schemas, ran migrations, reverse-engineered databases, proved runtime usage, or guaranteed compatibility.
+
+Representative structure:
+
+```markdown
+# Data Access Inventory
+
+## Summary
+
+This report is based on static source and configuration discovery. It identifies visible data access technologies, patterns, and migration concerns. A finding means evidence was found and should be reviewed; it does not prove runtime usage.
+
+## Analysis Scope
+
+| Item | Value |
+|---|---|
+| Analysis mode | Static / no-build |
+| Database connection attempted | No |
+| SQL executed | No |
+| Schema inspection | No |
+| Secret values printed | No |
+| Completeness guarantee | No |
+
+## Data Access Overview
+
+| Category | Count | Examples |
+|---|---:|---|
+| Connection strings | 2 | DefaultConnection, ReportingDb |
+| Entity Framework 6 | 1 | EntityFramework package |
+| EDMX models | 1 | Model.edmx |
+| EF Core | 0 |  |
+| ADO.NET | 3 | SqlConnection, SqlCommand |
+| Dapper | 1 | Dapper package |
+| NHibernate | 0 |  |
+| Stored procedures | 4 | dbo.GetCustomer, dbo.SaveOrder |
+| Raw SQL | 5 | SELECT, INSERT, EXEC |
+| Repositories / Unit of Work | 3 | CustomerRepository, UnitOfWork |
+
+## Projects with Data Access Indicators
+
+| Project | Target Framework | Indicators | Possible Concern |
+|---|---|---|---|
+
+## Connection Strings
+
+| Name | Source File | Provider | Credentials Embedded | Notes |
+|---|---|---|---|---|
+
+## ORM and Data Access Technologies
+
+| Project | Technology | Evidence | Source |
+|---|---|---|---|
+
+## Entity Framework / EDMX Details
+
+| Project | Finding | Source File | Migration Consideration |
+|---|---|---|---|
+
+## DbContext / ObjectContext Candidates
+
+| Project | Class | Type | Source File |
+|---|---|---|---|
+
+## Repository and Unit of Work Candidates
+
+| Project | Class | Pattern | Source File |
+|---|---|---|---|
+
+## Raw SQL and Stored Procedure Indicators
+
+| Project | Finding | Source File | Evidence Type |
+|---|---|---|---|
+
+## Database Provider Indicators
+
+| Project | Provider / Package / Reference | Evidence | Notes |
+|---|---|---|---|
+
+## Suggested Files to Review First
+
+| Priority | File / Project | Reason |
+|---:|---|---|
+
+## Migration Considerations
+
+| Area | Consideration |
+|---|---|
+| EF6 | Review whether to keep EF6 temporarily, migrate to EF Core, or isolate data access first. |
+| EDMX | EDMX/ObjectContext migration is likely non-mechanical. |
+| Raw SQL | Preserve query behaviour and stored procedure contracts during migration. |
+| Connection strings | Move secrets and environment-specific settings to modern configuration. |
+| Repositories | Review whether repositories hide or expose ORM-specific behaviour. |
+
+## Suggested Questions to Ask the Team
+
+- Which database is production?
+- Are any databases shared with other applications?
+- Are stored procedures part of the business logic?
+- Are stored procedures version-controlled elsewhere?
+- Are EF migrations used, or is the database managed manually?
+- Are EDMX models generated from the database?
+- Are connection strings transformed per environment?
+- Which data access paths are business-critical?
+- Are there database integration tests?
+- Is database access expected to move to EF Core, remain EF6, or be isolated behind services?
+
+## Notes and Limitations
+
+- This report is based on static discovery only.
+- LegacyLens.NET did not connect to any database.
+- LegacyLens.NET did not execute SQL.
+- LegacyLens.NET did not validate SQL syntax.
+- LegacyLens.NET did not inspect database schemas.
+- LegacyLens.NET did not run EF migrations.
+- Values that look sensitive should be masked or redacted.
+- A finding means evidence was found, not that the code path is confirmed active in production.
+```
+
+## Code Complexity Report Output
+
+The MVP scope now includes a separate code-complexity Markdown artifact:
+
+```text
+output/code-complexity.md
+```
+
+The code-complexity report should be a static, evidence-backed review-hotspot report for understanding where C# source appears more complex before refactoring, testing, or modernisation work. It should estimate cyclomatic complexity from Roslyn syntax parsing of indexed C# files, without building the solution, loading projects, restoring packages, creating semantic models, executing code, evaluating runtime behaviour, or claiming to calculate official Microsoft or Visual Studio code metrics.
+
+The report should help a developer answer: "which methods, types, namespaces, and projects should I review or characterise first because they appear to contain more branching or decision logic?" Findings are discovery signals and review heuristics, not proof of defects, risk, test coverage gaps, maintainability, or safe automatic refactoring opportunities.
+
+Representative structure:
+
+```markdown
+# Code Complexity
+
+## Summary
+
+This report estimates cyclomatic complexity from C# syntax. It does not build the solution, run tests, execute code, resolve generated code, evaluate preprocessor symbols, or calculate official compiler/build metrics. Findings are review signals intended to help prioritise refactoring, testing, and modernisation work.
+
+| Metric | Value |
+|---|---:|
+| C# files analysed | 18 |
+| Projects analysed | 4 |
+| Namespaces analysed | 7 |
+| Types analysed | 42 |
+| Members analysed | 126 |
+| Total estimated complexity | 284 |
+| Average member complexity | 2.25 |
+| Highest member complexity | 24 |
+| High-complexity members | 5 |
+| Very-high-complexity members | 1 |
+
+## Severity Bands
+
+| Severity | Estimated Complexity | Meaning |
+|---|---:|---|
+| Low | 1-5 | Usually straightforward, but still review in context. |
+| Moderate | 6-10 | Review when changing behaviour or adding tests. |
+| High | 11-20 | Candidate for characterisation tests and careful refactoring review. |
+| Very High | 21+ | Review first; likely difficult to safely change without tests. |
+
+The thresholds are review heuristics only. They are not hard rules and do not prove runtime risk, defect probability, maintainability, or testability.
+
+## Highest Complexity Members
+
+| Severity | Estimated Complexity | Project | Type | Member | Kind | Source | Line | Evidence | Likely Generated |
+|---|---:|---|---|---|---|---|---:|---|---|
+| Very High | 24 | SampleLegacyApp.Web | `LegacyOrderController` | `Save` | Method | `Controllers/LegacyOrderController.cs` | 42 | `public ActionResult Save(OrderRequest request)` | No |
+| High | 16 | SampleLegacyApp.Services | `CustomerImportService` | `Import` | Method | `CustomerImportService.cs` | 18 | `public ImportResult Import(Stream stream)` | No |
+| Moderate | 9 | SampleLegacyApp.Web | `HomeController` | `Summary` | Method | `Controllers/HomeController.cs` | 27 | `public JsonResult Summary()` | No |
+
+## Highest Complexity Types
+
+| Project | Namespace | Type | Source | Members | Total Complexity | Average Complexity | Max Member Complexity | High Members | Very High Members | Likely Generated |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|---|
+| SampleLegacyApp.Web | SampleLegacyApp.Web.Controllers | `LegacyOrderController` | `Controllers/LegacyOrderController.cs` | 8 | 56 | 7.00 | 24 | 2 | 1 | No |
+| SampleLegacyApp.Services | SampleLegacyApp.Services | `CustomerImportService` | `CustomerImportService.cs` | 5 | 31 | 6.20 | 16 | 1 | 0 | No |
+
+## Project Summary
+
+| Project | C# Files Analysed | Types | Members | Total Complexity | Average Member Complexity | Max Member Complexity | High Members | Very High Members |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| SampleLegacyApp.Web | 9 | 22 | 64 | 158 | 2.47 | 24 | 3 | 1 |
+| SampleLegacyApp.Services | 4 | 8 | 28 | 71 | 2.54 | 16 | 1 | 0 |
+
+## Namespace Summary
+
+| Project | Namespace | Types | Members | Total Complexity | Average Member Complexity | Max Member Complexity | High Members | Very High Members |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| SampleLegacyApp.Web | SampleLegacyApp.Web.Controllers | 4 | 18 | 73 | 4.06 | 24 | 2 | 1 |
+| SampleLegacyApp.Services | SampleLegacyApp.Services | 5 | 20 | 53 | 2.65 | 16 | 1 | 0 |
+| SampleLegacyApp.Web | (global namespace) | 1 | 2 | 3 | 1.50 | 2 | 0 | 0 |
+
+## Type Summary
+
+| Project | Namespace | Type | Source | Members | Total Complexity | Average Complexity | Max Member Complexity | High Members | Very High Members | Likely Generated |
+|---|---|---|---|---:|---:|---:|---:|---:|---:|---|
+| SampleLegacyApp.Web | SampleLegacyApp.Web.Controllers | `LegacyOrderController` | `Controllers/LegacyOrderController.cs` | 8 | 56 | 7.00 | 24 | 2 | 1 | No |
+| SampleLegacyApp.Data | SampleLegacyApp.Data.LegacyCustomerModel | `LegacyCustomerEntities` | `Models/LegacyCustomerModel.Context.cs` | 1 | 1 | 1.00 | 1 | 0 | 0 | Yes |
+
+## Member Details
+
+| Severity | Estimated Complexity | Project | Namespace | Type | Member | Kind | Source | Line | Evidence | Likely Generated |
+|---|---:|---|---|---|---|---|---|---:|---|---|
+| Very High | 24 | SampleLegacyApp.Web | SampleLegacyApp.Web.Controllers | `LegacyOrderController` | `Save` | Method | `Controllers/LegacyOrderController.cs` | 42 | `public ActionResult Save(OrderRequest request)` | No |
+| Low | 1 | SampleLegacyApp.Web | SampleLegacyApp.Web.Controllers | `HomeController` | `Index` | Method | `Controllers/HomeController.cs` | 9 | `public ActionResult Index()` | No |
+| Low | 1 | SampleLegacyApp.Data | SampleLegacyApp.Data.LegacyCustomerModel | `LegacyCustomerEntities` | `get_ContextName` | Property accessor | `Models/LegacyCustomerModel.Context.cs` | 14 | `get` | Yes |
+
+## Notes and Limitations
+
+- This report is based on static C# syntax parsing only.
+- LegacyLens.NET did not build the solution.
+- LegacyLens.NET did not restore packages.
+- LegacyLens.NET did not execute code.
+- LegacyLens.NET did not resolve runtime dependency injection, reflection, dynamic loading, or generated code behaviour.
+- LegacyLens.NET did not evaluate preprocessor symbols or runtime configuration.
+- Complexity values are deterministic static estimates, not official Microsoft, Visual Studio, compiler, or build metrics.
+- A high complexity finding means “review this first”, not “this code is defective”.
+- Generated-looking files may still be included and should be reviewed separately from hand-written code.
+```
+
+The highest-complexity member list should be capped to a useful top set, such as the top 25 or top 50 entries, so the first page of the report remains immediately useful. Full member-level detail may still be included in `Member Details` where practical.
+
+Generated-code handling should be explicit rather than silent. Files that look generated, such as files containing `<auto-generated>` or names ending in `.Designer.cs`, `.g.cs`, `.g.i.cs`, or `.generated.cs`, should be marked as likely generated so developers can separate tool-generated complexity from hand-written code.
+
+Suggested wording should stay cautious: `estimated complexity`, `static syntax estimate`, `review signal`, `review hotspot`, `candidate for characterisation tests`, `requires review`, and `not official compiler/build metrics`. Avoid wording that claims defect probability, production risk, test coverage, exact maintainability, runtime behaviour, or safe automatic refactoring.
+
+---
+
+
+## Generated Report Output
+
+LegacyLens.NET currently generates a Markdown report at:
+
+```text
+output/discovery-report.md
+```
+
+The following generated report excerpt is illustrative. Exact counts and findings may change as the sample application evolves.
+
+Package compatibility review is included in the current generated discovery report. Examples for that section should remain representative because exact versions, paths, and findings may change as the sample application evolves.
+
+The current report sections include:
+
+- Summary
+- Solutions
+- Projects
+- Target Framework Summary
+- Package Reference Summary
+- Project Dependency Diagram
+- Project References
+- Assembly References
+- Package References
+- Package Compatibility Review, once the MVP package compatibility review addition is implemented
+- WCF Endpoints
+- WCF Binding Details
+- WCF Reader Quotas
+- WCF Behaviours
+- WCF Service Contracts
+- Legacy ASP.NET Artifacts
+- Configuration Files
+- Modernisation Review Summary
+- Modernisation Hints, including evidence, confidence, source, and reason
+
+Representative excerpt:
+
+````markdown
+# LegacyLens.NET Discovery Report
+
+## Summary
+
+- Solutions discovered: 1
+- Projects discovered: 4
+- Project references discovered: 4
+- Package references discovered: 5
+- WCF endpoints discovered: 3
+- WCF service contracts discovered: 1
+- WCF behaviours discovered: 2
+- Legacy ASP.NET artifacts discovered: 50
+- Assembly references discovered: 2
+
+## Package Compatibility Review
+
+| Project | Project Target Framework | Package | Version | Package Target Framework | Source | Source File | Concern |
+|---|---|---|---|---|---|---|---|
+| SampleLegacyApp.Data | net48 | Dapper | 2.1.35 |  | PackageReference | `...\SampleLegacyApp.Data\SampleLegacyApp.Data.csproj` | No specific compatibility concern detected by the static MVP rules. |
+| SampleLegacyApp.Data | net48 | EntityFramework | 6.4.4 | net48 | packages.config | `...\SampleLegacyApp.Data\packages.config` | Classic Entity Framework should be reviewed before migration to EF Core or modern .NET. |
+| SampleLegacyApp.Data | net48 | Newtonsoft.Json | 13.0.3 | net48 | packages.config | `...\SampleLegacyApp.Data\packages.config` | Common package, but serialization behaviour may need review during ASP.NET Core migration. |
+| SampleLegacyApp.Web | net48 | System.ServiceModel.Http | unknown |  | PackageReference | `...\SampleLegacyApp.Web\SampleLegacyApp.Web.csproj` | WCF-related package. Review WCF usage and replacement strategy before upgrading. |
+
+## WCF Endpoints
+
+| Service | Address | Binding | Binding Configuration | Metadata Exchange | Contract | Config File |
+|---|---|---|---|---|---|---|
+| SampleLegacyApp.Services.CustomerService | mex | mexHttpBinding |  | True | IMetadataExchange | `...\SampleLegacyApp.Web\Web.config` |
+| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding |  | False | SampleLegacyApp.Contracts.ICustomerContract | `...\SampleLegacyApp.Web\Web.config` |
+| SampleLegacyApp.Services.CustomerService |  | basicHttpBinding | CustomerBinding | False | SampleLegacyApp.Contracts.ICustomerService | `...\SampleLegacyApp.Web\Web.config` |
+
+## Legacy ASP.NET Artifacts
+
+| Kind | Name | File |
+|---|---|---|
+| WebFormsPage | Default.aspx | `...\SampleLegacyApp.Web\Default.aspx` |
+| AsmxWebService | CustomerService.asmx | `...\SampleLegacyApp.Web\CustomerService.asmx` |
+| MvcController | HomeController | `...\SampleLegacyApp.Web\Controllers\HomeController.cs` |
+| MvcDependencyResolverRegistration | DependencyResolver.SetResolver | `...\SampleLegacyApp.Web\Global.asax.cs` |
+| MvcControllerFactoryRegistration | ControllerBuilder.Current.SetControllerFactory | `...\SampleLegacyApp.Web\Global.asax.cs` |
+| MvcModelBinderRegistration | ModelBinders.Binders | `...\SampleLegacyApp.Web\Global.asax.cs` |
+| MvcValueProviderFactoryRegistration | ValueProviderFactories.Factories | `...\SampleLegacyApp.Web\Global.asax.cs` |
+| WebApiFormatterConfiguration | config.Formatters | `...\SampleLegacyApp.Web\App_Start\WebApiConfig.cs` |
+| WebApiMessageHandlerRegistration | config.MessageHandlers.Add | `...\SampleLegacyApp.Web\App_Start\WebApiConfig.cs` |
+| WebApiCorsRegistration | config.EnableCors | `...\SampleLegacyApp.Web\App_Start\WebApiConfig.cs` |
+| HttpModuleRegistration | IntegratedLegacyModule | `...\SampleLegacyApp.Web\Web.config` |
+| HttpModuleRegistration | LegacyAuthModule | `...\SampleLegacyApp.Web\Web.config` |
+| HttpHandlerRegistration | *.legacy | `...\SampleLegacyApp.Web\Web.config` |
+| HttpHandlerRegistration | IntegratedLegacyHandler | `...\SampleLegacyApp.Web\Web.config` |
+
+## Configuration Files
+
+| Config File | App Settings | Connection Strings | Custom Sections |
+|---|---:|---:|---:|
+| `...\SampleLegacyApp.Web\Web.config` | 2 | 1 | 1 |
+
+## Modernisation Review Summary
+
+| Priority | Review Area | Highest Severity | Risks | Warnings | Info | Summary |
+|---:|---|---|---:|---:|---:|---|
+| 1 | WCF migration | Risk | 3 | 7 | 8 | 3 risk, 7 warning, 8 info hint(s). Review service boundaries, bindings, security, timeout, payload, metadata, contract, and WCF package usage before choosing a migration approach. |
+| 2 | Legacy ASP.NET migration | Risk | 2 | 3 | 8 | 2 risk, 3 warning, 8 info hint(s). Review classic ASP.NET, System.Web, WebForms, ASMX, handlers, MVC, or Web API usage before planning an ASP.NET Core migration. |
+| 3 | Target framework review | Risk | 4 | 0 | 0 | 4 risk, 0 warning, 0 info hint(s). Review target frameworks to understand upgrade paths, .NET Framework dependencies, and modern .NET migration constraints. |
+| 4 | Startup and request pipeline review | Warning | 0 | 24 | 3 | 0 risk, 24 warning, 3 info hint(s). Review application startup, dependency resolver setup, controller factories, global filters, action attributes, formatters, message handlers, CORS, model binding, value providers, bundling, and cross-cutting request behaviour that may need ASP.NET Core equivalents. |
+| 5 | Configuration review | Warning | 0 | 1 | 1 | 0 risk, 1 warning, 1 info hint(s). Review appSettings, connection strings, and custom configuration sections for runtime behaviour and external dependencies. |
+| 6 | Dependency review | Warning | 0 | 1 | 2 | 0 risk, 1 warning, 2 info hint(s). Review package dependencies that may affect migration, replacement, compatibility, or framework upgrade planning. |
+| 7 | Routing review | Info | 0 | 0 | 10 | 0 risk, 0 warning, 10 info hint(s). Review conventional routes, attribute routes, area routes, and Web API route registrations to preserve URL and client compatibility. |
+
+## Modernisation Hints
+
+| Severity | Area | Finding | Evidence | Confidence | Source | Reason |
+|---|---|---|---|---|---|---|
+| Risk | Legacy ASP.NET | CustomerService.asmx is an ASMX web service | LegacyAspNetArtifact: CustomerService.asmx | High | `...\SampleLegacyApp.Web\CustomerService.asmx` | ASMX web services are legacy SOAP-style ASP.NET endpoints that usually need replacement or compatibility planning during modernisation. |
+| Warning | Legacy ASP.NET Dependency Resolution | DependencyResolver.SetResolver configures ASP.NET MVC dependency resolution | LegacyAspNetArtifact: DependencyResolver.SetResolver | High | `...\SampleLegacyApp.Web\Global.asax.cs` | MVC dependency resolver registration can affect controller activation, service lifetimes, filters, model binders, and other application services that need explicit mapping during ASP.NET Core migration. |
+| Warning | Legacy ASP.NET Web API Pipeline | config.EnableCors enables ASP.NET Web API CORS configuration | LegacyAspNetArtifact: config.EnableCors | High | `...\SampleLegacyApp.Web\App_Start\WebApiConfig.cs` | CORS configuration affects browser clients and cross-origin API access and should be mapped explicitly when migrating to ASP.NET Core. |
+| Warning | Legacy ASP.NET Request Pipeline | LegacyAuthModule registers an ASP.NET HTTP module | LegacyAspNetArtifact: LegacyAuthModule | High | `...\SampleLegacyApp.Web\Web.config` | HTTP modules can affect authentication, authorization, logging, headers, errors, or request lifecycle behaviour and may need mapping to ASP.NET Core middleware. |
+| Warning | Configuration | Web.config contains 1 custom configuration section(s) | ConfigurationFile: Web.config | High | `...\SampleLegacyApp.Web\Web.config` | Custom configuration sections may indicate framework-specific or application-specific behaviour that needs migration assessment. |
+| Info | Configuration | Web.config contains 1 connection string(s) | ConfigurationFile: Web.config | High | `...\SampleLegacyApp.Web\Web.config` | Connection strings identify external data dependencies that should be reviewed during migration planning. |
+| Risk | WCF | 3 WCF endpoint(s) discovered | WcfEndpointSummary: 3 WCF endpoint(s) | Medium | None | Configured WCF endpoints usually represent service boundaries or integration points that need migration assessment. |
+````
+
+The full generated report may contain additional rows depending on the scanned solution and sample application content.
+
+The generated report is intended to be readable in source control, Markdown preview tools, and documentation systems.
+
+---
+
+## EDMX Analysis Report Output
+
+The MVP scope now includes a separate EDMX analysis Markdown artifact:
+
+```text
+output/edmx-analysis.md
+```
+
+The EDMX analysis report should be a static, evidence-backed report for understanding Entity Framework `.edmx` files before EF Core migration planning. It should inspect EDMX XML only and should not connect to the database, build the project, validate mappings against a live schema, generate EF Core code, or automatically convert EDMX models.
+
+Representative structure:
+
+```markdown
+# EDMX Analysis
+
+## Summary
+
+| Metric | Count |
+|---|---:|
+| EDMX files discovered | 1 |
+| Conceptual entity types | 4 |
+| Conceptual entity sets | 4 |
+| Storage entity sets | 4 |
+| Associations | 3 |
+| Navigation properties | 6 |
+| Complex types | 1 |
+| Function imports | 2 |
+| Store functions | 2 |
+| Modification function mappings | 1 |
+| Query views | 1 |
+| Defining queries | 1 |
+
+## EDMX Files
+
+| Project | EDMX File | Conceptual Model | Storage Model | Mapping Model | Designer Metadata |
+|---|---|---|---|---|---|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | Yes | Yes | Yes | Yes |
+
+## Upgrade Concerns
+
+| Severity | Concern | Evidence | Recommendation |
+|---|---|---|---|
+| High | EDMX model requires migration decision | `LegacyModel.edmx` contains CSDL, SSDL, and MSL sections. | Review whether to scaffold a new EF Core model from the database, keep EF6 isolated, or manually map equivalent entities and relationships. |
+| Medium | Stored procedure or function mapping requires review | Function imports or modification function mappings were found. | Review stored procedure usage and decide whether to use EF Core stored procedure support, raw SQL, or explicit repository methods. |
+| Medium | Query-backed model requires review | DefiningQuery or QueryView evidence was found. | Review whether keyless entity types, database views, raw SQL, or rewritten queries are needed. |
+
+## Conceptual Model
+
+| Project | EDMX File | Entity | Entity Set | Key | Properties | Navigation Properties |
+|---|---|---|---|---|---:|---:|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | Customer | Customers | Id | 6 | 2 |
+
+## Storage Model
+
+| Project | EDMX File | Store Entity Set | Schema | Table/View | Columns |
+|---|---|---|---|---|---:|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | Customers | dbo | Customers | 6 |
+
+## Associations
+
+| Project | EDMX File | Association | From | To | Multiplicity |
+|---|---|---|---|---|---|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | FK_Orders_Customers | Customer | Order | 1 to * |
+
+## Function Imports and Store Functions
+
+| Project | EDMX File | Function Import | Return Type | Store Function |
+|---|---|---|---|---|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | GetCustomerOrders | Collection(Order) | GetCustomerOrders |
+
+## Mapping Details
+
+| Project | EDMX File | Entity Set | Store Entity Set | Mapped Properties |
+|---|---|---|---|---:|
+| SampleLegacyApp.Data | `...\LegacyModel.edmx` | Customers | Customers | 6 |
+
+## Companion Generated Files
+
+| Project | EDMX File | Companion File | Type |
+|---|---|---|---|
+| SampleLegacyApp.Data | `...\LegacyModel.Context.tt` | T4Template |
+| SampleLegacyApp.Data | `...\LegacyModel.Designer.cs` | DesignerCode |
+
+## Notes
+
+This report is based on static EDMX XML inspection only. LegacyLens.NET did not connect to the database, build the project, validate mappings, run EF migrations, scaffold EF Core models, or convert the EDMX file.
+```
+
+If no EDMX files are found, the report should still be valid and should clearly state that no EDMX files were discovered.
+
+---
+
+
+## Mermaid Dependency Diagram
+
+LegacyLens.NET includes a Mermaid project dependency diagram in the generated Markdown report.
+
+The diagram is created from discovered project-to-project references and is intended to make the structure of the solution easier to understand visually.
+
+Example:
+
+```mermaid
+graph TD
+    SampleLegacyApp_Web --> SampleLegacyApp_Services
+    SampleLegacyApp_Services --> SampleLegacyApp_Data
+    SampleLegacyApp_Services --> SampleLegacyApp_Contracts
+    SampleLegacyApp_Web --> SampleLegacyApp_Contracts
+```
+
+This makes it easier to visually understand project-to-project relationships.
+
+---
+
+
+---
+
+## Interface Inventory Report Output
+
+The MVP scope now includes a separate interface-inventory Markdown artifact:
+
+```text
+output/interface-inventory.md
+```
+
+The interface-inventory report should be a static, evidence-backed abstraction and extension-point report for understanding which interfaces exist, what implements them, where they are consumed, and how they may be registered or dynamically wired. It should inspect C# source files and relevant visible XML/configuration files without building the solution, executing code, loading assemblies, applying transforms, or resolving a runtime object graph. XML evidence should be concise and configuration-bearing. For Spring.NET, comments, root `<objects>` text, arbitrary descendant text, and `<description>` text must not be used as matching input or reported as evidence.
+
+Representative structure:
+
+````markdown
+# Interface Inventory Report
+
+## Summary
+
+- Projects analysed: 4
+- C# source files analysed: 18
+- Configuration/XML files analysed: 6
+- Interfaces discovered: 14
+- Implementations discovered: 19
+- Static consumers discovered: 31
+- Registration evidence entries discovered: 8
+- Interfaces with multiple implementations: 3
+- Interfaces with no static implementation found: 2
+- Interfaces with registration evidence requiring review: 4
+
+## Review Summary
+
+| Review Area | Count | Notes |
+|---|---:|---|
+| Multiple implementations | 3 | Possible strategy/plugin extension points; review expected selection behaviour. |
+| No static implementation found | 2 | Dynamic or configuration-driven implementations may exist. |
+| Dynamic/configuration-driven wiring | 4 | Factory, scanning, XML, alias, or service-locator evidence requires review. |
+
+## Interface Inventory
+
+| Interface | Project | Likely Role | Implementations | Consumers | Registration Evidence | Review Notes |
+|---|---|---|---:|---:|---:|---|
+| `ICustomerService` | SampleLegacyApp.Services | Application service | 1 | 2 | 1 | Possible endpoint dependency. |
+| `IValidator<T>` | SampleLegacyApp.Core | Strategy/plugin | 4 | 1 | 1 | Multiple implementations found. |
+
+## Interface Details
+
+### ICustomerService
+
+Project: `SampleLegacyApp.Services`
+
+Source: `SampleLegacyApp.Services/CustomerService.cs:5`
+
+Evidence: `public interface ICustomerService`
+
+Likely role: `Application service`
+
+#### Members
+
+| Kind | Count |
+|---|---:|
+| Methods | 1 |
+| Properties | 0 |
+| Events | 0 |
+| Indexers | 0 |
+
+#### Implementations
+
+| Implementation | Project | Line | Evidence | Notes |
+|---|---|---:|---|---|
+| `CustomerService` | SampleLegacyApp.Services | 10 | `public class CustomerService : ICustomerService, ICustomerContract` | Concrete implementation. |
+
+#### Consumers
+
+| Consumer | Kind | Project | Line | Evidence | Requires Review |
+|---|---|---|---:|---|---|
+| `Program` | endpoint delegate parameter | SampleLegacyApp.Web | 8 | `(int id, ICustomerService customerService)` | No |
+
+#### Registration Evidence
+
+| Kind | Lifetime | Implementation | Project/File | Line | Evidence | Requires Review |
+|---|---|---|---|---:|---|---|
+| Microsoft DI | Singleton | `CustomerService` | SampleLegacyApp.Web/Program.cs | 4 | `builder.Services.AddSingleton<ICustomerService, CustomerService>()` | No |
+
+## Dynamic and Configuration-Driven Wiring Requiring Review
+
+| Source | Kind | Interface / Service | Implementation / Object | Evidence | Why Review |
+|---|---|---|---|---|---|
+| `spring-service.xml` | Spring.NET XML | `ICustomerService` | `CustomerService` | `<object id="customerService" type="SampleLegacyApp.Services.CustomerService, SampleLegacyApp.Services">` + `<property name="serviceInterface" value="SampleLegacyApp.Services.ICustomerService" />` | Configuration-driven object/property wiring requires review and does not prove runtime activation. |
+
+## Notes and Limitations
+
+This report is based on static source and configuration evidence. It does not prove runtime usage, runtime registration, active configuration, or completeness. Findings such as `No static implementation found`, `No static consumer found`, `Dynamic wiring may exist`, and `Configuration-driven wiring may exist` mean `requires review`, not proven absence or proven runtime behaviour. Spring.NET XML comments, `<description>` text, and the root `<objects>` container are documentation or container structure, not executable registration evidence, and should not appear in evidence snippets.
+````
+
+Suggested wording should stay cautious: `static source evidence`, `static configuration evidence`, `registration evidence found`, `dynamic wiring may exist`, `configuration-driven wiring may exist`, `requires review`, `possible extension point`, and `no static source usage detected`. Evidence examples should avoid XML comments, `<description>` text, and broad serialized parent/root XML when the actionable registration evidence is a specific object, property, constructor argument, alias, parent, or factory-style configuration element.
+
+---
+
+## Class Dependencies Report Output
+
+The MVP scope now includes a separate class-dependencies Markdown artifact:
+
+```text
+output/class-dependencies.md
+```
+
+The class-dependencies report should be a static, evidence-backed source-level coupling report for understanding which classes and other source-defined types reference each other before refactoring, testing, or modernising a legacy .NET codebase. It should inspect C# source files only and should not build the solution, restore packages, execute code, resolve runtime dependency injection, or claim to understand runtime call graphs.
+
+Representative structure:
+
+````markdown
+# Class Dependency Report
+
+## Summary
+
+- Projects analysed: 4
+- C# source files analysed: 18
+- Types discovered: 42
+- Dependency relationships discovered: 96
+- Coupling concerns discovered: 12
+- Hardcoded concrete dependencies discovered: 3
+- Static dependencies discovered: 5
+- High-coupling types discovered: 4
+
+## Top Coupled Types
+
+| Type | Project | Outgoing Dependencies | Incoming Dependencies | Concern Count | Notes |
+|---|---|---:|---:|---:|---|
+| `CustomerService` | SampleLegacyApp.Services | 4 | 2 | 2 | Concrete construction and service contract coupling found. |
+
+## Coupling Concerns
+
+| Severity | Source Type | Target Type | Dependency Kind | Evidence | Why It Matters | Recommendation |
+|---|---|---|---|---|---|---|
+| High | `CustomerService` | `CustomerRepository` | hardcoded new | `new CustomerRepository()` | Concrete construction hides the dependency and makes testing, replacement, and migration harder. | Consider constructor injection behind an interface or factory. |
+| Medium | `CustomerService` | `ConfigurationManager` | static access | `ConfigurationManager.AppSettings[...]` | Static configuration access may need review when moving from legacy config files to modern configuration. | Consider `IConfiguration` or options binding during migration. |
+
+## Hardcoded Concrete Dependencies
+
+| Source Type | Target Type | Project | Evidence | Severity | Suggested Review |
+|---|---|---|---|---|---|
+| `CustomerService` | `CustomerRepository` | SampleLegacyApp.Services | `new CustomerRepository()` | High | Consider constructor injection behind an interface or factory. |
+
+## Static Dependency Hotspots
+
+| Source Type | Static Dependency | Project | Evidence | Severity | Suggested Review |
+|---|---|---|---|---|---|
+| `CustomerService` | `ConfigurationManager` | SampleLegacyApp.Services | `ConfigurationManager.AppSettings[...]` | Medium | Review configuration access during migration. |
+
+## Dependency Diagram
+
+```mermaid
+graph TD
+    CustomerService -->|implements| ICustomerService
+    CustomerService -->|implements| ICustomerContract
+    CustomerService -->|field, hardcoded new| CustomerRepository
+    CustomerService -->|return type| CustomerDto
+    CustomerService -->|static access| ConfigurationManager
+```
+
+## Type Dependency Inventory
+
+| Source Type | Target Type | Dependency Kind | Project | Source Path | Line | Evidence |
+|---|---|---|---|---|---:|---|
+| `CustomerService` | `CustomerRepository` | hardcoded new | SampleLegacyApp.Services | `SampleLegacyApp.Services/CustomerService.cs` | 12 | `new CustomerRepository()` |
+
+## Type Details
+
+### CustomerService
+
+Project: `SampleLegacyApp.Services`
+
+Source: `SampleLegacyApp.Services/CustomerService.cs`
+
+Depends on:
+
+| Target Type | Dependency Kind | Line | Evidence |
+|---|---|---:|---|
+| `CustomerRepository` | field, hardcoded new | 12 | `private readonly CustomerRepository _repository = new();` |
+````
+
+The Mermaid diagram should be focused rather than exhaustive. For large codebases, the table inventory should remain the complete evidence-backed source of detail, while the diagram should prioritise high-coupling types, hardcoded concrete dependencies, static dependency hotspots, and highest-severity concerns.
+
+Suggested wording should stay cautious: `source-level dependency`, `possible coupling concern`, `suggested review`, `evidence`, and `static analysis finding`.
+
