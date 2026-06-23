@@ -138,6 +138,7 @@ Current MVP functionality includes implemented capabilities and newly required M
 - optional `--artifacts edmx-analysis` command support for producing the edmx-analysis artifact
 - optional `--artifacts class-dependencies` command support for producing the class-dependencies artifact
 - optional `--artifacts class-dependency-scope` command support for producing a timestamped scoped class dependency artifact when `--class-dependency-type <fully-qualified-type-name>` is supplied
+- optional `--artifacts class-refactoring-opportunities` command support for producing a timestamped scoped class refactoring opportunities artifact when `--class-refactoring-type <fully-qualified-type-name>` is supplied
 - optional `--artifacts interface-inventory` command support for producing the interface-inventory artifact
 - optional `--artifacts solution-topology` command support for producing the solution-topology artifact
 - optional `--artifacts code-complexity` command support for producing the code-complexity artifact
@@ -151,9 +152,25 @@ Current MVP functionality includes implemented capabilities and newly required M
 - normal `discovery-report.md` generation regardless of optional artifact selection
 - optional `--upgrade-target <tfm>` command support as upgrade report wording context only when selected artifacts include upgrade-readiness, upgrade-blockers, or all; it does not change discovery scope or perform compatibility checks
 - optional `--class-dependency-type <fully-qualified-type-name>` command support as scoped class dependency type context only when selected artifacts include class-dependency-scope or all; it does not change normal artifact discovery scope
+- optional `--class-refactoring-type <fully-qualified-type-name>` command support as class refactoring opportunities type context only when selected artifacts include class-refactoring-opportunities or all; it does not change normal artifact discovery scope
 - validation that class-dependency-scope requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected
 - validation that plain `--artifacts all` does not require a class dependency type and does not generate scoped reports unless a type is supplied
 - validation that `--class-dependency-type` is rejected when the selected artifacts do not include class-dependency-scope or all
+- validation that class-refactoring-opportunities requires `--class-refactoring-type <fully-qualified-type-name>` when explicitly selected
+- validation that plain `--artifacts all` does not require a class refactoring type and does not generate class refactoring opportunities reports unless a type is supplied
+- validation that `--class-refactoring-type` is rejected when the selected artifacts do not include class-refactoring-opportunities or all
+- class-refactoring-opportunities report generation as timestamped `class-refactoring-opportunities.<safe-fully-qualified-type-name>.<yyyyMMdd-HHmmss>.md` files
+- class-refactoring-opportunities report body metadata containing both local and UTC generated timestamps
+- class-refactoring-opportunities analysis over shared `ScanFileInventory.CSharpFiles` without a separate recursive filesystem walk
+- fully qualified requested type resolution for class-refactoring-opportunities using case-insensitive full-name matching only; no silent short-name fallback
+- no-match and duplicate full-name ambiguity reporting for class-refactoring-opportunities
+- static class refactoring profile creation for the requested class using class source plus existing analysis outputs where practical
+- evidence-backed signal detection for testability barriers, hardcoded object creation, static/global dependencies, constructor testability concerns, method complexity hotspots, side-effect-like methods, framework coupling, configuration coupling, data-access coupling, external dependency coupling, existing interface seams, inbound coupling, large method/class responsibility concerns, adapt-parameter opportunities, and direct characterization feasibility
+- existing seam, missing or weak seam, characterization-test target, and recommendation-blocker reporting for the requested class
+- Working Effectively with Legacy Code-inspired technique recommendations only when supported by evidence
+- suggested low-risk/high-value ordering of first steps before refactoring
+- cautious wording for class-refactoring-opportunities, including `Possible`, `Static signal`, `Evidence found`, `May indicate`, `Requires developer confirmation`, `Suggested first step`, `Not enough evidence`, and `No strong recommendation`
+- class-refactoring-opportunities must not refactor code, rewrite code, generate patches, claim a refactoring is safe, build the solution, run tests, restore packages, execute code, connect to external systems, resolve runtime dependency injection, create compilation-dependent semantic models, prove runtime call graphs, prove unused dependencies, or emit generic technique advice without evidence
 - static code complexity analysis for identifying C# refactoring and review hotspots using no-build syntax-level cyclomatic complexity estimates
 - code-complexity report generation as `code-complexity.md`
 - code-complexity analysis over shared `ScanFileInventory.CSharpFiles` without a separate recursive filesystem walk

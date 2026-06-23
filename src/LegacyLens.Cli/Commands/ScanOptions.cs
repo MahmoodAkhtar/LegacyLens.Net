@@ -11,6 +11,7 @@ public sealed class ScanOptions
     public const string EdmxAnalysisArtifact = "edmx-analysis";
     public const string ClassDependenciesArtifact = "class-dependencies";
     public const string ClassDependencyScopeArtifact = "class-dependency-scope";
+    public const string ClassRefactoringOpportunitiesArtifact = "class-refactoring-opportunities";
     public const string InterfaceInventoryArtifact = "interface-inventory";
     public const string SolutionTopologyArtifact = "solution-topology";
     public const string CodeComplexityArtifact = "code-complexity";
@@ -25,6 +26,7 @@ public sealed class ScanOptions
         EdmxAnalysisArtifact,
         ClassDependenciesArtifact,
         ClassDependencyScopeArtifact,
+        ClassRefactoringOpportunitiesArtifact,
         InterfaceInventoryArtifact,
         SolutionTopologyArtifact,
         CodeComplexityArtifact
@@ -42,6 +44,7 @@ public sealed class ScanOptions
     public string? Artifacts { get; init; }
     public string? UpgradeTarget { get; init; }
     public string? ClassDependencyType { get; init; }
+    public string? ClassRefactoringType { get; init; }
 
     public IReadOnlyList<string> SelectedArtifacts
     {
@@ -75,6 +78,12 @@ public sealed class ScanOptions
         !string.IsNullOrWhiteSpace(ClassDependencyType) &&
         (ShouldWriteArtifact(ClassDependencyScopeArtifact) || ShouldWriteAllArtifacts);
 
+    public bool ShouldWriteClassRefactoringOpportunities => ShouldWriteArtifact(ClassRefactoringOpportunitiesArtifact);
+
+    public bool ShouldWriteClassRefactoringOpportunitiesArtifact =>
+        !string.IsNullOrWhiteSpace(ClassRefactoringType) &&
+        (ShouldWriteArtifact(ClassRefactoringOpportunitiesArtifact) || ShouldWriteAllArtifacts);
+
     public bool ShouldWriteInterfaceInventory => ShouldWriteArtifact(InterfaceInventoryArtifact);
 
     public bool ShouldWriteSolutionTopology => ShouldWriteArtifact(SolutionTopologyArtifact);
@@ -97,4 +106,8 @@ public sealed class ScanOptions
     public bool HasScopedClassDependencyArtifactSelection =>
         ShouldWriteAllArtifacts ||
         ShouldWriteArtifact(ClassDependencyScopeArtifact);
+
+    public bool HasClassRefactoringOpportunitiesArtifactSelection =>
+        ShouldWriteAllArtifacts ||
+        ShouldWriteArtifact(ClassRefactoringOpportunitiesArtifact);
 }

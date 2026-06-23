@@ -482,6 +482,39 @@ Out of scope for MVP:
 - Artifact dependency graphs.
 - Parallel artifact execution unless introduced later for performance reasons.
 
+
+### Step 5h: Class refactoring opportunities report for safer per-class change planning
+
+Status: MVP scope addition
+
+MVP scope:
+
+- Add `class-refactoring-opportunities` as an optional, parameterised artifact.
+- Require `--class-refactoring-type <fully-qualified-type-name>` when the artifact is explicitly selected.
+- Allow `--artifacts all --class-refactoring-type <fully-qualified-type-name>` to include this scoped artifact, while plain `--artifacts all` remains valid and does not generate it.
+- Keep the existing `--class-dependency-type` option unchanged for `class-dependency-scope`.
+- Generate timestamped output files named `class-refactoring-opportunities.<safe-fully-qualified-type-name>.<yyyyMMdd-HHmmss>.md`.
+- Include both local and UTC generated timestamps in the report body.
+- Use the shared project-aware source inventory, specifically `ScanContext.FileInventory.CSharpFiles` or an equivalent collection of indexed `ScanFile` instances.
+- Do not perform an artifact-specific recursive `Directory.GetFiles(rootPath, "*.cs", SearchOption.AllDirectories)` scan.
+- Reuse existing class dependency, scoped dependency, code complexity, interface inventory, configuration inventory, external dependencies, and data-access analysis outputs where practical.
+- Resolve requested types by fully qualified name, case-insensitively, without silently falling back to short-name matching.
+- Report no-match and ambiguity cases rather than guessing.
+- Build an evidence-backed class refactoring profile, then derive signals, recommendations, and ordered next steps from that profile.
+- Identify testability barriers, existing seams, missing or weak seams, first characterization-test targets, dependency-breaking needs, side-effect/sensing concerns, method complexity hotspots, hardcoded construction, static/global access, configuration coupling, data-access coupling, external dependency coupling, and inbound coupling where source evidence supports them.
+- Suggest Working Effectively with Legacy Code-inspired techniques only when evidence supports the recommendation.
+- Provide a practical low-risk/high-value order of work before refactoring.
+- Use cautious wording and say `Not enough evidence` or `No strong recommendation` when recommendations would otherwise be generic.
+
+Out of scope for MVP:
+
+- Automatically refactoring code or generating patches.
+- Claiming a refactoring is safe.
+- Running tests, building the solution, restoring packages, executing code, connecting to external systems, or resolving runtime dependency injection.
+- Creating semantic models that require successful compilation.
+- Proving runtime call graphs, transitive dependency completeness, dynamic loading behaviour, production usage, or unused dependencies.
+- Creating one analyzer per technique instead of using an evidence/signal/recommendation pipeline.
+
 ### Step 6: Legacy ASP.NET artifact discovery
 
 Status: Implemented with conditional quality gates

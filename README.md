@@ -27,6 +27,7 @@ LegacyLens.NET scans source files and configuration files to discover useful cod
 - an MVP-scope edmx-analysis artifact that produces `edmx-analysis.md` with a static, evidence-backed analysis of EF EDMX conceptual, storage, mapping, designer, generated-file, and EF Core migration concern signals
 - an MVP-scope class-dependencies artifact that produces `class-dependencies.md` with static, evidence-backed source-level type relationship analysis, coupling hotspots, hardcoded concrete dependencies, static dependency concerns, and focused Mermaid diagrams with dependency-kind edge labels
 - an MVP-scope on-demand class-dependency-scope artifact that produces type-specific timestamped scoped reports such as `class-dependency-scope.SampleLegacyApp.Services.CustomerService.20260620-153045.md` for a requested fully qualified type
+- an MVP-scope on-demand class-refactoring-opportunities artifact that produces type-specific timestamped reports such as `class-refactoring-opportunities.SampleLegacyApp.Services.CustomerService.20260620-153045.md` for a requested fully qualified type, using static evidence to highlight testability barriers, existing seams, missing or weak seams, characterization-test targets, relevant Working Effectively with Legacy Code-inspired techniques, and a cautious low-risk/high-value order of approach
 - an MVP-scope interface-inventory artifact that produces `interface-inventory.md` with static, evidence-backed interface definitions, implementations, consumers, registration evidence, likely roles, possible extension points, and review-worthy dynamic or configuration-driven wiring
 - an MVP-scope solution-topology artifact that produces `solution-topology.md` with static, evidence-backed solution, project, dependency, and ownership-boundary orientation information
 - an MVP-scope code-complexity artifact that produces `code-complexity.md` with static, no-build cyclomatic complexity estimates at member, type, namespace, project, and scan-root level to highlight refactoring and review hotspots
@@ -93,7 +94,19 @@ Generate a scoped class dependency artifact for one fully qualified type:
 legacylens scan <path> --output-dir ./output --artifacts class-dependency-scope --class-dependency-type SampleLegacyApp.Services.CustomerService
 ```
 
-Artifact names are case-insensitive, comma-separated values may contain spaces around commas, duplicate names are ignored, and `all` must not be combined with other artifact names. `class-dependency-scope` is parameterised: it requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected, is generated with `--artifacts all` only when the type option is also provided, and writes a type-specific timestamped filename so repeated refactoring runs do not overwrite previous scoped reports. `--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when the selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it does not change discovery scope or perform compatibility checks.
+Generate a class refactoring opportunities artifact for one fully qualified type:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-refactoring-opportunities --class-refactoring-type SampleLegacyApp.Services.CustomerService
+```
+
+Generate every supported optional artifact and include the parameterised class refactoring opportunities report:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts all --class-refactoring-type SampleLegacyApp.Services.CustomerService
+```
+
+Artifact names are case-insensitive, comma-separated values may contain spaces around commas, duplicate names are ignored, and `all` must not be combined with other artifact names. `class-dependency-scope` is parameterised: it requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected, is generated with `--artifacts all` only when the type option is also provided, and writes a type-specific timestamped filename so repeated refactoring runs do not overwrite previous scoped dependency reports. `class-refactoring-opportunities` is also parameterised: it requires `--class-refactoring-type <fully-qualified-type-name>` when explicitly selected, is generated with `--artifacts all` only when the type option is also provided, and writes a type-specific timestamped filename so repeated refactoring planning runs preserve history. `--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when the selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it does not change discovery scope or perform compatibility checks.
 
 The MVP scope now also includes an optional upgrade-readiness artifact:
 
@@ -159,6 +172,14 @@ legacylens scan <path> --output-dir ./output --artifacts class-dependency-scope 
 ```
 
 This report should reuse the existing no-build class dependency analysis and shared file inventory, resolve the requested fully qualified type name, and show the root type's direct outbound source-level dependencies, direct inbound dependants, related review concerns, and a compact Mermaid diagram centred on the type. Each run should write a timestamped filename such as `class-dependency-scope.SampleLegacyApp.Services.CustomerService.20260620-153045.md` using a local sortable `yyyyMMdd-HHmmss` filename timestamp, while the report body includes both local and UTC generated timestamps. It should preserve historical reports by default and avoid claiming to resolve runtime DI, reflection, dynamic loading, transitive dependencies, generated-code behaviour, or runtime call graphs.
+
+The MVP scope now also includes an optional on-demand class-refactoring-opportunities artifact:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-refactoring-opportunities --class-refactoring-type SampleLegacyApp.Services.CustomerService
+```
+
+This report should help a developer decide how to approach changing a single class before refactoring. It should statically inspect the requested fully qualified type using the shared project-aware source inventory and existing analysis outputs where practical, then report evidence-backed signals for testability barriers, existing seams, missing or weak seams, likely characterization-test targets, direct dependency context, method complexity hotspots, side-effect concerns, and relevant Working Effectively with Legacy Code-inspired techniques. It should suggest a practical low-risk/high-value order of work, but must not refactor code, generate patches, claim that refactoring is safe, run tests, build the solution, execute code, resolve runtime DI, or recommend techniques without supporting evidence.
 
 The MVP scope now also includes an optional interface-inventory artifact:
 

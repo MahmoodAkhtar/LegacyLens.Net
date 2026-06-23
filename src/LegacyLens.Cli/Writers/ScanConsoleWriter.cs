@@ -44,9 +44,11 @@ public sealed class ScanConsoleWriter
         Console.WriteLine("  -h, --help             Show help.");
         Console.WriteLine("  --version              Show version.");
         Console.WriteLine("  --artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.");
-        Console.WriteLine("                           Supported artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, class-dependency-scope, interface-inventory, solution-topology, code-complexity, all.");
+        Console.WriteLine("                           Supported artifacts: upgrade-readiness, upgrade-blockers, external-dependencies, configuration-inventory, data-access, edmx-analysis, class-dependencies, class-dependency-scope, class-refactoring-opportunities, interface-inventory, solution-topology, code-complexity, all.");
         Console.WriteLine("  --class-dependency-type <fully-qualified-type-name>");
         Console.WriteLine("                           Fully qualified type name for the parameterised class-dependency-scope artifact.");
+        Console.WriteLine("  --class-refactoring-type <fully-qualified-type-name>");
+        Console.WriteLine("                           Fully qualified type name for the parameterised class-refactoring-opportunities artifact.");
         Console.WriteLine("  --upgrade-target <tfm>  Optional target-framework context for upgrade report wording only; valid with upgrade-readiness, upgrade-blockers, or all.");
     }
 
@@ -112,6 +114,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ScopedClassDependencyOutputPath))
         {
             Console.WriteLine($"Scoped class dependency report generated: {result.ScopedClassDependencyOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.ClassRefactoringOpportunitiesOutputPath))
+        {
+            Console.WriteLine($"Class refactoring opportunities report generated: {result.ClassRefactoringOpportunitiesOutputPath}");
         }
 
         if (!string.IsNullOrWhiteSpace(result.InterfaceInventoryOutputPath))
@@ -222,6 +229,13 @@ public sealed class ScanConsoleWriter
             Console.WriteLine(result.ScopedClassDependencyOutputPath);
         }
 
+        if (!string.IsNullOrWhiteSpace(result.ClassRefactoringOpportunitiesOutputPath))
+        {
+            Console.WriteLine();
+            Console.WriteLine("Class refactoring opportunities report generated:");
+            Console.WriteLine(result.ClassRefactoringOpportunitiesOutputPath);
+        }
+
         if (!string.IsNullOrWhiteSpace(result.InterfaceInventoryOutputPath))
         {
             Console.WriteLine();
@@ -297,6 +311,11 @@ public sealed class ScanConsoleWriter
         if (!string.IsNullOrWhiteSpace(result.ScopedClassDependencyOutputPath))
         {
             Console.WriteLine($"Scoped class dependency report generated: {result.ScopedClassDependencyOutputPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.ClassRefactoringOpportunitiesOutputPath))
+        {
+            Console.WriteLine($"Class refactoring opportunities report generated: {result.ClassRefactoringOpportunitiesOutputPath}");
         }
 
         if (!string.IsNullOrWhiteSpace(result.InterfaceInventoryOutputPath))

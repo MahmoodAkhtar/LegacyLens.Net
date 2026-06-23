@@ -92,6 +92,68 @@ public sealed class ScanArtifactRunnerTests
 
 
     [Fact]
+    public void ClassRefactoringOpportunitiesArtifactRunner_ArtifactName_ReturnsExpectedArtifactName()
+    {
+        var runner = new ClassRefactoringOpportunitiesArtifactRunner();
+
+        Assert.Equal(ScanOptions.ClassRefactoringOpportunitiesArtifact, runner.ArtifactName);
+    }
+
+    [Fact]
+    public void ClassRefactoringOpportunitiesArtifactRunner_ShouldRun_WhenSelectedWithType_ReturnsTrue()
+    {
+        var context = CreateContext(
+            ScanOptions.ClassRefactoringOpportunitiesArtifact,
+            classRefactoringType: "SampleLegacyApp.Services.CustomerService");
+        var runner = new ClassRefactoringOpportunitiesArtifactRunner();
+
+        var shouldRun = runner.ShouldRun(context);
+
+        Assert.True(shouldRun);
+    }
+
+    [Fact]
+    public void ClassRefactoringOpportunitiesArtifactRunner_ShouldRun_WhenSelectedWithoutType_ReturnsFalse()
+    {
+        var context = CreateContext(ScanOptions.ClassRefactoringOpportunitiesArtifact);
+        var runner = new ClassRefactoringOpportunitiesArtifactRunner();
+
+        var shouldRun = runner.ShouldRun(context);
+
+        Assert.False(shouldRun);
+    }
+
+    [Fact]
+    public void ClassRefactoringOpportunitiesArtifactRunner_ShouldRun_WhenAllArtifactsSelectedWithoutType_ReturnsFalse()
+    {
+        var context = CreateContextForAllArtifacts();
+        var runner = new ClassRefactoringOpportunitiesArtifactRunner();
+
+        var shouldRun = runner.ShouldRun(context);
+
+        Assert.False(shouldRun);
+    }
+
+    [Fact]
+    public void ClassRefactoringOpportunitiesArtifactRunner_ShouldRun_WhenAllArtifactsSelectedWithType_ReturnsTrue()
+    {
+        var context = CreateContextForAllArtifacts(classRefactoringType: "SampleLegacyApp.Services.CustomerService");
+        var runner = new ClassRefactoringOpportunitiesArtifactRunner();
+
+        var shouldRun = runner.ShouldRun(context);
+
+        Assert.True(shouldRun);
+    }
+
+    [Fact]
+    public void ClassRefactoringOpportunitiesArtifactRunner_ShouldRun_WhenContextIsNull_ThrowsArgumentNullException()
+    {
+        var runner = new ClassRefactoringOpportunitiesArtifactRunner();
+
+        Assert.Throws<ArgumentNullException>(() => runner.ShouldRun(null!));
+    }
+
+    [Fact]
     public void ScopedClassDependencyArtifactRunner_ArtifactName_ReturnsExpectedArtifactName()
     {
         var runner = new ScopedClassDependencyArtifactRunner();
@@ -153,7 +215,10 @@ public sealed class ScanArtifactRunnerTests
         Assert.Throws<ArgumentNullException>(() => runner.ShouldRun(null!));
     }
 
-    private static ScanContext CreateContext(string? artifact, string? classDependencyType = null)
+    private static ScanContext CreateContext(
+        string? artifact,
+        string? classDependencyType = null,
+        string? classRefactoringType = null)
     {
         var scanPath = Directory.GetCurrentDirectory();
 
@@ -166,11 +231,14 @@ public sealed class ScanArtifactRunnerTests
                 SelectedArtifacts = artifact is null
                     ? []
                     : [artifact],
-                ClassDependencyType = classDependencyType
+                ClassDependencyType = classDependencyType,
+                ClassRefactoringType = classRefactoringType
             });
     }
 
-    private static ScanContext CreateContextForAllArtifacts(string? classDependencyType = null)
+    private static ScanContext CreateContextForAllArtifacts(
+        string? classDependencyType = null,
+        string? classRefactoringType = null)
     {
         var scanPath = Directory.GetCurrentDirectory();
 
@@ -181,7 +249,8 @@ public sealed class ScanArtifactRunnerTests
                 Path = scanPath,
                 Artifacts = ScanOptions.AllArtifactsSelection,
                 ShouldWriteAllArtifacts = true,
-                ClassDependencyType = classDependencyType
+                ClassDependencyType = classDependencyType,
+                ClassRefactoringType = classRefactoringType
             });
     }
 

@@ -264,13 +264,38 @@ Solution topology report generated:
 C:\Path\To\LegacyApp\output\solution-topology.md
 ```
 
+
+A parameterised class refactoring opportunities run such as:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-refactoring-opportunities --class-refactoring-type SampleLegacyApp.Services.CustomerService
+```
+
+should generate the main report and a timestamped type-specific refactoring-planning artifact:
+
+```text
+Markdown report generated:
+C:\Path\To\LegacyApp\output\discovery-report.md
+
+Class refactoring opportunities report generated:
+C:\Path\To\LegacyApp\output\class-refactoring-opportunities.SampleLegacyApp.Services.CustomerService.20260620-153045.md
+```
+
 A full evidence-pack run such as:
 
 ```bash
 legacylens scan <path> --artifacts all
 ```
 
-should show every supported optional artifact path, in addition to the main report path:
+should show every supported non-parameterised optional artifact path. Parameterised artifacts such as `class-dependency-scope` and `class-refactoring-opportunities` should be included in an `all` run only when their corresponding type option is supplied.
+
+A full evidence-pack run with a class refactoring opportunities type such as:
+
+```bash
+legacylens scan <path> --artifacts all --class-refactoring-type SampleLegacyApp.Services.CustomerService
+```
+
+should show every generated optional artifact path, in addition to the main report path:
 
 ```text
 Markdown report generated:
@@ -299,6 +324,9 @@ C:\Path\To\LegacyApp\output\code-complexity.md
 
 Class dependencies report generated:
 C:\Path\To\LegacyApp\output\class-dependencies.md
+
+Class refactoring opportunities report generated:
+C:\Path\To\LegacyApp\output\class-refactoring-opportunities.SampleLegacyApp.Services.CustomerService.20260620-153045.md
 
 Interface inventory report generated:
 C:\Path\To\LegacyApp\output\interface-inventory.md

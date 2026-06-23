@@ -32,6 +32,10 @@ Important options:
 --quiet                Only print essential output.
 --verbose              Print detailed discovery output.
 --artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.
+--class-dependency-type <fully-qualified-type-name>
+                        Fully qualified type name for the parameterised class-dependency-scope artifact.
+--class-refactoring-type <fully-qualified-type-name>
+                        Fully qualified type name for the parameterised class-refactoring-opportunities artifact.
 --upgrade-target <tfm>  Optional target-framework context for upgrade-readiness or upgrade-blockers report wording only; does not change discovery scope or perform compatibility checks.
 -h, --help             Show help.
 --version              Show version.
@@ -51,7 +55,7 @@ By default, the report is generated at:
 <scan-path>/output/discovery-report.md
 ```
 
-The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, configuration API usage, source-code configuration key usage, and cautious reconciliation against visible configured entries, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, a parameterised timestamped `class-dependency-scope.<type>.<timestamp>.md` artifact for focused per-type dependency review, a separate `interface-inventory.md` artifact for source-level interface, implementation, consumer, registration, and extension-point analysis, a separate `solution-topology.md` artifact for solution/project relationship orientation, and a separate `code-complexity.md` artifact for static no-build cyclomatic complexity estimates and refactoring hotspot review.
+The main discovery report currently includes solution, project, target framework, package reference, assembly reference, project reference, WCF, Legacy ASP.NET, configuration, modernisation hint, modernisation review summary, and Mermaid dependency diagram sections. The MVP scope also includes package compatibility review, a separate `upgrade-readiness-report.md` artifact, a separate `upgrade-blockers.md` artifact, a separate `external-dependencies.md` artifact for identifying possible external runtime and build-time dependencies, a separate `configuration-inventory.md` artifact for identifying visible configuration files, settings, sections, transforms, configuration API usage, source-code configuration key usage, and cautious reconciliation against visible configured entries, a separate `data-access-inventory.md` artifact for identifying visible data access technologies, patterns, and migration concerns, a separate `edmx-analysis.md` artifact for inspecting EF EDMX model contents and EF Core migration concern signals, and a separate `class-dependencies.md` artifact for source-level type relationship and coupling analysis, a parameterised timestamped `class-dependency-scope.<type>.<timestamp>.md` artifact for focused per-type dependency review, a parameterised timestamped `class-refactoring-opportunities.<type>.<timestamp>.md` artifact for focused per-class refactoring approach planning, a separate `interface-inventory.md` artifact for source-level interface, implementation, consumer, registration, and extension-point analysis, a separate `solution-topology.md` artifact for solution/project relationship orientation, and a separate `code-complexity.md` artifact for static no-build cyclomatic complexity estimates and refactoring hotspot review.
 
 ## Current implemented capability summary
 
@@ -74,6 +78,7 @@ LegacyLens.NET currently discovers:
 - EDMX analysis inputs such as `.edmx` files, CSDL conceptual entities/entity sets/keys/navigation properties/complex types/function imports, SSDL storage entity sets/tables/views/columns/functions/defining queries, MSL mappings/scalar properties/function import mappings/modification function mappings/query views, designer metadata, and companion generated files where discoverable
 - class dependency analysis inputs such as source-defined types, constructor parameters, fields, properties, method parameters, return types, local variables, object creation, static member access, base classes, interface implementations, attributes, generic type usage, coupling hotspots, hardcoded concrete dependencies, and static dependency concerns where discoverable
 - scoped class dependency analysis output for one requested fully qualified type, including direct outbound dependencies, direct inbound dependants, related concerns, and a compact Mermaid diagram where source-level evidence allows it
+- scoped class refactoring opportunities output for one requested fully qualified type, including evidence-backed testability barriers, existing seams, missing or weak seams, characterization-test targets, relevant Working Effectively with Legacy Code-inspired technique recommendations, and a cautious low-risk/high-value order of approach
 - code complexity analysis inputs for `code-complexity.md`, using Roslyn syntax parsing over indexed project-associated C# files to estimate cyclomatic complexity at member level and aggregate it by type, namespace, project, and scan root, including likely generated-code indicators where cheaply detectable
 - interface inventory analysis inputs such as interface definitions, implementations, consumers, generic and collection-based interface usage, service-locator usage, Microsoft DI registrations, legacy IoC registration patterns, and Spring.NET/Castle Windsor/Unity-style XML or configuration-driven wiring where discoverable, with Spring.NET XML comments, descriptions, root container text, and arbitrary descendant text ignored as registration evidence
 
@@ -95,6 +100,26 @@ Prefer a shared helper in `LegacyLens.Reporting.Markdown`, for example `Markdown
 
 This must not change discovery behaviour, analyzer models, raw evidence values, masking rules, artifact selection, or CLI output semantics. Keep the change in Markdown writers/helpers and cover it with report-writer tests, including Spring.NET XML registration evidence in `interface-inventory.md`, review findings that reuse XML evidence, and at least one non-interface artifact writer to prove the helper is shared.
 
+
+## Class refactoring opportunities MVP addition
+
+`class-refactoring-opportunities` is MVP scope as an optional parameterised artifact. Intended usage:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-refactoring-opportunities --class-refactoring-type SampleLegacyApp.Services.CustomerService
+legacylens scan <path> --output-dir ./output --artifacts all --class-refactoring-type SampleLegacyApp.Services.CustomerService
+```
+
+Validation rules: explicit `class-refactoring-opportunities` selection requires `--class-refactoring-type <fully-qualified-type-name>`; `--class-refactoring-type` is valid only with `class-refactoring-opportunities` or `all`; plain `--artifacts all` must not require the type and should generate this scoped artifact only when the type option is supplied. The existing `--class-dependency-type` option remains for `class-dependency-scope`.
+
+Generated files should be named `class-refactoring-opportunities.<safe-fully-qualified-type-name>.<yyyyMMdd-HHmmss>.md` using local sortable timestamp format, with both local and UTC generated timestamps in the report body. Repeated runs should preserve historical reports.
+
+The analyzer should consume `ScanContext.FileInventory.CSharpFiles` or an equivalent indexed C# file collection. It must not perform its own recursive `*.cs` filesystem walk. Reuse existing class dependency, scoped class dependency, code complexity, interface inventory, configuration inventory, external dependency, and data-access outputs where practical. Artifact-specific Roslyn syntax inspection is acceptable only over the shared inventory and must remain static/no-build.
+
+The recommended design is a pipeline: class source and existing reports, class refactoring profile, evidence-backed signals, recommendation rules, suggested approach, Markdown report. Do not create one analyzer per Working Effectively with Legacy Code technique. The report should be discriminating and evidence-backed; when evidence is weak, say `Not enough evidence` or `No strong recommendation`.
+
+The report should help answer: what makes this class hard to change, where are the seams or missing seams, what should be tested first, whether dependency breaking is needed before direct characterization, which techniques fit the evidence, and what low-risk/high-value order of work should come before refactoring. It must not refactor code, generate patches, build the solution, run tests, execute code, resolve runtime DI, prove runtime call graphs, prove dependencies are unused, or claim that refactoring is safe.
+
 ## MVP artifact selection addition
 
 `--artifacts` is MVP scope as a flexible optional artifact selection capability. It supports one artifact name, a comma-separated list of artifact names, or the special value `all`.
@@ -109,9 +134,9 @@ legacylens scan <path> --artifacts all
 
 The normal `discovery-report.md` is always generated. Artifact names are case-insensitive. Comma-separated values may contain spaces around commas. Duplicate artifact names should be de-duplicated so reports are not generated twice. Unknown artifact names should produce a clear validation error listing the supported values. `all` must not be combined with other artifact names.
 
-Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, `interface-inventory`, `solution-topology`, and `code-complexity`.
+Supported artifact names are `upgrade-readiness`, `upgrade-blockers`, `external-dependencies`, `configuration-inventory`, `data-access`, `edmx-analysis`, `class-dependencies`, `class-dependency-scope`, `class-refactoring-opportunities`, `interface-inventory`, `solution-topology`, and `code-complexity`.
 
-Add `class-dependency-scope` to the supported artifact names as a parameterised artifact. It requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected, is valid with `--artifacts all` only as an additional scoped output when the type option is supplied, and must not make plain `--artifacts all` require a type name.
+`class-dependency-scope` is a parameterised artifact. It requires `--class-dependency-type <fully-qualified-type-name>` when explicitly selected, is valid with `--artifacts all` only as an additional scoped output when the type option is supplied, and must not make plain `--artifacts all` require a type name. `class-refactoring-opportunities` follows the same parameterised pattern with `--class-refactoring-type <fully-qualified-type-name>` and must not make plain `--artifacts all` require a type name.
 
 `--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it should be rejected when none of the selected artifacts are upgrade-related. It must not change discovery scope, enable extra analysis, or imply compatibility checking.
 

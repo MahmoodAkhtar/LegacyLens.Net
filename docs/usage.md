@@ -38,6 +38,8 @@ Options:
 --artifacts <value>     Optional artifact selection. Accepts one artifact name, a comma-separated list of artifact names, or all.
 --class-dependency-type <fully-qualified-type-name>
                         Fully qualified type name for the parameterised class-dependency-scope artifact.
+--class-refactoring-type <fully-qualified-type-name>
+                        Fully qualified type name for the parameterised class-refactoring-opportunities artifact.
 --upgrade-target <tfm>  Optional target-framework context for upgrade-readiness or upgrade-blockers report wording only; does not change discovery scope or perform compatibility checks.
 -h, --help             Show help.
 --version              Show version.
@@ -69,6 +71,8 @@ legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts edmx-anal
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-dependencies
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-dependency-scope --class-dependency-type SampleLegacyApp.Services.CustomerService
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all --class-dependency-type SampleLegacyApp.Services.CustomerService
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts class-refactoring-opportunities --class-refactoring-type SampleLegacyApp.Services.CustomerService
+legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts all --class-refactoring-type SampleLegacyApp.Services.CustomerService
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts interface-inventory
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts solution-topology
 legacylens scan C:\Repos\LegacyApp --output-dir C:\Reports --artifacts code-complexity
@@ -160,7 +164,7 @@ The scanner should still detect `[ServiceContract]`, `[ServiceContractAttribute]
 
 The main `discovery-report.md` is always generated. The optional `--artifacts <value>` option controls which additional artifact reports are generated from the same scan.
 
-The `class-dependency-scope` artifact is parameterised. It is selected through `--artifacts`, but it also needs `--class-dependency-type <fully-qualified-type-name>` so the scanner knows which root type to centre the scoped report on.
+The `class-dependency-scope` artifact is parameterised. It is selected through `--artifacts`, but it also needs `--class-dependency-type <fully-qualified-type-name>` so the scanner knows which root type to centre the scoped report on. The `class-refactoring-opportunities` artifact is also parameterised. It is selected through `--artifacts`, but it needs `--class-refactoring-type <fully-qualified-type-name>` so the analyzer knows which class to inspect for refactoring-planning signals.
 
 `--artifacts` accepts:
 
@@ -178,6 +182,7 @@ Supported artifact names are:
 - `edmx-analysis`
 - `class-dependencies`
 - `class-dependency-scope`
+- `class-refactoring-opportunities`
 - `interface-inventory`
 - `solution-topology`
 - `code-complexity`
@@ -200,7 +205,9 @@ legacylens scan <path> --artifacts all,data-access
 
 Unknown artifact names should produce a clear validation error that lists the supported values.
 
-`--class-dependency-type` should be accepted only when `--artifacts` includes `class-dependency-scope` or uses `all`. If `class-dependency-scope` is explicitly selected without a type name, the CLI should return `The class-dependency-scope artifact requires --class-dependency-type <fully-qualified-type-name>.` If the type option is used with unrelated artifacts, the CLI should return `Use --class-dependency-type only when --artifacts includes class-dependency-scope or all.` `--artifacts all` should remain suitable for normal batch scans and should generate the scoped artifact only when the type option is also supplied.
+`--class-dependency-type` should be accepted only when `--artifacts` includes `class-dependency-scope` or uses `all`. If `class-dependency-scope` is explicitly selected without a type name, the CLI should return `The class-dependency-scope artifact requires --class-dependency-type <fully-qualified-type-name>.` If the type option is used with unrelated artifacts, the CLI should return `Use --class-dependency-type only when --artifacts includes class-dependency-scope or all.` `--artifacts all` should remain suitable for normal batch scans and should generate the scoped dependency artifact only when the type option is also supplied.
+
+`--class-refactoring-type` should be accepted only when `--artifacts` includes `class-refactoring-opportunities` or uses `all`. If `class-refactoring-opportunities` is explicitly selected without a type name, the CLI should return `The class-refactoring-opportunities artifact requires --class-refactoring-type <fully-qualified-type-name>.` If the type option is used with unrelated artifacts, the CLI should return `Use --class-refactoring-type only when --artifacts includes class-refactoring-opportunities or all.` `--artifacts all` should remain suitable for normal batch scans and should generate the class refactoring opportunities artifact only when the type option is also supplied.
 
 `--upgrade-target <tfm>` is optional target-framework context for upgrade report wording only. It is valid only when the selected artifacts include `upgrade-readiness`, `upgrade-blockers`, or `all`, and it does not change discovery scope or perform compatibility checks:
 
@@ -216,6 +223,32 @@ legacylens scan <path> --artifacts all --upgrade-target net8.0
 ```bash
 legacylens scan <path> --artifacts data-access --upgrade-target net8.0
 ```
+
+### Class Refactoring Opportunities Artifact
+
+The MVP scope now includes an optional parameterised `class-refactoring-opportunities` artifact that should produce a type-specific timestamped report:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts class-refactoring-opportunities --class-refactoring-type SampleLegacyApp.Services.CustomerService
+```
+
+It may also be included in an `all` run only when the type option is supplied:
+
+```bash
+legacylens scan <path> --output-dir ./output --artifacts all --class-refactoring-type SampleLegacyApp.Services.CustomerService
+```
+
+The generated filename should be:
+
+```text
+class-refactoring-opportunities.<safe-fully-qualified-type-name>.<yyyyMMdd-HHmmss>.md
+```
+
+The filename timestamp should use local machine time in sortable `yyyyMMdd-HHmmss` format. The report body should include both local and UTC generated timestamps. Repeated runs should preserve historical reports by default.
+
+This artifact should help a developer decide how to approach changing a single class before refactoring. It should not rewrite code, generate patches, run tests, build the solution, or claim that a refactoring is safe. It should collect evidence-backed static signals about testability barriers, existing seams, missing or weak seams, side effects, dependency-breaking needs, method complexity hotspots, and first characterization-test targets. It should then suggest only relevant Working Effectively with Legacy Code-inspired techniques, such as characterization tests, sensing, seams, dependency breaking, extract interface, parameterize constructor, adapt parameter, sprout method/class, wrap method/class, or extract method/class, when there is supporting evidence.
+
+The report should be discriminating. If the analyzer does not find enough evidence for a useful recommendation, it should say `Not enough evidence` or `No strong recommendation` rather than emitting generic technique advice.
 
 ### Upgrade Readiness Artifact
 

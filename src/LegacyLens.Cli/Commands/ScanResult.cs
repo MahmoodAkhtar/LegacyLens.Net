@@ -45,6 +45,9 @@ public sealed class ScanResult
     public string? ScopedClassDependencyOutputPath { get; init; }
     public ScopedClassDependencyReport? ScopedClassDependencyReport { get; init; }
 
+    public string? ClassRefactoringOpportunitiesOutputPath { get; init; }
+    public ClassRefactoringOpportunitiesReport? ClassRefactoringOpportunitiesReport { get; init; }
+
     public string? InterfaceInventoryOutputPath { get; init; }
     public InterfaceInventoryReport? InterfaceInventoryReport { get; init; }
 

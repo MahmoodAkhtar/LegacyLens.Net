@@ -51,6 +51,7 @@ public sealed class CliParser
         var shouldWriteAllArtifacts = false;
         string? upgradeTarget = null;
         string? classDependencyType = null;
+        string? classRefactoringType = null;
 
         for (var i = 0; i < args.Length; i++)
         {
@@ -129,6 +130,16 @@ public sealed class CliParser
                 continue;
             }
 
+            if (arg.Equals("--class-refactoring-type", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!TryReadOptionValue(args, ref i, arg, out classRefactoringType, out var error))
+                {
+                    return CliParseResult.Error(error);
+                }
+
+                continue;
+            }
+
             if (arg.Equals("--upgrade-target", StringComparison.OrdinalIgnoreCase))
             {
                 if (!TryReadOptionValue(args, ref i, arg, out upgradeTarget, out var error))
@@ -184,7 +195,8 @@ public sealed class CliParser
             SelectedArtifacts = selectedArtifacts,
             ShouldWriteAllArtifacts = shouldWriteAllArtifacts,
             UpgradeTarget = upgradeTarget,
-            ClassDependencyType = classDependencyType
+            ClassDependencyType = classDependencyType,
+            ClassRefactoringType = classRefactoringType
         };
 
         if (!string.IsNullOrWhiteSpace(upgradeTarget) &&
@@ -206,6 +218,20 @@ public sealed class CliParser
         {
             return CliParseResult.Error(
                 "Use --class-dependency-type only when --artifacts includes class-dependency-scope or all.");
+        }
+
+        if (options.SelectedArtifacts.Contains(ScanOptions.ClassRefactoringOpportunitiesArtifact, StringComparer.OrdinalIgnoreCase) &&
+            string.IsNullOrWhiteSpace(classRefactoringType))
+        {
+            return CliParseResult.Error(
+                "The class-refactoring-opportunities artifact requires --class-refactoring-type <fully-qualified-type-name>.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(classRefactoringType) &&
+            !options.HasClassRefactoringOpportunitiesArtifactSelection)
+        {
+            return CliParseResult.Error(
+                "Use --class-refactoring-type only when --artifacts includes class-refactoring-opportunities or all.");
         }
 
         return CliParseResult.Scan(options);

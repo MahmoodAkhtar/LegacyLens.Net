@@ -138,6 +138,7 @@ public sealed class ScanCommand
         var edmxAnalysisResult = FindArtifactResult(artifactResults, "edmx-analysis");
         var classDependenciesResult = FindArtifactResult(artifactResults, "class-dependencies");
         var scopedClassDependencyResult = FindArtifactResult(artifactResults, "class-dependency-scope");
+        var classRefactoringOpportunitiesResult = FindArtifactResult(artifactResults, "class-refactoring-opportunities");
         var interfaceInventoryResult = FindArtifactResult(artifactResults, "interface-inventory");
         var solutionTopologyResult = FindArtifactResult(artifactResults, "solution-topology");
         var codeComplexityResult = FindArtifactResult(artifactResults, "code-complexity");
@@ -180,6 +181,9 @@ public sealed class ScanCommand
             ScopedClassDependencyOutputPath = scopedClassDependencyResult?.OutputPath,
             ScopedClassDependencyReport = scopedClassDependencyResult?.Report as ScopedClassDependencyReport,
 
+            ClassRefactoringOpportunitiesOutputPath = classRefactoringOpportunitiesResult?.OutputPath,
+            ClassRefactoringOpportunitiesReport = classRefactoringOpportunitiesResult?.Report as ClassRefactoringOpportunitiesReport,
+
             InterfaceInventoryOutputPath = interfaceInventoryResult?.OutputPath,
             InterfaceInventoryReport = interfaceInventoryResult?.Report as InterfaceInventoryReport,
 
@@ -201,6 +205,7 @@ public sealed class ScanCommand
         new EdmxAnalysisArtifactRunner(),
         new ClassDependenciesArtifactRunner(),
         new ScopedClassDependencyArtifactRunner(),
+        new ClassRefactoringOpportunitiesArtifactRunner(),
         new InterfaceInventoryArtifactRunner(),
         new SolutionTopologyArtifactRunner(),
         new CodeComplexityArtifactRunner()

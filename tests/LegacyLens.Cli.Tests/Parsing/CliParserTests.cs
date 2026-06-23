@@ -205,6 +205,94 @@ public sealed class CliParserTests
         Assert.False(result.Options.ShouldWriteScopedClassDependencyArtifact);
     }
 
+
+    [Fact]
+    public void Parse_WhenClassRefactoringOpportunitiesIsSelectedWithoutType_ReturnsError()
+    {
+        var result = Parse("scan", ".", "--artifacts", "class-refactoring-opportunities");
+
+        Assert.Equal(CliParseResultKind.Error, result.Kind);
+        Assert.Equal(
+            "The class-refactoring-opportunities artifact requires --class-refactoring-type <fully-qualified-type-name>.",
+            result.Message);
+    }
+
+    [Fact]
+    public void Parse_WhenClassRefactoringTypeIsUsedWithUnrelatedArtifact_ReturnsError()
+    {
+        var result = Parse(
+            "scan",
+            ".",
+            "--artifacts",
+            "data-access",
+            "--class-refactoring-type",
+            "SampleLegacyApp.Services.CustomerService");
+
+        Assert.Equal(CliParseResultKind.Error, result.Kind);
+        Assert.Equal(
+            "Use --class-refactoring-type only when --artifacts includes class-refactoring-opportunities or all.",
+            result.Message);
+    }
+
+    [Fact]
+    public void Parse_WhenClassRefactoringTypeIsUsedWithoutArtifacts_ReturnsError()
+    {
+        var result = Parse(
+            "scan",
+            ".",
+            "--class-refactoring-type",
+            "SampleLegacyApp.Services.CustomerService");
+
+        Assert.Equal(CliParseResultKind.Error, result.Kind);
+        Assert.Equal(
+            "Use --class-refactoring-type only when --artifacts includes class-refactoring-opportunities or all.",
+            result.Message);
+    }
+
+    [Fact]
+    public void Parse_WhenClassRefactoringOpportunitiesIsSelectedWithType_ReturnsScan()
+    {
+        var result = Parse(
+            "scan",
+            ".",
+            "--artifacts",
+            "class-refactoring-opportunities",
+            "--class-refactoring-type",
+            "SampleLegacyApp.Services.CustomerService");
+
+        Assert.Equal(CliParseResultKind.Scan, result.Kind);
+        Assert.Equal("SampleLegacyApp.Services.CustomerService", result.Options!.ClassRefactoringType);
+        Assert.True(result.Options.ShouldWriteClassRefactoringOpportunitiesArtifact);
+    }
+
+    [Fact]
+    public void Parse_WhenAllArtifactsAreSelectedWithClassRefactoringType_ReturnsScan()
+    {
+        var result = Parse(
+            "scan",
+            ".",
+            "--artifacts",
+            "all",
+            "--class-refactoring-type",
+            "SampleLegacyApp.Services.CustomerService");
+
+        Assert.Equal(CliParseResultKind.Scan, result.Kind);
+        Assert.True(result.Options!.ShouldWriteAllArtifacts);
+        Assert.Equal("SampleLegacyApp.Services.CustomerService", result.Options.ClassRefactoringType);
+        Assert.True(result.Options.ShouldWriteClassRefactoringOpportunitiesArtifact);
+    }
+
+    [Fact]
+    public void Parse_WhenAllArtifactsAreSelectedWithoutClassRefactoringType_DoesNotRequireType()
+    {
+        var result = Parse("scan", ".", "--artifacts", "all");
+
+        Assert.Equal(CliParseResultKind.Scan, result.Kind);
+        Assert.True(result.Options!.ShouldWriteAllArtifacts);
+        Assert.Null(result.Options.ClassRefactoringType);
+        Assert.False(result.Options.ShouldWriteClassRefactoringOpportunitiesArtifact);
+    }
+
     private static CliParseResult Parse(params string[] args)
     {
         var parser = new CliParser();
